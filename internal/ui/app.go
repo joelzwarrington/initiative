@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 type app struct {
@@ -13,6 +14,7 @@ type app struct {
 
 	currentView view
 	gameList    gameList
+	gameForm    gameForm
 }
 
 func newApp() app {
@@ -20,8 +22,9 @@ func newApp() app {
 
 	return app{
 		currentView: GameList,
-		games:       []game.Game{},
+		games:       games,
 		gameList:    newGameList(nil, games),
+		gameForm:    newGameForm(),
 	}
 }
 
@@ -31,42 +34,50 @@ func NewProgram() *tea.Program {
 }
 
 func (a app) Init() tea.Cmd {
+	a.gameForm.Init()
 	return nil
 }
 
 func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		a.gameList.SetSize(msg.Width, msg.Height)
-		return a, nil
-	case tea.KeyMsg:
-
-		switch a.currentView {
-		case GameList:
-			{
-				switch {
-				case key.Matches(msg, keys.Help):
-					a.gameList.SetShowHelp(!a.gameList.ShowHelp())
-					return a, nil
-				case key.Matches(msg, keys.New):
-					a.currentView = NewGameForm
-					return a, nil
-				}
-			}
-		case NewGameForm:
-			{
-				switch {
-				case key.Matches(msg, keys.Back):
-					a.currentView = GameList
-					return a, nil
-				}
+	switch a.currentView {
+	case GameList:
+		switch msg := msg.(type) {
+		case tea.WindowSizeMsg:
+			a.gameList.SetSize(msg.Width, msg.Height)
+			return a, nil
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, keys.Help):
+				a.gameList.SetShowHelp(!a.gameList.ShowHelp())
+				return a, nil
+			case key.Matches(msg, keys.New):
+				a.currentView = NewGameForm
+				return a, nil
+			case key.Matches(msg, keys.Quit):
+				return a, tea.Quit
 			}
 		}
-
-		switch {
-		case key.Matches(msg, keys.Quit):
-			return a, tea.Quit
+		var cmd tea.Cmd
+		a.gameList.Model, cmd = a.gameList.Update(msg)
+		return a, cmd
+	case NewGameForm:
+		form, cmd := a.gameForm.Update(msg)
+		if f, ok := form.(*huh.Form); ok {
+			a.gameForm.Form = *f
 		}
+
+		if a.gameForm.State == huh.StateCompleted {
+			name := a.gameForm.GetString("name")
+			newGame := game.Game{Name: name}
+			a.games = append(a.games, newGame)
+			a.gameList.SetItems(game.ToListItems(a.games))
+			a.gameForm = newGameForm()
+			a.gameForm.Init()
+			a.currentView = GameList
+			return a, nil
+		}
+
+		return a, cmd
 	}
 	return a, nil
 }
@@ -76,7 +87,7 @@ func (a app) View() string {
 	case GameList:
 		return a.gameList.View()
 	case NewGameForm:
-		return "New game form!"
+		return a.gameForm.View()
 	}
 
 	return ""

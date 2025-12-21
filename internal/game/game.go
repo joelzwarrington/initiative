@@ -16,7 +16,7 @@ func (g *Game) ToListItem() list.Item {
 func ToListItems(games []Game) []list.Item {
 	items := make([]list.Item, len(games))
 	for i, game := range games {
-		items[i] = game.ToListItem()
+		items[i] = &game
 	}
 	return items
 }
