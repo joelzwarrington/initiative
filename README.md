@@ -15,3 +15,12 @@ Run the test suite.
 ```bash
 go test ./...
 ```
+
+Run the application in any directory.
+
+```bash
+go build .
+go install
+
+initiative
+```
