@@ -1,30 +1,42 @@
 package ui
 
 import (
-	"initiative/internal/models"
+	"initiative/internal/data"
+	"initiative/internal/ui/views"
 
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 )
 
-type app struct {
-	currentGame *models.Game
-	games       []models.Game
+type view int
 
-	currentView view
-	gameList    gameList
-	gameForm    gameForm
+const (
+	GameList view = iota
+	NewGameForm
+	ShowGame
+)
+
+
+type app struct {
+	currentGame *data.Game
+	games       []data.Game
+
+	currentView     view
+	gameListModel   *views.GameListModel
+	gameFormModel   *views.GameNewFormModel
+	gamePageModel   *views.GamePageModel
 }
 
 func newApp() app {
-	games := []models.Game{}
+	games := []data.Game{}
+	var currentGame *data.Game
 
 	return app{
-		currentView: GameList,
-		games:       games,
-		gameList:    newGameList(nil, games),
-		gameForm:    newGameForm(),
+		currentView:     GameList,
+		games:           games,
+		currentGame:     currentGame,
+		gameListModel:   views.NewGameListModel(&games, &currentGame),
+		gameFormModel:   views.NewGameNewFormModel(&games),
+		gamePageModel:   views.NewGamePageModel(),
 	}
 }
 
@@ -34,79 +46,54 @@ func NewProgram() *tea.Program {
 }
 
 func (a app) Init() tea.Cmd {
-	a.gameForm.Init()
-	return nil
+	return a.gameFormModel.Init()
 }
 
 func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle navigation messages first
+	switch msg := msg.(type) {
+	case views.NavigateToGameListMsg:
+		a.currentView = GameList
+		a.gameListModel.RefreshItems()
+		return a, nil
+	case views.NavigateToNewGameFormMsg:
+		a.currentView = NewGameForm
+		return a, nil
+	case views.NavigateToShowGameMsg:
+		a.currentGame = msg.Game
+		a.gamePageModel.SetCurrentGame(msg.Game)
+		a.currentView = ShowGame
+		return a, nil
+	}
+
+	// Delegate to current view
+	var cmd tea.Cmd
 	switch a.currentView {
 	case GameList:
-		switch msg := msg.(type) {
-		case tea.WindowSizeMsg:
-			a.gameList.SetSize(msg.Width, msg.Height)
-			return a, nil
-		case tea.KeyMsg:
-			switch {
-			case key.Matches(msg, keys.New):
-				a.currentView = NewGameForm
-				return a, nil
-			case key.Matches(msg, keys.Quit):
-				return a, tea.Quit
-			case key.Matches(msg, keys.Select):
-				if selectedItem := a.gameList.SelectedItem(); selectedItem != nil {
-					if game, ok := selectedItem.(*models.Game); ok {
-						a.currentGame = game
-						a.currentView = ShowGame
-						return a, nil
-					}
-				}
-			}
-		}
-		var cmd tea.Cmd
-		a.gameList.Model, cmd = a.gameList.Update(msg)
-		return a, cmd
+		var model tea.Model
+		model, cmd = a.gameListModel.Update(msg)
+		a.gameListModel = model.(*views.GameListModel)
 	case ShowGame:
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch {
-			case key.Matches(msg, keys.Back):
-				a.currentView = GameList
-				return a, nil
-			case key.Matches(msg, keys.Quit):
-				return a, tea.Quit
-			}
-		}
-		return a, nil
+		var model tea.Model
+		model, cmd = a.gamePageModel.Update(msg)
+		a.gamePageModel = model.(*views.GamePageModel)
 	case NewGameForm:
-		form, cmd := a.gameForm.Update(msg)
-		if f, ok := form.(*huh.Form); ok {
-			a.gameForm.Form = *f
-		}
-
-		if a.gameForm.State == huh.StateCompleted {
-			name := a.gameForm.GetString("name")
-			newGame := models.Game{Name: name}
-			a.games = append(a.games, newGame)
-			a.gameList.SetItems(models.GamesToListItems(a.games))
-			a.gameForm = newGameForm()
-			a.gameForm.Init()
-			a.currentView = GameList
-			return a, nil
-		}
-
-		return a, cmd
+		var model tea.Model
+		model, cmd = a.gameFormModel.Update(msg)
+		a.gameFormModel = model.(*views.GameNewFormModel)
 	}
-	return a, nil
+
+	return a, cmd
 }
 
 func (a app) View() string {
 	switch a.currentView {
 	case GameList:
-		return a.gameList.View()
+		return a.gameListModel.View()
 	case NewGameForm:
-		return a.gameForm.View()
+		return a.gameFormModel.View()
 	case ShowGame:
-		return a.showGame()
+		return a.gamePageModel.View()
 	}
 
 	return ""
