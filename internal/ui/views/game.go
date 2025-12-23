@@ -10,19 +10,21 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var _ tea.Model = &GamePageModel{}
-var _ tea.Model = &GameNewFormModel{}
 var _ tea.Model = &GameListModel{}
 
 
 // gameListItem wraps data.Game to implement list.Item interface
 type gameListItem struct {
 	*data.Game
+	isNew     bool
+	isEditing bool
+	textInput *textinput.Model
 }
 
 func (g gameListItem) Title() string       { return g.Name }
@@ -31,7 +33,7 @@ func (g gameListItem) FilterValue() string { return g.Name }
 func gamesToListItems(games []data.Game) []list.Item {
 	items := make([]list.Item, len(games))
 	for i := range games {
-		items[i] = gameListItem{&games[i]}
+		items[i] = gameListItem{&games[i], false, false, nil}
 	}
 	return items
 }
@@ -43,16 +45,26 @@ var (
 
 type gameDelegate struct{}
 
-func (d gameDelegate) Height() int                             { return 1 }
-func (d gameDelegate) Spacing() int                            { return 0 }
-func (d gameDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d gameDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+func newGameDelegate() *gameDelegate {
+	return &gameDelegate{}
+}
+
+func (d *gameDelegate) Height() int                             { return 1 }
+func (d *gameDelegate) Spacing() int                            { return 0 }
+func (d *gameDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d *gameDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	g, ok := listItem.(gameListItem)
 	if !ok {
 		return
 	}
 
-	str := fmt.Sprintf("%d. %s", index+1, g.Name)
+	var str string
+	if g.isEditing && g.textInput != nil {
+		// When editing, show the text input with number prefix and proper selection indicator
+		str = fmt.Sprintf("%d. %s", index+1, g.textInput.View())
+	} else {
+		str = fmt.Sprintf("%d. %s", index+1, g.Name)
+	}
 
 	fn := itemStyle.Render
 	if index == m.Index() {
@@ -65,20 +77,36 @@ func (d gameDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type GameListModel struct {
-	list        list.Model
-	games       *[]data.Game
-	currentGame **data.Game
+	list         list.Model
+	games        *[]data.Game
+	currentGame  **data.Game
+	delegate     *gameDelegate
+	editing      bool
+	editingIndex int
+	textInput    textinput.Model
 }
 
 func NewGameListModel(games *[]data.Game, currentGame **data.Game) *GameListModel {
+	textInput := textinput.New()
+	textInput.Placeholder = "Enter game name..."
+	textInput.CharLimit = 50
+	textInput.Width = 30
+	textInput.Prompt = ""  // Remove the default "> " prompt
+	textInput.Cursor.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	gameList := &GameListModel{
-		games:       games,
-		currentGame: currentGame,
+		games:        games,
+		currentGame:  currentGame,
+		editing:      false,
+		editingIndex: -1,
+		textInput:    textInput,
 	}
+
+	gameList.delegate = newGameDelegate()
 
 	gameList.list = list.New(
 		gamesToListItems(*games),
-		gameDelegate{},
+		gameList.delegate,
 		0,
 		0,
 	)
@@ -90,16 +118,30 @@ func NewGameListModel(games *[]data.Game, currentGame **data.Game) *GameListMode
 	gameList.list.SetShowHelp(true)
 
 	gameList.list.AdditionalShortHelpKeys = func() []key.Binding {
+		if gameList.editing {
+			return []key.Binding{
+				key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "save")),
+				key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
+			}
+		}
 		return []key.Binding{
 			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
+			key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 			key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		}
 	}
 
 	gameList.list.AdditionalFullHelpKeys = func() []key.Binding {
+		if gameList.editing {
+			return []key.Binding{
+				key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "save")),
+				key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
+			}
+		}
 		return []key.Binding{
 			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
+			key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 			key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		}
@@ -111,6 +153,7 @@ func NewGameListModel(games *[]data.Game, currentGame **data.Game) *GameListMode
 func (m *GameListModel) setSize(width, height int) {
 	m.list.SetSize(width, height)
 }
+
 
 func (m *GameListModel) RefreshItems() {
 	m.list.SetItems(gamesToListItems(*m.games))
@@ -157,7 +200,7 @@ func (m *GameListModel) deleteSelectedGame() {
 }
 
 func (m *GameListModel) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -166,122 +209,152 @@ func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setSize(msg.Width, msg.Height)
 		return m, nil
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, key.NewBinding(key.WithKeys("n"))):
-			return m, messages.NavigateToNewGameForm()
-		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
-			return m, tea.Quit
-		case key.Matches(msg, key.NewBinding(key.WithKeys("d"))):
-			if len(*m.games) > 0 {
-				m.deleteSelectedGame()
-				return m, messages.SaveData()
+		if m.editing {
+			switch {
+			case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
+				name := strings.TrimSpace(m.textInput.Value())
+				if name != "" {
+					m.finishEditing(name)
+					return m, messages.SaveData()
+				}
+				return m, nil
+			case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
+				m.cancelEditing()
+				return m, nil
+			default:
+				var cmd tea.Cmd
+				m.textInput, cmd = m.textInput.Update(msg)
+				return m, cmd
 			}
-		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
-			if selectedGame := m.selectedGame(); selectedGame != nil {
-				return m, messages.NavigateToShowGame(selectedGame)
+		} else {
+			switch {
+			case key.Matches(msg, key.NewBinding(key.WithKeys("n"))):
+				m.startNewGame()
+				return m, textinput.Blink
+			case key.Matches(msg, key.NewBinding(key.WithKeys("e"))):
+				if len(*m.games) > 0 {
+					m.startEditingSelected()
+					return m, textinput.Blink
+				}
+			case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
+				return m, tea.Quit
+			case key.Matches(msg, key.NewBinding(key.WithKeys("d"))):
+				if len(*m.games) > 0 {
+					m.deleteSelectedGame()
+					return m, messages.SaveData()
+				}
+			case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
+				if selectedGame := m.selectedGame(); selectedGame != nil {
+					return m, messages.NavigateToShowGame(selectedGame)
+				}
+			default:
+				var cmd tea.Cmd
+				m.list, cmd = m.list.Update(msg)
+				return m, cmd
 			}
 		}
 	}
 	
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	// Only update list if not editing
+	if !m.editing {
+		var cmd tea.Cmd
+		m.list, cmd = m.list.Update(msg)
+		return m, cmd
+	}
+	
+	return m, nil
+}
+
+func (m *GameListModel) startNewGame() {
+	newGame := data.Game{Name: ""}
+	*m.games = append(*m.games, newGame)
+	
+	newIndex := len(*m.games) - 1
+	
+	m.editing = true
+	m.editingIndex = newIndex
+	m.textInput.SetValue("")
+	m.textInput.Focus()
+	
+	// Create list items with editing state
+	items := make([]list.Item, len(*m.games))
+	for i := range *m.games {
+		isEditing := i == newIndex
+		var textInputPtr *textinput.Model
+		if isEditing {
+			textInputPtr = &m.textInput
+		}
+		items[i] = gameListItem{&(*m.games)[i], i == newIndex, isEditing, textInputPtr}
+	}
+	
+	m.list.SetItems(items)
+	m.list.Select(newIndex)
+}
+
+func (m *GameListModel) startEditingSelected() {
+	selectedIndex := m.list.Index()
+	if selectedIndex < 0 || selectedIndex >= len(*m.games) {
+		return
+	}
+	
+	m.editing = true
+	m.editingIndex = selectedIndex
+	m.textInput.SetValue((*m.games)[selectedIndex].Name)
+	m.textInput.Focus()
+	
+	// Create list items with editing state
+	items := make([]list.Item, len(*m.games))
+	for i := range *m.games {
+		isEditing := i == selectedIndex
+		var textInputPtr *textinput.Model
+		if isEditing {
+			textInputPtr = &m.textInput
+		}
+		items[i] = gameListItem{&(*m.games)[i], false, isEditing, textInputPtr}
+	}
+	
+	m.list.SetItems(items)
+}
+
+func (m *GameListModel) finishEditing(name string) {
+	if m.editingIndex >= 0 && m.editingIndex < len(*m.games) {
+		(*m.games)[m.editingIndex].Name = name
+	}
+	
+	m.editing = false
+	m.editingIndex = -1
+	m.textInput.Blur()
+	
+	// Refresh items without editing state
+	m.RefreshItems()
+}
+
+func (m *GameListModel) cancelEditing() {
+	if m.editingIndex >= 0 {
+		items := m.list.Items()
+		if m.editingIndex < len(items) {
+			if gameItem, ok := items[m.editingIndex].(gameListItem); ok && gameItem.isNew {
+				// Remove the new game that was being created
+				*m.games = (*m.games)[:len(*m.games)-1]
+				
+				// Update selection to previous item if possible
+				if len(*m.games) > 0 && m.editingIndex > 0 {
+					m.list.Select(m.editingIndex - 1)
+				}
+			}
+		}
+	}
+	
+	m.editing = false
+	m.editingIndex = -1
+	m.textInput.Blur()
+	
+	// Refresh items without editing state
+	m.RefreshItems()
 }
 
 func (m *GameListModel) View() string {
 	return m.list.View()
-}
-
-type GameNewFormModel struct {
-	form  huh.Form
-	games *[]data.Game
-}
-
-func NewGameNewFormModel(games *[]data.Game) *GameNewFormModel {
-	gameForm := &GameNewFormModel{
-		games: games,
-	}
-
-	gameForm.form = *huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Key("name").
-				Title("Name").
-				Validate(func(str string) error {
-					if str == "" {
-						return nil
-					}
-					return nil
-				}),
-		),
-	).WithTheme(huh.ThemeCharm())
-
-	return gameForm
-}
-
-func (m *GameNewFormModel) Init() tea.Cmd {
-	return m.form.Init()
-}
-
-func (m *GameNewFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
-			m.reset()
-			return m, tea.Batch(m.Init(), messages.NavigateToGameList())
-		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
-			return m, tea.Quit
-		}
-	}
-
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = *f
-	}
-
-	if m.isCompleted() {
-		m.addGame()
-		m.reset()
-		return m, tea.Batch(m.Init(), messages.SaveData(), messages.NavigateToGameList())
-	}
-
-	return m, cmd
-}
-
-func (m *GameNewFormModel) View() string {
-	return m.form.View()
-}
-
-func (m *GameNewFormModel) isCompleted() bool {
-	return m.form.State == huh.StateCompleted
-}
-
-func (m *GameNewFormModel) getGameName() string {
-	return m.form.GetString("name")
-}
-
-func (m *GameNewFormModel) addGame() {
-	name := m.getGameName()
-	newGame := data.Game{Name: name}
-	*m.games = append(*m.games, newGame)
-}
-
-func (m *GameNewFormModel) reset() {
-	m.form = *huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Key("name").
-				Title("Name").
-				Validate(func(str string) error {
-					if str == "" {
-						return nil
-					}
-					return nil
-				}),
-		),
-	).WithTheme(huh.ThemeCharm())
-	m.form.Init()
 }
 
 type GamePageModel struct {

@@ -12,7 +12,6 @@ type view int
 
 const (
 	GameList view = iota
-	NewGameForm
 	ShowGame
 )
 
@@ -22,7 +21,6 @@ type app struct {
 
 	currentView   view
 	gameListModel *views.GameListModel
-	gameFormModel *views.GameNewFormModel
 	gamePageModel *views.GamePageModel
 }
 
@@ -36,7 +34,6 @@ func newApp(appData *data.Data) app {
 	}
 	
 	app.gameListModel = views.NewGameListModel(&app.Games, &app.currentGame)
-	app.gameFormModel = views.NewGameNewFormModel(&app.Games)
 	app.gamePageModel = views.NewGamePageModel()
 	
 	return app
@@ -48,7 +45,7 @@ func NewProgram(appData *data.Data) *tea.Program {
 }
 
 func (a app) Init() tea.Cmd {
-	return a.gameFormModel.Init()
+	return nil
 }
 
 func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -57,9 +54,6 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.NavigateToGameListMsg:
 		a.currentView = GameList
 		a.gameListModel.RefreshItems()
-		return a, nil
-	case messages.NavigateToNewGameFormMsg:
-		a.currentView = NewGameForm
 		return a, nil
 	case messages.NavigateToShowGameMsg:
 		a.currentGame = msg.Game
@@ -82,10 +76,6 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var model tea.Model
 		model, cmd = a.gamePageModel.Update(msg)
 		a.gamePageModel = model.(*views.GamePageModel)
-	case NewGameForm:
-		var model tea.Model
-		model, cmd = a.gameFormModel.Update(msg)
-		a.gameFormModel = model.(*views.GameNewFormModel)
 	}
 
 	return a, cmd
@@ -95,8 +85,6 @@ func (a app) View() string {
 	switch a.currentView {
 	case GameList:
 		return a.gameListModel.View()
-	case NewGameForm:
-		return a.gameFormModel.View()
 	case ShowGame:
 		return a.gamePageModel.View()
 	}

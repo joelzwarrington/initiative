@@ -51,8 +51,9 @@ func TestApp_Update_NewKey(t *testing.T) {
 		updatedApp = model.(app)
 	}
 
-	if updatedApp.currentView != NewGameForm {
-		t.Error("New key should switch to NewGameForm view")
+	// New key now triggers inline editing, so we remain in GameList view
+	if updatedApp.currentView != GameList {
+		t.Error("New key should stay in GameList view with inline editing")
 	}
 }
 
@@ -119,15 +120,7 @@ func TestApp_View(t *testing.T) {
 		}
 	})
 
-	t.Run("new game form view renders correctly", func(t *testing.T) {
-		appData := &data.Data{}
-		testApp := newApp(appData)
-		testApp.currentView = NewGameForm
-		view := testApp.View()
-		if view == "" {
-			t.Error("NewGameForm view should return non-empty string")
-		}
-	})
+	// NewGameForm view no longer exists - form is integrated into GameList view
 
 	t.Run("show game view renders correctly", func(t *testing.T) {
 		appData := &data.Data{}
