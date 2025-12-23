@@ -15,33 +15,34 @@ const (
 	ShowGame
 )
 
-
 type app struct {
+	*data.Data
 	currentGame *data.Game
-	games       []data.Game
 
-	currentView     view
-	gameListModel   *views.GameListModel
-	gameFormModel   *views.GameNewFormModel
-	gamePageModel   *views.GamePageModel
+	currentView   view
+	gameListModel *views.GameListModel
+	gameFormModel *views.GameNewFormModel
+	gamePageModel *views.GamePageModel
 }
 
-func newApp() app {
-	games := []data.Game{}
+func newApp(appData *data.Data) app {
 	var currentGame *data.Game
 
-	return app{
-		currentView:     GameList,
-		games:           games,
-		currentGame:     currentGame,
-		gameListModel:   views.NewGameListModel(&games, &currentGame),
-		gameFormModel:   views.NewGameNewFormModel(&games),
-		gamePageModel:   views.NewGamePageModel(),
+	app := app{
+		Data:        appData,
+		currentView: GameList,
+		currentGame: currentGame,
 	}
+	
+	app.gameListModel = views.NewGameListModel(&app.Games, &app.currentGame)
+	app.gameFormModel = views.NewGameNewFormModel(&app.Games)
+	app.gamePageModel = views.NewGamePageModel()
+	
+	return app
 }
 
-func NewProgram() *tea.Program {
-	app := newApp()
+func NewProgram(appData *data.Data) *tea.Program {
+	app := newApp(appData)
 	return tea.NewProgram(app)
 }
 
@@ -63,6 +64,9 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.currentGame = msg.Game
 		a.gamePageModel.SetCurrentGame(msg.Game)
 		a.currentView = ShowGame
+		return a, nil
+	case views.SaveDataMsg:
+		a.Save()
 		return a, nil
 	}
 

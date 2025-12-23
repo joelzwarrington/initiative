@@ -8,21 +8,24 @@ import (
 )
 
 func TestNewProgram(t *testing.T) {
-	program := NewProgram()
+	appData := &data.Data{}
+	program := NewProgram(appData)
 	if program == nil {
 		t.Error("NewProgram should return a non-nil program")
 	}
 }
 
 func TestApp_Init(t *testing.T) {
-	app := newApp()
+	appData := &data.Data{}
+	app := newApp(appData)
 	cmd := app.Init()
 	// Init now returns a command from the form, so it might not be nil
 	_ = cmd
 }
 
 func TestApp_Update_QuitKey(t *testing.T) {
-	testApp := newApp()
+	appData := &data.Data{}
+	testApp := newApp(appData)
 	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
 
 	_, cmd := testApp.Update(msg)
@@ -33,7 +36,8 @@ func TestApp_Update_QuitKey(t *testing.T) {
 }
 
 func TestApp_Update_NewKey(t *testing.T) {
-	testApp := newApp()
+	appData := &data.Data{}
+	testApp := newApp(appData)
 	testApp.currentView = GameList
 	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
 
@@ -55,12 +59,13 @@ func TestApp_Update_NewKey(t *testing.T) {
 func TestApp_Update_SelectKey(t *testing.T) {
 	// This test is complex since it requires simulating list selection
 	// For now, we'll test the basic navigation without list selection
-	testApp := newApp()
+	appData := &data.Data{}
+	testApp := newApp(appData)
 	testApp.currentView = GameList
 
 	// Add a game directly
 	testGame := data.Game{Name: "Test Game"}
-	testApp.games = []data.Game{testGame}
+	testApp.Games = []data.Game{testGame}
 	testApp.currentGame = &testGame
 
 	// Test direct navigation to ShowGame
@@ -80,7 +85,8 @@ func TestApp_Update_SelectKey(t *testing.T) {
 }
 
 func TestApp_Update_BackKeyFromShowGame(t *testing.T) {
-	testApp := newApp()
+	appData := &data.Data{}
+	testApp := newApp(appData)
 	testApp.currentView = ShowGame
 	testApp.currentGame = &data.Game{Name: "Test Game"}
 	testApp.gamePageModel.SetCurrentGame(testApp.currentGame)
@@ -104,7 +110,8 @@ func TestApp_Update_BackKeyFromShowGame(t *testing.T) {
 
 func TestApp_View(t *testing.T) {
 	t.Run("game list view renders correctly", func(t *testing.T) {
-		testApp := newApp()
+		appData := &data.Data{}
+		testApp := newApp(appData)
 		testApp.currentView = GameList
 		view := testApp.View()
 		if view == "" {
@@ -113,7 +120,8 @@ func TestApp_View(t *testing.T) {
 	})
 
 	t.Run("new game form view renders correctly", func(t *testing.T) {
-		testApp := newApp()
+		appData := &data.Data{}
+		testApp := newApp(appData)
 		testApp.currentView = NewGameForm
 		view := testApp.View()
 		if view == "" {
@@ -122,7 +130,8 @@ func TestApp_View(t *testing.T) {
 	})
 
 	t.Run("show game view renders correctly", func(t *testing.T) {
-		testApp := newApp()
+		appData := &data.Data{}
+		testApp := newApp(appData)
 		testApp.currentView = ShowGame
 		testApp.currentGame = &data.Game{Name: "Test Game"}
 		view := testApp.View()

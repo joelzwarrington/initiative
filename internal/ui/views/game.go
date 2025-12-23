@@ -24,6 +24,7 @@ type NavigateToNewGameFormMsg struct{}
 type NavigateToShowGameMsg struct {
 	Game *data.Game
 }
+type SaveDataMsg struct{}
 
 func NavigateToGameList() tea.Cmd {
 	return func() tea.Msg { return NavigateToGameListMsg{} }
@@ -35,6 +36,10 @@ func NavigateToNewGameForm() tea.Cmd {
 
 func NavigateToShowGame(game *data.Game) tea.Cmd {
 	return func() tea.Msg { return NavigateToShowGameMsg{Game: game} }
+}
+
+func SaveData() tea.Cmd {
+	return func() tea.Msg { return SaveDataMsg{} }
 }
 
 // gameListItem wraps data.Game to implement list.Item interface
@@ -222,7 +227,7 @@ func (m *GameNewFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.isCompleted() {
 		m.addGame()
 		m.reset()
-		return m, tea.Batch(m.Init(), NavigateToGameList())
+		return m, tea.Batch(m.Init(), SaveData(), NavigateToGameList())
 	}
 
 	return m, cmd
