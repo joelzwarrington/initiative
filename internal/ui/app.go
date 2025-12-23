@@ -47,9 +47,6 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		case tea.KeyMsg:
 			switch {
-			case key.Matches(msg, keys.Help):
-				a.gameList.SetShowHelp(!a.gameList.ShowHelp())
-				return a, nil
 			case key.Matches(msg, keys.New):
 				a.currentView = NewGameForm
 				return a, nil

@@ -69,8 +69,15 @@ func newGameList(currentGame *game.Game, games []game.Game) gameList {
 	gameList.SetShowTitle(true)
 	gameList.SetShowStatusBar(false)
 	gameList.SetFilteringEnabled(false)
+	gameList.SetShowHelp(true)
 
 	gameList.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			keys.New,
+		}
+	}
+	
+	gameList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			keys.New,
 		}
