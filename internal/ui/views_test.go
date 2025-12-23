@@ -2,17 +2,9 @@ package ui
 
 import (
 	"initiative/internal/game"
+	"strings"
 	"testing"
 )
-
-func TestViewConstants(t *testing.T) {
-	if GameList != 0 {
-		t.Error("GameList should be 0")
-	}
-	if NewGameForm != 1 {
-		t.Error("NewGameForm should be 1")
-	}
-}
 
 func TestNewGameList(t *testing.T) {
 
@@ -48,6 +40,35 @@ func TestNewGameList(t *testing.T) {
 		gameList := newGameList(&games[0], games)
 		if gameList.currentGame == nil {
 			t.Error("Expected currentGame to be set on the list")
+		}
+	})
+}
+
+func TestShowGame(t *testing.T) {
+	t.Run("shows no game selected when currentGame is nil", func(t *testing.T) {
+		testApp := app{currentGame: nil}
+		result := testApp.showGame()
+
+		if result != "No game selected" {
+			t.Errorf("Expected 'No game selected', got %s", result)
+		}
+	})
+
+	t.Run("shows game name and help when currentGame is set", func(t *testing.T) {
+		testGame := &game.Game{Name: "Test Game"}
+		testApp := app{currentGame: testGame}
+		result := testApp.showGame()
+
+		if result == "" {
+			t.Error("Expected non-empty result when currentGame is set")
+		}
+
+		if !strings.Contains(result, "Test Game") {
+			t.Error("Expected game name to be in output")
+		}
+
+		if !strings.Contains(result, "esc") {
+			t.Error("Expected help text to include escape key")
 		}
 	})
 }

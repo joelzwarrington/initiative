@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"initiative/internal/game"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,17 +46,45 @@ func TestApp_Update_NewKey(t *testing.T) {
 	}
 }
 
-func TestApp_Update_BackKey(t *testing.T) {
+func TestApp_Update_SelectKey(t *testing.T) {
 	testApp := newApp()
-	testApp.currentView = NewGameForm
+	testApp.currentView = GameList
+	
+	// Add a game to select
+	testGame := game.Game{Name: "Test Game"}
+	testApp.games = []game.Game{testGame}
+	testApp.gameList.SetItems(game.ToListItems(testApp.games))
+	
+	msg := tea.KeyMsg{Type: tea.KeyEnter}
+	
+	model, _ := testApp.Update(msg)
+	updatedApp := model.(app)
+	
+	if updatedApp.currentView != ShowGame {
+		t.Error("Select key should switch to ShowGame view")
+	}
+	
+	if updatedApp.currentGame == nil {
+		t.Error("currentGame should be set when selecting a game")
+	}
+	
+	if updatedApp.currentGame.Name != "Test Game" {
+		t.Errorf("Expected currentGame name to be 'Test Game', got %s", updatedApp.currentGame.Name)
+	}
+}
+
+func TestApp_Update_BackKeyFromShowGame(t *testing.T) {
+	testApp := newApp()
+	testApp.currentView = ShowGame
+	testApp.currentGame = &game.Game{Name: "Test Game"}
+	
 	msg := tea.KeyMsg{Type: tea.KeyEsc}
 	
 	model, _ := testApp.Update(msg)
 	updatedApp := model.(app)
 	
-	// Back key functionality not implemented for NewGameForm view
-	if updatedApp.currentView == GameList {
-		t.Error("Back key functionality not implemented in NewGameForm view")
+	if updatedApp.currentView != GameList {
+		t.Error("Back key should switch from ShowGame to GameList view")
 	}
 }
 
@@ -75,6 +104,16 @@ func TestApp_View(t *testing.T) {
 		view := testApp.View()
 		if view == "" {
 			t.Error("NewGameForm view should return non-empty string")
+		}
+	})
+	
+	t.Run("show game view renders correctly", func(t *testing.T) {
+		testApp := newApp()
+		testApp.currentView = ShowGame
+		testApp.currentGame = &game.Game{Name: "Test Game"}
+		view := testApp.View()
+		if view == "" {
+			t.Error("ShowGame view should return non-empty string")
 		}
 	})
 }

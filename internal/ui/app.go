@@ -52,11 +52,31 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, nil
 			case key.Matches(msg, keys.Quit):
 				return a, tea.Quit
+			case key.Matches(msg, keys.Select):
+				if selectedItem := a.gameList.SelectedItem(); selectedItem != nil {
+					if game, ok := selectedItem.(*game.Game); ok {
+						a.currentGame = game
+						a.currentView = ShowGame
+						return a, nil
+					}
+				}
 			}
 		}
 		var cmd tea.Cmd
 		a.gameList.Model, cmd = a.gameList.Update(msg)
 		return a, cmd
+	case ShowGame:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, keys.Back):
+				a.currentView = GameList
+				return a, nil
+			case key.Matches(msg, keys.Quit):
+				return a, tea.Quit
+			}
+		}
+		return a, nil
 	case NewGameForm:
 		form, cmd := a.gameForm.Update(msg)
 		if f, ok := form.(*huh.Form); ok {
@@ -85,6 +105,8 @@ func (a app) View() string {
 		return a.gameList.View()
 	case NewGameForm:
 		return a.gameForm.View()
+	case ShowGame:
+		return a.showGame()
 	}
 
 	return ""
