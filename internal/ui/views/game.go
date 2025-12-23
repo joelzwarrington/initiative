@@ -30,8 +30,8 @@ func (g gameListItem) FilterValue() string { return g.Name }
 
 func gamesToListItems(games []data.Game) []list.Item {
 	items := make([]list.Item, len(games))
-	for i, game := range games {
-		items[i] = gameListItem{&game}
+	for i := range games {
+		items[i] = gameListItem{&games[i]}
 	}
 	return items
 }
@@ -93,6 +93,7 @@ func NewGameListModel(games *[]data.Game, currentGame **data.Game) *GameListMode
 		return []key.Binding{
 			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
 			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+			key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		}
 	}
 
@@ -100,6 +101,7 @@ func NewGameListModel(games *[]data.Game, currentGame **data.Game) *GameListMode
 		return []key.Binding{
 			key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
 			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+			key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		}
 	}
 
@@ -123,6 +125,37 @@ func (m *GameListModel) selectedGame() *data.Game {
 	return nil
 }
 
+func (m *GameListModel) deleteSelectedGame() {
+	if selectedItem := m.list.SelectedItem(); selectedItem != nil {
+		if gameItem, ok := selectedItem.(gameListItem); ok {
+			currentIndex := m.list.Index()
+			// Find and remove the game from the slice
+			for i := range *m.games {
+				if &(*m.games)[i] == gameItem.Game {
+					*m.games = append((*m.games)[:i], (*m.games)[i+1:]...)
+					
+					// Update list items
+					m.list.SetItems(gamesToListItems(*m.games))
+					
+					// Set selection to game above (or same index if deleting first item)
+					newIndex := currentIndex
+					if currentIndex > 0 && currentIndex >= len(*m.games) {
+						newIndex = len(*m.games) - 1
+					} else if currentIndex > 0 {
+						newIndex = currentIndex - 1
+					}
+					
+					// Only set cursor if there are still games
+					if len(*m.games) > 0 {
+						m.list.Select(newIndex)
+					}
+					break
+				}
+			}
+		}
+	}
+}
+
 func (m *GameListModel) Init() tea.Cmd {
 	return nil
 }
@@ -138,6 +171,11 @@ func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, messages.NavigateToNewGameForm()
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
 			return m, tea.Quit
+		case key.Matches(msg, key.NewBinding(key.WithKeys("d"))):
+			if len(*m.games) > 0 {
+				m.deleteSelectedGame()
+				return m, messages.SaveData()
+			}
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			if selectedGame := m.selectedGame(); selectedGame != nil {
 				return m, messages.NavigateToShowGame(selectedGame)

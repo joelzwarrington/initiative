@@ -57,6 +57,169 @@ func TestGameListModel(t *testing.T) {
 		// Should not panic or error
 		_ = cmd
 	})
+
+	t.Run("deletes selected game", func(t *testing.T) {
+		games := []data.Game{
+			{Name: "Game 1"},
+			{Name: "Game 2"},
+			{Name: "Game 3"},
+		}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Select the second game (index 1)
+		model.list.Select(1)
+		
+		// Verify initial state
+		if len(games) != 3 {
+			t.Fatalf("Expected 3 games initially, got %d", len(games))
+		}
+		
+		// Delete the selected game
+		model.deleteSelectedGame()
+		
+		// Verify game was deleted
+		if len(games) != 2 {
+			t.Errorf("Expected 2 games after deletion, got %d", len(games))
+		}
+		
+		// Verify the correct game was deleted (Game 2 should be gone)
+		expectedNames := []string{"Game 1", "Game 3"}
+		for i, expected := range expectedNames {
+			if games[i].Name != expected {
+				t.Errorf("Expected game %d to be %s, got %s", i, expected, games[i].Name)
+			}
+		}
+	})
+
+	t.Run("deletes first game and maintains selection", func(t *testing.T) {
+		games := []data.Game{
+			{Name: "Game 1"},
+			{Name: "Game 2"},
+			{Name: "Game 3"},
+		}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Select the first game (index 0)
+		model.list.Select(0)
+		
+		// Delete the selected game
+		model.deleteSelectedGame()
+		
+		// Verify selection is still at index 0 (now showing "Game 2")
+		if model.list.Index() != 0 {
+			t.Errorf("Expected selection at index 0 after deleting first game, got %d", model.list.Index())
+		}
+		
+		// Verify correct games remain
+		if len(games) != 2 {
+			t.Errorf("Expected 2 games after deletion, got %d", len(games))
+		}
+		if games[0].Name != "Game 2" {
+			t.Errorf("Expected first game to be 'Game 2', got %s", games[0].Name)
+		}
+	})
+
+	t.Run("deletes middle game and selects game above", func(t *testing.T) {
+		games := []data.Game{
+			{Name: "Game 1"},
+			{Name: "Game 2"},
+			{Name: "Game 3"},
+		}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Select the middle game (index 1)
+		model.list.Select(1)
+		
+		// Delete the selected game
+		model.deleteSelectedGame()
+		
+		// Verify selection moved to game above (index 0)
+		if model.list.Index() != 0 {
+			t.Errorf("Expected selection at index 0 after deleting middle game, got %d", model.list.Index())
+		}
+		
+		// Verify correct games remain
+		if len(games) != 2 {
+			t.Errorf("Expected 2 games after deletion, got %d", len(games))
+		}
+		expectedNames := []string{"Game 1", "Game 3"}
+		for i, expected := range expectedNames {
+			if games[i].Name != expected {
+				t.Errorf("Expected game %d to be %s, got %s", i, expected, games[i].Name)
+			}
+		}
+	})
+
+	t.Run("deletes last game and selects new last game", func(t *testing.T) {
+		games := []data.Game{
+			{Name: "Game 1"},
+			{Name: "Game 2"},
+			{Name: "Game 3"},
+		}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Select the last game (index 2)
+		model.list.Select(2)
+		
+		// Delete the selected game
+		model.deleteSelectedGame()
+		
+		// Verify selection moved to new last game (index 1)
+		if model.list.Index() != 1 {
+			t.Errorf("Expected selection at index 1 after deleting last game, got %d", model.list.Index())
+		}
+		
+		// Verify correct games remain
+		if len(games) != 2 {
+			t.Errorf("Expected 2 games after deletion, got %d", len(games))
+		}
+		if games[1].Name != "Game 2" {
+			t.Errorf("Expected last game to be 'Game 2', got %s", games[1].Name)
+		}
+	})
+
+	t.Run("deletes only game leaves empty list", func(t *testing.T) {
+		games := []data.Game{
+			{Name: "Only Game"},
+		}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Select the only game (index 0)
+		model.list.Select(0)
+		
+		// Delete the selected game
+		model.deleteSelectedGame()
+		
+		// Verify list is empty
+		if len(games) != 0 {
+			t.Errorf("Expected 0 games after deleting only game, got %d", len(games))
+		}
+	})
+
+	t.Run("delete handles empty list gracefully", func(t *testing.T) {
+		games := []data.Game{}
+		var currentGame *data.Game
+
+		model := NewGameListModel(&games, &currentGame)
+		
+		// Try to delete from empty list (should not panic)
+		model.deleteSelectedGame()
+		
+		// Verify list is still empty
+		if len(games) != 0 {
+			t.Errorf("Expected 0 games in empty list, got %d", len(games))
+		}
+	})
 }
 
 func TestGameNewFormModel(t *testing.T) {
