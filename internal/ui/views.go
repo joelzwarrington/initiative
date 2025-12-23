@@ -2,7 +2,7 @@ package ui
 
 import (
 	"fmt"
-	"initiative/internal/game"
+	"initiative/internal/models"
 	"io"
 	"strings"
 
@@ -33,7 +33,7 @@ func (d gameDelegate) Height() int                             { return 1 }
 func (d gameDelegate) Spacing() int                            { return 0 }
 func (d gameDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d gameDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	g, ok := listItem.(*game.Game)
+	g, ok := listItem.(*models.Game)
 	if !ok {
 		return
 	}
@@ -52,14 +52,14 @@ func (d gameDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 type gameList struct {
 	list.Model
-	currentGame *game.Game
-	games       *[]game.Game
+	currentGame *models.Game
+	games       *[]models.Game
 }
 
-func newGameList(currentGame *game.Game, games []game.Game) gameList {
+func newGameList(currentGame *models.Game, games []models.Game) gameList {
 	gameList := gameList{
 		Model: list.New(
-			game.ToListItems(games),
+			models.GamesToListItems(games),
 			gameDelegate{},
 			0,
 			0,

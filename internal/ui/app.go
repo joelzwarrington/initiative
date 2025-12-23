@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"initiative/internal/game"
+	"initiative/internal/models"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,8 +9,8 @@ import (
 )
 
 type app struct {
-	currentGame *game.Game
-	games       []game.Game
+	currentGame *models.Game
+	games       []models.Game
 
 	currentView view
 	gameList    gameList
@@ -18,7 +18,7 @@ type app struct {
 }
 
 func newApp() app {
-	games := []game.Game{}
+	games := []models.Game{}
 
 	return app{
 		currentView: GameList,
@@ -54,7 +54,7 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, tea.Quit
 			case key.Matches(msg, keys.Select):
 				if selectedItem := a.gameList.SelectedItem(); selectedItem != nil {
-					if game, ok := selectedItem.(*game.Game); ok {
+					if game, ok := selectedItem.(*models.Game); ok {
 						a.currentGame = game
 						a.currentView = ShowGame
 						return a, nil
@@ -85,9 +85,9 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if a.gameForm.State == huh.StateCompleted {
 			name := a.gameForm.GetString("name")
-			newGame := game.Game{Name: name}
+			newGame := models.Game{Name: name}
 			a.games = append(a.games, newGame)
-			a.gameList.SetItems(game.ToListItems(a.games))
+			a.gameList.SetItems(models.GamesToListItems(a.games))
 			a.gameForm = newGameForm()
 			a.gameForm.Init()
 			a.currentView = GameList

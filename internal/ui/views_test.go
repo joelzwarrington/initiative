@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"initiative/internal/game"
+	"initiative/internal/models"
 	"strings"
 	"testing"
 )
@@ -9,7 +9,7 @@ import (
 func TestNewGameList(t *testing.T) {
 
 	t.Run("assigns items to games", func(t *testing.T) {
-		games := []game.Game{
+		games := []models.Game{
 			{Name: "Game 1"},
 			{Name: "Game 2"},
 		}
@@ -25,7 +25,7 @@ func TestNewGameList(t *testing.T) {
 			t.Errorf("Expected 2 items, got %d", len(items))
 		}
 
-		gameList = newGameList(nil, []game.Game{})
+		gameList = newGameList(nil, []models.Game{})
 		items = gameList.Items()
 		if len(items) != 0 {
 			t.Errorf("Expected 0 items, got %d", len(items))
@@ -33,7 +33,7 @@ func TestNewGameList(t *testing.T) {
 	})
 
 	t.Run("assigns current game", func(t *testing.T) {
-		games := []game.Game{
+		games := []models.Game{
 			{Name: "Game 1"},
 		}
 
@@ -55,7 +55,7 @@ func TestShowGame(t *testing.T) {
 	})
 
 	t.Run("shows game name and help when currentGame is set", func(t *testing.T) {
-		testGame := &game.Game{Name: "Test Game"}
+		testGame := &models.Game{Name: "Test Game"}
 		testApp := app{currentGame: testGame}
 		result := testApp.showGame()
 
