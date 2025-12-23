@@ -5,6 +5,8 @@
 !go.sum
 !go.mod
 
+!.github/workflows/ci.yaml
+
 !README.md
 !LICENSE
 
