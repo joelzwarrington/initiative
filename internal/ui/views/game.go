@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"initiative/internal/data"
+	"initiative/internal/ui/messages"
 	"io"
 	"strings"
 
@@ -18,29 +19,6 @@ var _ tea.Model = &GamePageModel{}
 var _ tea.Model = &GameNewFormModel{}
 var _ tea.Model = &GameListModel{}
 
-// Navigation commands that views can return to communicate with the app
-type NavigateToGameListMsg struct{}
-type NavigateToNewGameFormMsg struct{}
-type NavigateToShowGameMsg struct {
-	Game *data.Game
-}
-type SaveDataMsg struct{}
-
-func NavigateToGameList() tea.Cmd {
-	return func() tea.Msg { return NavigateToGameListMsg{} }
-}
-
-func NavigateToNewGameForm() tea.Cmd {
-	return func() tea.Msg { return NavigateToNewGameFormMsg{} }
-}
-
-func NavigateToShowGame(game *data.Game) tea.Cmd {
-	return func() tea.Msg { return NavigateToShowGameMsg{Game: game} }
-}
-
-func SaveData() tea.Cmd {
-	return func() tea.Msg { return SaveDataMsg{} }
-}
 
 // gameListItem wraps data.Game to implement list.Item interface
 type gameListItem struct {
@@ -157,12 +135,12 @@ func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("n"))):
-			return m, NavigateToNewGameForm()
+			return m, messages.NavigateToNewGameForm()
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
 			return m, tea.Quit
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			if selectedGame := m.selectedGame(); selectedGame != nil {
-				return m, NavigateToShowGame(selectedGame)
+				return m, messages.NavigateToShowGame(selectedGame)
 			}
 		}
 	}
@@ -213,7 +191,7 @@ func (m *GameNewFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
 			m.reset()
-			return m, tea.Batch(m.Init(), NavigateToGameList())
+			return m, tea.Batch(m.Init(), messages.NavigateToGameList())
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
 			return m, tea.Quit
 		}
@@ -227,7 +205,7 @@ func (m *GameNewFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.isCompleted() {
 		m.addGame()
 		m.reset()
-		return m, tea.Batch(m.Init(), SaveData(), NavigateToGameList())
+		return m, tea.Batch(m.Init(), messages.SaveData(), messages.NavigateToGameList())
 	}
 
 	return m, cmd
@@ -289,7 +267,7 @@ func (m *GamePageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
-			return m, NavigateToGameList()
+			return m, messages.NavigateToGameList()
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
 			return m, tea.Quit
 		}

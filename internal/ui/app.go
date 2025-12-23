@@ -2,6 +2,7 @@ package ui
 
 import (
 	"initiative/internal/data"
+	"initiative/internal/ui/messages"
 	"initiative/internal/ui/views"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -53,19 +54,19 @@ func (a app) Init() tea.Cmd {
 func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle navigation messages first
 	switch msg := msg.(type) {
-	case views.NavigateToGameListMsg:
+	case messages.NavigateToGameListMsg:
 		a.currentView = GameList
 		a.gameListModel.RefreshItems()
 		return a, nil
-	case views.NavigateToNewGameFormMsg:
+	case messages.NavigateToNewGameFormMsg:
 		a.currentView = NewGameForm
 		return a, nil
-	case views.NavigateToShowGameMsg:
+	case messages.NavigateToShowGameMsg:
 		a.currentGame = msg.Game
 		a.gamePageModel.SetCurrentGame(msg.Game)
 		a.currentView = ShowGame
 		return a, nil
-	case views.SaveDataMsg:
+	case messages.SaveDataMsg:
 		a.Save()
 		return a, nil
 	}
