@@ -159,8 +159,8 @@ func TestGameModel(t *testing.T) {
 		model.state = gameView
 
 		view := model.View()
-		if !strings.Contains(view, "Test Game") {
-			t.Error("Game view should contain the game name")
+		if !strings.Contains(view, "Encounter") || !strings.Contains(view, "Characters") {
+			t.Error("Game view should contain tab headers")
 		}
 	})
 

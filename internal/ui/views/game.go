@@ -125,8 +125,10 @@ func (k listKeyMap) FullHelp() [][]key.Binding {
 
 // Game view keymap - for when viewing a specific game
 type gameViewKeyMap struct {
-	back key.Binding
-	quit key.Binding
+	back     key.Binding
+	quit     key.Binding
+	tab      key.Binding
+	shiftTab key.Binding
 }
 
 func newGameViewKeyMap() *gameViewKeyMap {
@@ -139,16 +141,24 @@ func newGameViewKeyMap() *gameViewKeyMap {
 			key.WithKeys("q", "ctrl+c"),
 			key.WithHelp("q", "quit"),
 		),
+		tab: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "next tab"),
+		),
+		shiftTab: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "prev tab"),
+		),
 	}
 }
 
 func (k gameViewKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.back, k.quit}
+	return []key.Binding{k.tab, k.shiftTab, k.back, k.quit}
 }
 
 func (k gameViewKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.back, k.quit},
+		{k.tab, k.shiftTab, k.back, k.quit},
 	}
 }
 
@@ -157,6 +167,7 @@ type GameModel struct {
 
 	state       viewState
 	currentGame *data.Game
+	activeTab   int
 
 	list     list.Model
 	delegate *gameDelegate
@@ -165,6 +176,9 @@ type GameModel struct {
 	listKeyMap     *listKeyMap
 	delegateKeyMap *delegateKeyMap
 	gameViewKeyMap *gameViewKeyMap
+
+	width  int
+	height int
 }
 
 func NewGameModel(d *data.Data) GameModel {
@@ -215,6 +229,8 @@ func (m GameModel) Init() tea.Cmd {
 func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetSize(msg.Width, msg.Height)
 		return m, nil
 
@@ -372,6 +388,12 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case key.Matches(msg, m.gameViewKeyMap.quit):
 				return m, tea.Quit
+			case key.Matches(msg, m.gameViewKeyMap.tab):
+				m.activeTab = (m.activeTab + 1) % 4
+				return m, nil
+			case key.Matches(msg, m.gameViewKeyMap.shiftTab):
+				m.activeTab = (m.activeTab - 1 + 4) % 4
+				return m, nil
 			}
 		}
 	}
@@ -391,25 +413,120 @@ func (m GameModel) View() string {
 }
 
 func (m GameModel) listView() string {
+	// Set help style with bottom padding
+	m.list.Styles.HelpStyle = m.list.Styles.HelpStyle.PaddingBottom(1)
 	return m.list.View()
 }
 
 func (m GameModel) gameView() string {
-	var s strings.Builder
-
 	if m.currentGame == nil {
 		return "No game selected"
 	}
 
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205"))
-	title := titleStyle.Render(m.currentGame.Name)
-	s.WriteString(title)
-	s.WriteString("\n\n")
+	var (
+		sections    []string
+		availHeight = m.height
+	)
 
-	helpView := m.help.View(m.gameViewKeyMap)
-	s.WriteString(helpView)
+	// Define colors
+	highlight := lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 
-	return s.String()
+	// Define borders for tabs
+	inactiveTabBorder := lipgloss.Border{
+		Top:         "─",
+		Bottom:      "─", 
+		Left:        "│",
+		Right:       "│",
+		TopLeft:     "╭",
+		TopRight:    "╮",
+		BottomLeft:  "┴",
+		BottomRight: "┴",
+	}
+
+	activeTabBorder := lipgloss.Border{
+		Top:         "─",
+		Bottom:      " ",
+		Left:        "│", 
+		Right:       "│",
+		TopLeft:     "╭",
+		TopRight:    "╮",
+		BottomLeft:  "┘",
+		BottomRight: "└",
+	}
+
+	// Tab styles
+	tab := lipgloss.NewStyle().
+		Border(inactiveTabBorder, true).
+		BorderForeground(highlight).
+		Padding(0, 1)
+
+	activeTab := tab.Border(activeTabBorder, true)
+
+	// Render tabs
+	tabs := []string{"Encounter", "Characters", "Stats", "Log"}
+	var renderedTabs []string
+
+	for i, t := range tabs {
+		var style lipgloss.Style
+		if i == m.activeTab {
+			style = activeTab
+		} else {
+			style = tab
+		}
+		renderedTabs = append(renderedTabs, style.Render(t))
+	}
+
+	// Join tabs together
+	tabsJoined := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
+	
+	// Calculate remaining width and add border line to fill
+	tabsWidth := lipgloss.Width(tabsJoined)
+	remainingWidth := m.width - tabsWidth
+	if remainingWidth < 0 {
+		remainingWidth = 0
+	}
+	
+	// Create the remaining border line
+	borderStyle := lipgloss.NewStyle().Foreground(highlight)
+	remainingBorder := borderStyle.Render(strings.Repeat("─", remainingWidth))
+	
+	// Join tabs with the remaining border
+	tabRow := lipgloss.JoinHorizontal(lipgloss.Bottom, tabsJoined, remainingBorder)
+	
+	// Add tab row to sections and subtract its height
+	sections = append(sections, tabRow)
+	availHeight -= lipgloss.Height(tabRow)
+
+	// Help view with bottom padding
+	helpStyle := lipgloss.NewStyle().PaddingBottom(1)
+	helpView := helpStyle.Render(m.help.View(m.gameViewKeyMap))
+	availHeight -= lipgloss.Height(helpView)
+
+	// Tab content
+	var content string
+	switch m.activeTab {
+	case 0: // Encounter
+		content = "     No encounter started yet."
+	case 1: // Characters  
+		content = "     No characters added yet."
+	case 2: // Stats
+		content = "     No stats to display."
+	case 3: // Log
+		content = "     No log entries yet."
+	}
+
+	// Content area styled with available height and centered
+	contentArea := lipgloss.NewStyle().
+		Height(availHeight).
+		Width(m.width).
+		AlignHorizontal(lipgloss.Center).
+		AlignVertical(lipgloss.Center).
+		Render(content)
+
+	sections = append(sections, contentArea)
+	sections = append(sections, helpView)
+
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
 
 // gameListItem wraps data.Game to implement list.Item interface
