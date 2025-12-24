@@ -162,6 +162,23 @@ func (k gameViewKeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
+// Character tab keymap that combines game view and character-specific keys
+type characterTabKeyMap struct {
+	*gameViewKeyMap
+	addCharacter key.Binding
+}
+
+func (k *characterTabKeyMap) ShortHelp() []key.Binding {
+	return append(k.gameViewKeyMap.ShortHelp(), k.addCharacter)
+}
+
+func (k *characterTabKeyMap) FullHelp() [][]key.Binding {
+	gameHelp := k.gameViewKeyMap.FullHelp()
+	return [][]key.Binding{
+		append(gameHelp[0], k.addCharacter),
+	}
+}
+
 type GameModel struct {
 	data *data.Data
 
@@ -169,9 +186,10 @@ type GameModel struct {
 	currentGame *data.Game
 	activeTab   int
 
-	list     list.Model
-	delegate *gameDelegate
-	help     help.Model
+	list          list.Model
+	characterModel CharacterModel
+	delegate      *gameDelegate
+	help          help.Model
 
 	listKeyMap     *listKeyMap
 	delegateKeyMap *delegateKeyMap
@@ -232,6 +250,9 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.list.SetSize(msg.Width, msg.Height)
+		if m.currentGame != nil {
+			m.characterModel.SetSize(msg.Width, msg.Height)
+		}
 		return m, nil
 
 	case deleteGameMsg:
@@ -263,6 +284,11 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle show game from delegate
 		m.currentGame = msg.game
 		m.state = gameView
+		// Initialize character model for this game
+		m.characterModel = NewCharacterModel(msg.game)
+		if m.width > 0 && m.height > 0 {
+			m.characterModel.SetSize(m.width, m.height)
+		}
 		return m, nil
 
 	case startEditingMsg:
@@ -394,6 +420,15 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, m.gameViewKeyMap.shiftTab):
 				m.activeTab = (m.activeTab - 1 + 4) % 4
 				return m, nil
+			default:
+				// Delegate to character model when on Characters tab
+				if m.activeTab == 1 { // Characters tab
+					var cmd tea.Cmd
+					m.characterModel, cmd = m.characterModel.Update(msg)
+					// Save the data after character changes
+					m.data.Save()
+					return m, cmd
+				}
 			}
 		}
 	}
@@ -497,31 +532,58 @@ func (m GameModel) gameView() string {
 	sections = append(sections, tabRow)
 	availHeight -= lipgloss.Height(tabRow)
 
-	// Help view with bottom padding
+	// Help view with bottom padding - combine keys based on active tab
+	var helpKeyMap help.KeyMap
+	if m.activeTab == 1 { // Characters tab
+		// Create combined keymap for character tab
+		helpKeyMap = &characterTabKeyMap{
+			gameViewKeyMap: m.gameViewKeyMap,
+			addCharacter: key.NewBinding(
+				key.WithKeys("a"),
+				key.WithHelp("a", "add character"),
+			),
+		}
+	} else {
+		helpKeyMap = m.gameViewKeyMap
+	}
+	
 	helpStyle := lipgloss.NewStyle().PaddingBottom(1)
-	helpView := helpStyle.Render(m.help.View(m.gameViewKeyMap))
+	helpView := helpStyle.Render(m.help.View(helpKeyMap))
 	availHeight -= lipgloss.Height(helpView)
 
 	// Tab content
-	var content string
+	var contentArea string
 	switch m.activeTab {
 	case 0: // Encounter
-		content = "     No encounter started yet."
+		content := "No encounter started yet."
+		contentArea = lipgloss.NewStyle().
+			Height(availHeight).
+			Width(m.width).
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render(content)
 	case 1: // Characters  
-		content = "     No characters added yet."
+		// Use character model for character tab
+		// Set the character model size to available space
+		m.characterModel.SetSize(m.width, availHeight)
+		contentArea = m.characterModel.View()
 	case 2: // Stats
-		content = "     No stats to display."
+		content := "No stats to display."
+		contentArea = lipgloss.NewStyle().
+			Height(availHeight).
+			Width(m.width).
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render(content)
 	case 3: // Log
-		content = "     No log entries yet."
+		content := "No log entries yet."
+		contentArea = lipgloss.NewStyle().
+			Height(availHeight).
+			Width(m.width).
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render(content)
 	}
-
-	// Content area styled with available height and centered
-	contentArea := lipgloss.NewStyle().
-		Height(availHeight).
-		Width(m.width).
-		AlignHorizontal(lipgloss.Center).
-		AlignVertical(lipgloss.Center).
-		Render(content)
 
 	sections = append(sections, contentArea)
 	sections = append(sections, helpView)
