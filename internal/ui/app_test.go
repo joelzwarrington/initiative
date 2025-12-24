@@ -15,14 +15,6 @@ func TestNewProgram(t *testing.T) {
 	}
 }
 
-func TestApp_Init(t *testing.T) {
-	appData := &data.Data{}
-	app := newApp(appData)
-	cmd := app.Init()
-	// Init now returns a command from the form, so it might not be nil
-	_ = cmd
-}
-
 func TestApp_Update_QuitKey(t *testing.T) {
 	appData := &data.Data{}
 	testApp := newApp(appData)
@@ -33,103 +25,4 @@ func TestApp_Update_QuitKey(t *testing.T) {
 	if cmd == nil || cmd() != tea.Quit() {
 		t.Error("Quit key should return tea.Quit command")
 	}
-}
-
-func TestApp_Update_NewKey(t *testing.T) {
-	appData := &data.Data{}
-	testApp := newApp(appData)
-	testApp.currentView = GameList
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
-
-	model, cmd := testApp.Update(msg)
-	updatedApp := model.(app)
-
-	// The navigation happens via command, so execute the command
-	if cmd != nil {
-		navMsg := cmd()
-		model, _ = updatedApp.Update(navMsg)
-		updatedApp = model.(app)
-	}
-
-	// New key now triggers inline editing, so we remain in GameList view
-	if updatedApp.currentView != GameList {
-		t.Error("New key should stay in GameList view with inline editing")
-	}
-}
-
-func TestApp_Update_SelectKey(t *testing.T) {
-	// This test is complex since it requires simulating list selection
-	// For now, we'll test the basic navigation without list selection
-	appData := &data.Data{}
-	testApp := newApp(appData)
-	testApp.currentView = GameList
-
-	// Add a game directly
-	testGame := data.Game{Name: "Test Game"}
-	testApp.Games = []data.Game{testGame}
-	testApp.currentGame = &testGame
-
-	// Test direct navigation to ShowGame
-	testApp.currentView = ShowGame
-
-	if testApp.currentView != ShowGame {
-		t.Error("Should be in ShowGame view")
-	}
-
-	if testApp.currentGame == nil {
-		t.Error("currentGame should be set when selecting a game")
-	}
-
-	if testApp.currentGame.Name != "Test Game" {
-		t.Errorf("Expected currentGame name to be 'Test Game', got %s", testApp.currentGame.Name)
-	}
-}
-
-func TestApp_Update_BackKeyFromShowGame(t *testing.T) {
-	appData := &data.Data{}
-	testApp := newApp(appData)
-	testApp.currentView = ShowGame
-	testApp.currentGame = &data.Game{Name: "Test Game"}
-	testApp.gamePageModel.SetCurrentGame(testApp.currentGame)
-
-	msg := tea.KeyMsg{Type: tea.KeyEsc}
-
-	model, cmd := testApp.Update(msg)
-	updatedApp := model.(app)
-
-	// The navigation happens via command, so execute the command
-	if cmd != nil {
-		navMsg := cmd()
-		model, _ = updatedApp.Update(navMsg)
-		updatedApp = model.(app)
-	}
-
-	if updatedApp.currentView != GameList {
-		t.Error("Back key should switch from ShowGame to GameList view")
-	}
-}
-
-func TestApp_View(t *testing.T) {
-	t.Run("game list view renders correctly", func(t *testing.T) {
-		appData := &data.Data{}
-		testApp := newApp(appData)
-		testApp.currentView = GameList
-		view := testApp.View()
-		if view == "" {
-			t.Error("GameList view should return non-empty string")
-		}
-	})
-
-	// NewGameForm view no longer exists - form is integrated into GameList view
-
-	t.Run("show game view renders correctly", func(t *testing.T) {
-		appData := &data.Data{}
-		testApp := newApp(appData)
-		testApp.currentView = ShowGame
-		testApp.currentGame = &data.Game{Name: "Test Game"}
-		view := testApp.View()
-		if view == "" {
-			t.Error("ShowGame view should return non-empty string")
-		}
-	})
 }

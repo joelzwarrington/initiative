@@ -2,40 +2,22 @@ package ui
 
 import (
 	"initiative/internal/data"
-	"initiative/internal/ui/messages"
 	"initiative/internal/ui/views"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type view int
-
-const (
-	GameList view = iota
-	ShowGame
-)
+var _ tea.Model = (*app)(nil)
 
 type app struct {
-	*data.Data
-	currentGame *data.Game
-
-	currentView   view
-	gameListModel *views.GameListModel
-	gamePageModel *views.GamePageModel
+	views.GameModel
 }
 
-func newApp(appData *data.Data) app {
-	var currentGame *data.Game
-
+func newApp(data *data.Data) app {
 	app := app{
-		Data:        appData,
-		currentView: GameList,
-		currentGame: currentGame,
+		GameModel: views.NewGameModel(data),
 	}
-	
-	app.gameListModel = views.NewGameListModel(&app.Games, &app.currentGame)
-	app.gamePageModel = views.NewGamePageModel()
-	
+
 	return app
 }
 
@@ -44,50 +26,8 @@ func NewProgram(appData *data.Data) *tea.Program {
 	return tea.NewProgram(app)
 }
 
-func (a app) Init() tea.Cmd {
-	return nil
-}
+func (m app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// todo: add global ctrl c handler
 
-func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle navigation messages first
-	switch msg := msg.(type) {
-	case messages.NavigateToGameListMsg:
-		a.currentView = GameList
-		a.gameListModel.RefreshItems()
-		return a, nil
-	case messages.NavigateToShowGameMsg:
-		a.currentGame = msg.Game
-		a.gamePageModel.SetCurrentGame(msg.Game)
-		a.currentView = ShowGame
-		return a, nil
-	case messages.SaveDataMsg:
-		a.Save()
-		return a, nil
-	}
-
-	// Delegate to current view
-	var cmd tea.Cmd
-	switch a.currentView {
-	case GameList:
-		var model tea.Model
-		model, cmd = a.gameListModel.Update(msg)
-		a.gameListModel = model.(*views.GameListModel)
-	case ShowGame:
-		var model tea.Model
-		model, cmd = a.gamePageModel.Update(msg)
-		a.gamePageModel = model.(*views.GamePageModel)
-	}
-
-	return a, cmd
-}
-
-func (a app) View() string {
-	switch a.currentView {
-	case GameList:
-		return a.gameListModel.View()
-	case ShowGame:
-		return a.gamePageModel.View()
-	}
-
-	return ""
+	return m.GameModel.Update(msg)
 }
