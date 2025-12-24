@@ -7,13 +7,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Game struct {
-	Name string `yaml:"name"`
-}
-
 type Data struct {
-	Games    []Game `yaml:"games"`
 	filePath string `yaml:"-"`
+
+	Games []Game `yaml:"games"`
 }
 
 func Load(filePath string) (*Data, error) {
