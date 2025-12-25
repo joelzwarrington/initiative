@@ -179,6 +179,8 @@ func (k *characterTabKeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
+// Encounter tab now handles its own help, so no special keymap needed here
+
 type GameModel struct {
 	data *data.Data
 
@@ -186,10 +188,11 @@ type GameModel struct {
 	currentGame *data.Game
 	activeTab   int
 
-	list          list.Model
+	list           list.Model
 	characterModel CharacterModel
-	delegate      *gameDelegate
-	help          help.Model
+	encounterModel EncounterModel
+	delegate       *gameDelegate
+	help           help.Model
 
 	listKeyMap     *listKeyMap
 	delegateKeyMap *delegateKeyMap
@@ -252,6 +255,7 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetSize(msg.Width, msg.Height)
 		if m.currentGame != nil {
 			m.characterModel.SetSize(msg.Width, msg.Height)
+			m.encounterModel.SetSize(msg.Width, msg.Height)
 		}
 		return m, nil
 
@@ -284,10 +288,12 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle show game from delegate
 		m.currentGame = msg.game
 		m.state = gameView
-		// Initialize character model for this game
+		// Initialize models for this game
 		m.characterModel = NewCharacterModel(msg.game)
+		m.encounterModel = NewEncounterModel(msg.game)
 		if m.width > 0 && m.height > 0 {
 			m.characterModel.SetSize(m.width, m.height)
+			m.encounterModel.SetSize(m.width, m.height)
 		}
 		return m, nil
 
@@ -408,25 +414,41 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case gameView:
-			switch {
-			case key.Matches(msg, m.gameViewKeyMap.back):
-				m.state = listView
-				return m, nil
-			case key.Matches(msg, m.gameViewKeyMap.quit):
-				return m, tea.Quit
-			case key.Matches(msg, m.gameViewKeyMap.tab):
-				m.activeTab = (m.activeTab + 1) % 4
-				return m, nil
-			case key.Matches(msg, m.gameViewKeyMap.shiftTab):
-				m.activeTab = (m.activeTab - 1 + 4) % 4
-				return m, nil
-			default:
-				// Delegate to character model when on Characters tab
-				if m.activeTab == 1 { // Characters tab
+			// Only handle global keys when not in encounter form creation
+			if m.activeTab != 0 || !m.encounterModel.IsCreating() {
+				switch {
+				case key.Matches(msg, m.gameViewKeyMap.back):
+					m.state = listView
+					return m, nil
+				case key.Matches(msg, m.gameViewKeyMap.quit):
+					return m, tea.Quit
+				case key.Matches(msg, m.gameViewKeyMap.tab):
+					m.activeTab = (m.activeTab + 1) % 4
+					return m, nil
+				case key.Matches(msg, m.gameViewKeyMap.shiftTab):
+					m.activeTab = (m.activeTab - 1 + 4) % 4
+					return m, nil
+				default:
+					// Delegate to models based on active tab
+					switch m.activeTab {
+					case 0: // Encounter tab
+						var cmd tea.Cmd
+						m.encounterModel, cmd = m.encounterModel.Update(msg)
+						return m, cmd
+					case 1: // Characters tab
+						var cmd tea.Cmd
+						m.characterModel, cmd = m.characterModel.Update(msg)
+						// Save the data after character changes
+						m.data.Save()
+						return m, cmd
+					}
+				}
+			} else {
+				// When creating encounter, delegate directly to encounter model
+				switch m.activeTab {
+				case 0: // Encounter tab
 					var cmd tea.Cmd
-					m.characterModel, cmd = m.characterModel.Update(msg)
-					// Save the data after character changes
-					m.data.Save()
+					m.encounterModel, cmd = m.encounterModel.Update(msg)
 					return m, cmd
 				}
 			}
@@ -469,7 +491,7 @@ func (m GameModel) gameView() string {
 	// Define borders for tabs
 	inactiveTabBorder := lipgloss.Border{
 		Top:         "─",
-		Bottom:      "─", 
+		Bottom:      "─",
 		Left:        "│",
 		Right:       "│",
 		TopLeft:     "╭",
@@ -481,7 +503,7 @@ func (m GameModel) gameView() string {
 	activeTabBorder := lipgloss.Border{
 		Top:         "─",
 		Bottom:      " ",
-		Left:        "│", 
+		Left:        "│",
 		Right:       "│",
 		TopLeft:     "╭",
 		TopRight:    "╮",
@@ -513,29 +535,27 @@ func (m GameModel) gameView() string {
 
 	// Join tabs together
 	tabsJoined := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
-	
+
 	// Calculate remaining width and add border line to fill
 	tabsWidth := lipgloss.Width(tabsJoined)
 	remainingWidth := m.width - tabsWidth
 	if remainingWidth < 0 {
 		remainingWidth = 0
 	}
-	
+
 	// Create the remaining border line
 	borderStyle := lipgloss.NewStyle().Foreground(highlight)
 	remainingBorder := borderStyle.Render(strings.Repeat("─", remainingWidth))
-	
+
 	// Join tabs with the remaining border
 	tabRow := lipgloss.JoinHorizontal(lipgloss.Bottom, tabsJoined, remainingBorder)
-	
+
 	// Add tab row to sections and subtract its height
 	sections = append(sections, tabRow)
 	availHeight -= lipgloss.Height(tabRow)
 
-	// Help view with bottom padding - combine keys based on active tab
 	var helpKeyMap help.KeyMap
 	if m.activeTab == 1 { // Characters tab
-		// Create combined keymap for character tab
 		helpKeyMap = &characterTabKeyMap{
 			gameViewKeyMap: m.gameViewKeyMap,
 			addCharacter: key.NewBinding(
@@ -546,7 +566,7 @@ func (m GameModel) gameView() string {
 	} else {
 		helpKeyMap = m.gameViewKeyMap
 	}
-	
+
 	helpStyle := lipgloss.NewStyle().PaddingBottom(1)
 	helpView := helpStyle.Render(m.help.View(helpKeyMap))
 	availHeight -= lipgloss.Height(helpView)
@@ -555,16 +575,11 @@ func (m GameModel) gameView() string {
 	var contentArea string
 	switch m.activeTab {
 	case 0: // Encounter
-		content := "No encounter started yet."
-		contentArea = lipgloss.NewStyle().
-			Height(availHeight).
-			Width(m.width).
-			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Render(content)
-	case 1: // Characters  
+		// Use encounter model for encounter tab
+		m.encounterModel.SetSize(m.width, availHeight)
+		contentArea = m.encounterModel.View()
+	case 1: // Characters
 		// Use character model for character tab
-		// Set the character model size to available space
 		m.characterModel.SetSize(m.width, availHeight)
 		contentArea = m.characterModel.View()
 	case 2: // Stats

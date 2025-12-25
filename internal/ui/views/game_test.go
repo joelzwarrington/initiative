@@ -154,9 +154,11 @@ func TestGameModel(t *testing.T) {
 		}
 		model := NewGameModel(testData)
 		
-		// Simulate selecting a game
+		// Simulate selecting a game properly by triggering the showGameMsg
 		model.currentGame = &testData.Games[0]
 		model.state = gameView
+		model.characterModel = NewCharacterModel(&testData.Games[0])
+		model.encounterModel = NewEncounterModel(&testData.Games[0])
 
 		view := model.View()
 		if !strings.Contains(view, "Encounter") || !strings.Contains(view, "Characters") {
