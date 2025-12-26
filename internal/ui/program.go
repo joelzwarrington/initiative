@@ -7,6 +7,7 @@ import (
 )
 
 func NewProgram(d *data.Data) *tea.Program {
-	g := newGame(d)
+	g := newApp(d)
+
 	return tea.NewProgram(g)
 }

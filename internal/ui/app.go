@@ -6,36 +6,36 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type GameModelView int
+type AppView int
 
 const (
-	GameView GameModelView = iota
+	GameView AppView = iota
 	GameListView
 	GameEditView
 )
 
-var _ tea.Model = (*GameModel)(nil)
+var _ tea.Model = (*AppModel)(nil)
 
-type GameModel struct {
+type AppModel struct {
 	*data.Data
 	game *data.Game
 
-	currentView GameModelView
+	currentView AppView
 
 	list *GameListModel
 	form *GameFormModel
 }
 
-func newGame(d *data.Data) GameModel {
+func newApp(d *data.Data) AppModel {
 	var games map[string]data.Game
 
 	if d != nil {
 		games = d.Games
 	}
 
-	return GameModel{
+	return AppModel{
 		Data: d,
-		game: nil, // there is no selected game when program begins
+		game: nil, // there is no selected game when app begins
 
 		currentView: GameListView,
 
@@ -43,11 +43,11 @@ func newGame(d *data.Data) GameModel {
 	}
 }
 
-func (m GameModel) Init() tea.Cmd {
+func (m AppModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case viewGameMsg:
 		{
@@ -90,7 +90,7 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m GameModel) View() string {
+func (m AppModel) View() string {
 	switch m.currentView {
 	case GameListView:
 		return m.list.View()
@@ -105,7 +105,7 @@ func (m GameModel) View() string {
 	}
 }
 
-func (m GameModel) getGame(uuid string) *data.Game {
+func (m AppModel) getGame(uuid string) *data.Game {
 	if uuid == "" || m.Data == nil || m.Games == nil {
 		return nil
 	}
