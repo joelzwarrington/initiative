@@ -58,14 +58,14 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		break
-	case viewGameMsg:
+	case gameViewedMsg:
 		{
 			m.currentGame = m.getGame(msg.uuid)
 			m.currentView = GameView
 			m.game = newGame(m.currentGame, m.width, m.height)
 			return m, m.game.Init()
 		}
-	case editGameMsg:
+	case gameEditedMsg:
 		{
 			m.currentGame = m.getGame(msg.uuid)
 			m.form = newGameForm(msg.uuid, m.currentGame)
@@ -73,7 +73,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, m.form.Init()
 		}
-	case gameEditedMsg:
+	case gameSavedMsg:
 		{
 			if m.Data != nil {
 				if m.Games == nil {
@@ -98,7 +98,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.game = newGame(m.currentGame, m.width, m.height)
 			return m, m.game.Init()
 		}
-	case deleteGameMsg:
+	case gameDeletedMsg:
 		{
 			m.game = nil
 			if m.Data != nil && m.Games != nil {

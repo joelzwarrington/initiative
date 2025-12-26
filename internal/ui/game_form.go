@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-type gameEditedMsg struct {
+type gameSavedMsg struct {
 	uuid string
 	name string
 }
@@ -45,7 +45,7 @@ func (m *GameFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.form.State == huh.StateCompleted {
 		return m, tea.Cmd(func() tea.Msg {
-			return gameEditedMsg{
+			return gameSavedMsg{
 				uuid: m.uuid,
 				name: *m.name,
 			}

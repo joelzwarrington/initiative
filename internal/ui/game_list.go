@@ -21,15 +21,15 @@ type GameListModel struct {
 	height int
 }
 
-type viewGameMsg struct {
+type gameViewedMsg struct {
 	uuid string
 }
 
-type editGameMsg struct {
+type gameEditedMsg struct {
 	uuid string
 }
 
-type deleteGameMsg struct {
+type gameDeletedMsg struct {
 	index int
 	uuid  string
 }
@@ -119,7 +119,7 @@ func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		additionalKeys := newAdditionalGameListKeyMap()
 		if key.Matches(msg, additionalKeys.newGame) {
 			return m, tea.Cmd(func() tea.Msg {
-				return editGameMsg{uuid: ""}
+				return gameEditedMsg{uuid: ""}
 			})
 		}
 	}
@@ -160,21 +160,21 @@ func (d *gameItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 		case key.Matches(msg, d.keys.view):
 			if item, ok := m.SelectedItem().(gameItem); ok {
 				return tea.Cmd(func() tea.Msg {
-					return viewGameMsg{uuid: item.uuid}
+					return gameViewedMsg{uuid: item.uuid}
 				})
 			}
 
 		case key.Matches(msg, d.keys.edit):
 			if item, ok := m.SelectedItem().(gameItem); ok {
 				return tea.Cmd(func() tea.Msg {
-					return editGameMsg{uuid: item.uuid}
+					return gameEditedMsg{uuid: item.uuid}
 				})
 			}
 
 		case key.Matches(msg, d.keys.delete):
 			if item, ok := m.SelectedItem().(gameItem); ok {
 				return tea.Cmd(func() tea.Msg {
-					return deleteGameMsg{uuid: item.uuid}
+					return gameDeletedMsg{uuid: item.uuid}
 				})
 			}
 		}
