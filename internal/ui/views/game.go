@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"initiative/internal/data"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/cursor"
@@ -414,43 +415,74 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case gameView:
-			// Only handle global keys when not in encounter form creation
-			if m.activeTab != 0 || !m.encounterModel.IsCreating() {
-				switch {
-				case key.Matches(msg, m.gameViewKeyMap.back):
-					m.state = listView
-					return m, nil
-				case key.Matches(msg, m.gameViewKeyMap.quit):
-					return m, tea.Quit
-				case key.Matches(msg, m.gameViewKeyMap.tab):
-					m.activeTab = (m.activeTab + 1) % 4
-					return m, nil
-				case key.Matches(msg, m.gameViewKeyMap.shiftTab):
-					m.activeTab = (m.activeTab - 1 + 4) % 4
-					return m, nil
-				default:
-					// Delegate to models based on active tab
-					switch m.activeTab {
-					case 0: // Encounter tab
-						var cmd tea.Cmd
-						m.encounterModel, cmd = m.encounterModel.Update(msg)
-						return m, cmd
-					case 1: // Characters tab
-						var cmd tea.Cmd
-						m.characterModel, cmd = m.characterModel.Update(msg)
-						// Save the data after character changes
-						m.data.Save()
-						return m, cmd
-					}
+			// Debug logging for encounter tab
+			if m.activeTab == 0 {
+				if f, err := os.OpenFile("debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+					fmt.Fprintf(f, "GameView KeyMsg for encounter tab: %+v\n", msg)
+					f.Close()
 				}
-			} else {
-				// When creating encounter, delegate directly to encounter model
+			}
+
+			// Handle global navigation keys first for KeyMsg
+			switch {
+			case key.Matches(msg, m.gameViewKeyMap.back):
+				m.state = listView
+				return m, nil
+			case key.Matches(msg, m.gameViewKeyMap.quit):
+				return m, tea.Quit
+			case key.Matches(msg, m.gameViewKeyMap.tab):
+				m.activeTab = (m.activeTab + 1) % 4
+				return m, nil
+			case key.Matches(msg, m.gameViewKeyMap.shiftTab):
+				m.activeTab = (m.activeTab - 1 + 4) % 4
+				return m, nil
+			default:
+				// Delegate to active tab model for unhandled keys
 				switch m.activeTab {
 				case 0: // Encounter tab
+					if f, err := os.OpenFile("debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+						fmt.Fprintf(f, "Delegating KeyMsg to encounter model: %+v\n", msg)
+						f.Close()
+					}
 					var cmd tea.Cmd
 					m.encounterModel, cmd = m.encounterModel.Update(msg)
 					return m, cmd
+				case 1: // Characters tab  
+					var cmd tea.Cmd
+					m.characterModel, cmd = m.characterModel.Update(msg)
+					if cmd != nil {
+						// Save the data after character changes
+						m.data.Save()
+					}
+					return m, cmd
 				}
+			}
+		}
+	
+	default:
+		// For non-KeyMsg messages in gameView, pass them to sub-models
+		if m.state == gameView {
+			// Debug logging for encounter tab non-key messages
+			if m.activeTab == 0 {
+				if f, err := os.OpenFile("debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+					fmt.Fprintf(f, "GameView non-KeyMsg for encounter tab: %T %+v\n", msg, msg)
+					f.Close()
+				}
+			}
+
+			switch m.activeTab {
+			case 0: // Encounter tab
+				var cmd tea.Cmd
+				m.encounterModel, cmd = m.encounterModel.Update(msg)
+				return m, cmd
+			case 1: // Characters tab  
+				var cmd tea.Cmd
+				m.characterModel, cmd = m.characterModel.Update(msg)
+				if cmd != nil {
+					// Save the data after character changes
+					m.data.Save()
+				}
+				return m, cmd
 			}
 		}
 	}

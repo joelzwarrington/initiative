@@ -89,9 +89,14 @@ func TestEncounterModel(t *testing.T) {
 		keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
 		updatedModel, _ := model.Update(keyMsg)
 
-		// For now, starting encounter just returns without doing anything
-		if updatedModel.state != noEncounter {
-			t.Error("Should remain in noEncounter state for now")
+		// Should transition to creatingEncounter state
+		if updatedModel.state != creatingEncounter {
+			t.Error("Should transition to creatingEncounter state when 'n' is pressed with characters available")
+		}
+
+		// Should have an encounter form
+		if updatedModel.encounterForm == nil {
+			t.Error("Should create an encounter form when starting encounter creation")
 		}
 	})
 
