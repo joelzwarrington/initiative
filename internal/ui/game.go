@@ -101,8 +101,9 @@ func (m *GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeTab = (m.activeTab - 1 + 4) % 4
 			return m, nil
 		case key.Matches(msg, m.keyMap.back):
-			// TODO: Navigate back to game list
-			return m, nil
+			return m, tea.Cmd(func() tea.Msg {
+				return gameDeselectedMsg{}
+			})
 		case key.Matches(msg, m.keyMap.quit):
 			return m, tea.Quit
 		}

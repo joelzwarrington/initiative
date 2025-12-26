@@ -3,6 +3,7 @@ package ui
 import (
 	"initiative/internal/data"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
@@ -38,6 +39,15 @@ func (m *GameFormModel) Init() tea.Cmd {
 }
 
 func (m *GameFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle escape key to go back
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if key.Matches(keyMsg, key.NewBinding(key.WithKeys("esc"))) {
+			return m, tea.Cmd(func() tea.Msg {
+				return gameDeselectedMsg{}
+			})
+		}
+	}
+
 	form, cmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f

@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+type gameDeselectedMsg struct{}
+
 type appView int
 
 const (
@@ -106,6 +108,14 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Save()
 			}
 			m.list.RemoveGame(msg.uuid)
+			return m, nil
+		}
+	case gameDeselectedMsg:
+		{
+			m.currentView = GameListView
+			m.currentGame = nil
+			m.game = nil
+			m.form = nil
 			return m, nil
 		}
 	}
