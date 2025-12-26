@@ -52,6 +52,14 @@ func newGameList(games map[string]data.Game) *GameListModel {
 	l.Title = "Games"
 	l.SetStatusBarItemName("game", "games")
 	l.KeyMap = newGameListKeyMap()
+	
+	additionalKeys := newAdditionalGameListKeyMap()
+	l.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{additionalKeys.newGame}
+	}
+	l.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{additionalKeys.newGame}
+	}
 
 	return &GameListModel{list: l}
 }
@@ -81,14 +89,7 @@ func (m *GameListModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *GameListModel) RemoveGame(index int) {
-	// if index == m.list.GlobalIndex() {
-	// 	m.list.Select(index - 1)
-	// }
-	m.list.RemoveItem(index)
-}
-
-func (m *GameListModel) RemoveGameByUUID(uuid string) {
+func (m *GameListModel) RemoveGame(uuid string) {
 	items := m.list.Items()
 	var index int
 
@@ -114,6 +115,13 @@ func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetHeight(msg.Height)
 
 		return m, nil
+	case tea.KeyMsg:
+		additionalKeys := newAdditionalGameListKeyMap()
+		if key.Matches(msg, additionalKeys.newGame) {
+			return m, tea.Cmd(func() tea.Msg {
+				return editGameMsg{uuid: ""}
+			})
+		}
 	}
 
 	var cmd tea.Cmd
@@ -248,6 +256,19 @@ func newGameItemKeyMap() gameItemKeyMap {
 		delete: key.NewBinding(
 			key.WithKeys("d"),
 			key.WithHelp("d", "delete"),
+		),
+	}
+}
+
+type additionalGameListKeyMap struct {
+	newGame key.Binding
+}
+
+func newAdditionalGameListKeyMap() additionalGameListKeyMap {
+	return additionalGameListKeyMap{
+		newGame: key.NewBinding(
+			key.WithKeys("n"),
+			key.WithHelp("n", "new"),
 		),
 	}
 }

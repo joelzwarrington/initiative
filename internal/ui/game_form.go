@@ -7,9 +7,15 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
+type gameEditedMsg struct {
+	uuid string
+	name string
+}
+
 var _ tea.Model = (*GameFormModel)(nil)
 
 type GameFormModel struct {
+	uuid string
 	game *data.Game
 
 	form *huh.Form
@@ -20,35 +26,45 @@ type GameFormModel struct {
 	height int
 }
 
-func newGameForm(game *data.Game) *GameFormModel {
+func newGameForm(uuid string, game *data.Game) *GameFormModel {
 	m := GameFormModel{}
-	m.SetGame(game)
+	m.SetGame(uuid, game)
 
 	return &m
 }
 
-func (m GameFormModel) Init() tea.Cmd {
+func (m *GameFormModel) Init() tea.Cmd {
 	return m.form.Init()
 }
 
-func (m GameFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *GameFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	form, cmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f
 	}
 
 	if m.form.State == huh.StateCompleted {
-		// m.state = stateDone
+		return m, tea.Cmd(func() tea.Msg {
+			return gameEditedMsg{
+				uuid: m.uuid,
+				name: *m.name,
+			}
+		})
 	}
 
 	return m, cmd
 }
 
 func (m GameFormModel) View() string {
+	if m.form.State == huh.StateCompleted {
+		return "Submitted!"
+	}
+
 	return m.form.View()
 }
 
-func (m GameFormModel) SetGame(g *data.Game) {
+func (m *GameFormModel) SetGame(uuid string, g *data.Game) {
+	m.uuid = uuid
 	m.game = g
 
 	name := ""
@@ -64,7 +80,6 @@ func (m GameFormModel) SetGame(g *data.Game) {
 			huh.NewInput().
 				Key("name").
 				Title("Name").
-				Placeholder("Lorem Ipsum").
 				Value(m.name),
 		),
 	)

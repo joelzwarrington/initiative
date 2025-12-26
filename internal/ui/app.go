@@ -4,6 +4,7 @@ import (
 	"initiative/internal/data"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 )
 
 type AppView int
@@ -58,9 +59,33 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case editGameMsg:
 		{
 			m.game = m.getGame(msg.uuid)
+			m.form = newGameForm(msg.uuid, m.game)
 			m.currentView = GameEditView
-			m.form = newGameForm(m.game)
 
+			return m, m.form.Init()
+		}
+	case gameEditedMsg:
+		{
+			if m.Data != nil {
+				if m.Games == nil {
+					m.Games = make(map[string]data.Game)
+				}
+
+				game := data.Game{
+					Name: msg.name,
+				}
+
+				gameUUID := msg.uuid
+				if gameUUID == "" {
+					gameUUID = uuid.New().String()
+				}
+
+				m.Games[gameUUID] = game
+				m.Save()
+
+				m.game = &game
+			}
+			m.currentView = GameView
 			return m, nil
 		}
 	case deleteGameMsg:
@@ -70,7 +95,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				delete(m.Games, msg.uuid)
 				m.Save()
 			}
-			m.list.RemoveGameByUUID(msg.uuid)
+			m.list.RemoveGame(msg.uuid)
 			return m, nil
 		}
 	}
@@ -85,6 +110,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case GameView:
 		return m, nil
+	case GameEditView:
+		var cmd tea.Cmd
+		f, cmd := m.form.Update(msg)
+		if fm, ok := f.(*GameFormModel); ok {
+			m.form = fm
+		}
+		return m, cmd
 	default:
 		return m, nil
 	}
@@ -94,6 +126,8 @@ func (m AppModel) View() string {
 	switch m.currentView {
 	case GameListView:
 		return m.list.View()
+	case GameEditView:
+		return m.form.View()
 	case GameView:
 		if m.game != nil {
 			return "Game:" + m.game.Name
