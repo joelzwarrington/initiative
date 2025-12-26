@@ -10,11 +10,14 @@ import (
 type Data struct {
 	filePath string `yaml:"-"`
 
-	Games []Game `yaml:"games"`
+	Games map[string]Game `yaml:"games"`
 }
 
 func Load(filePath string) (*Data, error) {
-	data := &Data{filePath: filePath}
+	data := &Data{
+		filePath: filePath,
+		Games:    make(map[string]Game),
+	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return data, nil

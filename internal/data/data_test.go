@@ -34,9 +34,9 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	data.Games = []Game{
-		{Name: "Test Game 1"},
-		{Name: "Test Game 2"},
+	data.Games = map[string]Game{
+		"game1": {Name: "Test Game 1"},
+		"game2": {Name: "Test Game 2"},
 	}
 
 	// Save data
@@ -55,12 +55,12 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Errorf("Expected 2 games, got %d", len(loadedData.Games))
 	}
 
-	if loadedData.Games[0].Name != "Test Game 1" {
-		t.Errorf("Expected 'Test Game 1', got '%s'", loadedData.Games[0].Name)
+	if loadedData.Games["game1"].Name != "Test Game 1" {
+		t.Errorf("Expected 'Test Game 1', got '%s'", loadedData.Games["game1"].Name)
 	}
 
-	if loadedData.Games[1].Name != "Test Game 2" {
-		t.Errorf("Expected 'Test Game 2', got '%s'", loadedData.Games[1].Name)
+	if loadedData.Games["game2"].Name != "Test Game 2" {
+		t.Errorf("Expected 'Test Game 2', got '%s'", loadedData.Games["game2"].Name)
 	}
 }
 
