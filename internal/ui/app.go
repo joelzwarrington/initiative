@@ -7,10 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type AppView int
+type appView int
 
 const (
-	GameView AppView = iota
+	GameView appView = iota
 	GameListView
 	GameEditView
 )
@@ -19,12 +19,16 @@ var _ tea.Model = (*AppModel)(nil)
 
 type AppModel struct {
 	*data.Data
-	game *data.Game
+	currentGame *data.Game
 
-	currentView AppView
+	currentView appView
 
+	game *GameModel
 	list *GameListModel
 	form *GameFormModel
+
+	width  int
+	height int
 }
 
 func newApp(d *data.Data) AppModel {
@@ -50,16 +54,21 @@ func (m AppModel) Init() tea.Cmd {
 
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		break
 	case viewGameMsg:
 		{
-			m.game = m.getGame(msg.uuid)
+			m.currentGame = m.getGame(msg.uuid)
 			m.currentView = GameView
-			return m, nil
+			m.game = newGame(m.currentGame, m.width, m.height)
+			return m, m.game.Init()
 		}
 	case editGameMsg:
 		{
-			m.game = m.getGame(msg.uuid)
-			m.form = newGameForm(msg.uuid, m.game)
+			m.currentGame = m.getGame(msg.uuid)
+			m.form = newGameForm(msg.uuid, m.currentGame)
 			m.currentView = GameEditView
 
 			return m, m.form.Init()
@@ -83,10 +92,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Games[gameUUID] = game
 				m.Save()
 
-				m.game = &game
+				m.currentGame = &game
 			}
 			m.currentView = GameView
-			return m, nil
+			m.game = newGame(m.currentGame, m.width, m.height)
+			return m, m.game.Init()
 		}
 	case deleteGameMsg:
 		{
@@ -109,7 +119,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 	case GameView:
-		return m, nil
+		g, cmd := m.game.Update(msg)
+		if g, ok := g.(*GameModel); ok {
+			m.game = g
+		}
+		return m, cmd
 	case GameEditView:
 		var cmd tea.Cmd
 		f, cmd := m.form.Update(msg)
@@ -129,11 +143,7 @@ func (m AppModel) View() string {
 	case GameEditView:
 		return m.form.View()
 	case GameView:
-		if m.game != nil {
-			return "Game:" + m.game.Name
-		}
-
-		return "Game: None selected"
+		return m.game.View()
 	default:
 		return "No view"
 	}
