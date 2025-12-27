@@ -9,7 +9,9 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.8.0
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
+	github.com/termkit/skeleton v0.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -40,3 +42,5 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 )
+
+replace github.com/termkit/skeleton => github.com/joelzwarrington/skeleton v0.0.0-20251227093831-1bfc5a73b7cf
