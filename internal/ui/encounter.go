@@ -14,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/tree"
 	"github.com/termkit/skeleton"
 )
 
@@ -39,6 +40,7 @@ type encounter struct {
 	help                help.Model
 	placeholderKeys     encounterPlaceholderKeyMap
 	detailKeys          encounterDetailKeyMap
+	currentTurn         int // Index of current turn in initiative order
 }
 
 func newEncounter(skeleton *skeleton.Skeleton, party *map[string]Character) *encounter {
@@ -84,6 +86,7 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.StartedAt = time.Time{}
 				e.EndedAt = time.Time{}
 				e.Round = 0
+				e.currentTurn = 0
 				e.encounterCreateForm = nil
 				
 				// Remove widgets when stopping encounter
@@ -115,7 +118,8 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		e.list.SetItems(items)
 		
-		// Add round tracking widget
+		// Initialize current turn and add round tracking widget
+		e.currentTurn = 0 // Start with first creature in initiative order
 		e.updateRoundWidget()
 		
 		e.view = encounterDetail
@@ -278,8 +282,10 @@ func (i initiativeGroupItem) FilterValue() string {
 // List delegate for initiative groups
 type initiativeGroupItemDelegate struct{}
 
-func (d initiativeGroupItemDelegate) Height() int  { return 2 }
-func (d initiativeGroupItemDelegate) Spacing() int { return 1 }
+func (d initiativeGroupItemDelegate) Height() int {
+	return 3 // Allow space for multi-line trees
+}
+func (d initiativeGroupItemDelegate) Spacing() int { return 0 }
 func (d *initiativeGroupItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	return nil
 }
@@ -290,42 +296,88 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		return
 	}
 
-	// Initiative value styling
-	initiativeText := "Initiative: TBD"
-	if i.group.Iniative > 0 {
-		initiativeText = fmt.Sprintf("Initiative: %d", i.group.Iniative)
-	}
-
+	// Styling
 	initiativeStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("214"))
-
-	// Creatures list
-	creatureNames := []string{}
-	for _, creature := range i.group.Creatures {
-		creatureNames = append(creatureNames, creature.Name())
-	}
-	creaturesText := strings.Join(creatureNames, ", ")
-
 	creatureStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("252"))
+	currentTurnStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("46")) // Green for current turn
+	selectionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("170")) // Purple for selection
+	separatorStyle := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{
+		Light: "#DDDADA",
+		Dark:  "#3C3C3C",
+	})
 
-	// Combine text
-	content := initiativeStyle.Render(initiativeText) + "\n" +
-		creatureStyle.Render("  "+creaturesText)
+	var content string
 
-	// Apply selection styling
-	fn := lipgloss.NewStyle().PaddingLeft(4).Render
-	if index == m.Index() {
-		fn = func(s ...string) string {
-			return lipgloss.NewStyle().
-				PaddingLeft(2).
-				Foreground(lipgloss.Color("170")).
-				Render("> " + strings.Join(s, " "))
+	// Check if this is the current turn (index 0 is first in initiative order)
+	isCurrentTurn := index == 0 // For now, assume first item is current turn
+	
+	// Single creature on same line
+	if len(i.group.Creatures) == 1 {
+		creature := i.group.Creatures[0]
+		
+		// Format: "14 • Wizard" with right-aligned initiative (2 chars)
+		initiativeNum := initiativeStyle.Render(fmt.Sprintf("%2d", i.group.Iniative))
+		separator := separatorStyle.Render(" • ")
+		creatureName := creatureStyle.Render(creature.Name())
+		
+		if isCurrentTurn {
+			// Show green arrow for current turn: "→ 14 • Wizard"
+			arrow := currentTurnStyle.Render("→")
+			content = fmt.Sprintf("%s %s%s%s", arrow, initiativeNum, separator, creatureName)
+		} else {
+			// Regular format: "  14 • Wizard"
+			content = fmt.Sprintf("  %s%s%s", initiativeNum, separator, creatureName)
+		}
+	} else {
+		// Multiple creatures using tree
+		initiativeNum := fmt.Sprintf("%2d", i.group.Iniative) // Right-aligned 2 chars
+		
+		// Create tree with initiative as root
+		initiativeTree := tree.New().
+			Root(initiativeStyle.Render(initiativeNum)).
+			EnumeratorStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
+			ItemStyle(creatureStyle)
+		
+		// Add each creature as child
+		for _, creature := range i.group.Creatures {
+			initiativeTree.Child(creature.Name())
+		}
+		
+		treeContent := initiativeTree.String()
+		
+		if isCurrentTurn {
+			// Add green arrow before tree
+			arrow := currentTurnStyle.Render("→")
+			lines := strings.Split(treeContent, "\n")
+			if len(lines) > 0 {
+				lines[0] = arrow + " " + lines[0]
+				content = strings.Join(lines, "\n")
+			} else {
+				content = arrow + " " + treeContent
+			}
+		} else {
+			// Add spacing before tree
+			lines := strings.Split(treeContent, "\n")
+			for i, line := range lines {
+				lines[i] = "  " + line
+			}
+			content = strings.Join(lines, "\n")
 		}
 	}
 
-	fmt.Fprint(w, fn(content))
+	// Apply selection highlighting
+	if index == m.Index() {
+		content = selectionStyle.Render("> ") + content
+	} else {
+		content = "  " + content
+	}
+
+	fmt.Fprint(w, content)
 }
 
 // Encounter creation form model
