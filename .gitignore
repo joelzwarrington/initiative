@@ -5,6 +5,9 @@
 !go.sum
 !go.mod
 
+!internal/sources/srd.md
+!internal/sources/srd.yaml
+
 !.github/workflows/ci.yaml
 
 !README.md
