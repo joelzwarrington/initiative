@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -96,7 +97,12 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.IniativeGroups = msg.initiativeGroups
 		e.encounterCreateForm = nil
 
-		// Update the list with initiative groups
+		// Sort initiative groups by initiative value (highest to lowest)
+		sort.Slice(e.IniativeGroups, func(i, j int) bool {
+			return e.IniativeGroups[i].Iniative > e.IniativeGroups[j].Iniative
+		})
+
+		// Update the list with sorted initiative groups
 		items := []list.Item{}
 		for _, group := range e.IniativeGroups {
 			items = append(items, initiativeGroupItem{group: group})
