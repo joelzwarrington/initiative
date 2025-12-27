@@ -94,6 +94,14 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				
 				return e, nil
 			}
+			if key.Matches(msg, e.detailKeys.previousTurn) {
+				e.previousTurn()
+				return e, nil
+			}
+			if key.Matches(msg, e.detailKeys.nextTurn) {
+				e.nextTurn()
+				return e, nil
+			}
 		}
 	case startEncounterCreateMsg:
 		e.encounterCreateForm = newEncounterCreateForm(e.skeleton, e.party)
@@ -112,15 +120,12 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 
 		// Update the list with sorted initiative groups
-		items := []list.Item{}
-		for _, group := range e.IniativeGroups {
-			items = append(items, initiativeGroupItem{group: group})
-		}
-		e.list.SetItems(items)
+		e.updateInitiativeList()
+		e.list.SetItems(e.createInitiativeListItems())
 		
 		// Initialize current turn and add round tracking widget
 		e.currentTurn = 0 // Start with first creature in initiative order
-		e.updateRoundWidget()
+		e.skeleton.AddWidget("round", fmt.Sprintf("Round: %d", e.Round))
 		
 		e.view = encounterDetail
 		return e, nil
@@ -211,7 +216,59 @@ func (e encounter) View() string {
 
 // Widget management
 func (e *encounter) updateRoundWidget() {
-	e.skeleton.AddWidget("round", fmt.Sprintf("Round: %d", e.Round))
+	e.skeleton.UpdateWidgetValue("round", fmt.Sprintf("Round: %d", e.Round))
+}
+
+// Initiative list management
+func (e *encounter) createInitiativeListItems() []list.Item {
+	items := []list.Item{}
+	for i, group := range e.IniativeGroups {
+		items = append(items, initiativeGroupItem{
+			group:         group,
+			isCurrentTurn: i == e.currentTurn,
+		})
+	}
+	return items
+}
+
+func (e *encounter) updateInitiativeList() {
+	e.list.SetItems(e.createInitiativeListItems())
+}
+
+// Turn navigation
+func (e *encounter) nextTurn() {
+	if len(e.IniativeGroups) == 0 {
+		return
+	}
+	
+	e.currentTurn++
+	if e.currentTurn >= len(e.IniativeGroups) {
+		// End of round - go to beginning and increment round
+		e.currentTurn = 0
+		e.Round++
+		e.updateRoundWidget()
+	}
+	e.updateInitiativeList()
+}
+
+func (e *encounter) previousTurn() {
+	if len(e.IniativeGroups) == 0 {
+		return
+	}
+	
+	// Don't allow going back if we're at round 1, turn 0 (start of encounter)
+	if e.Round == 1 && e.currentTurn == 0 {
+		return
+	}
+	
+	e.currentTurn--
+	if e.currentTurn < 0 {
+		// Beginning of round - go to end and decrement round
+		e.currentTurn = len(e.IniativeGroups) - 1
+		e.Round--
+		e.updateRoundWidget()
+	}
+	e.updateInitiativeList()
 }
 
 // Messages
@@ -243,7 +300,9 @@ func (k encounterPlaceholderKeyMap) FullHelp() [][]key.Binding {
 }
 
 type encounterDetailKeyMap struct {
-	back key.Binding
+	back         key.Binding
+	previousTurn key.Binding
+	nextTurn     key.Binding
 }
 
 func newEncounterDetailKeyMap() encounterDetailKeyMap {
@@ -252,15 +311,24 @@ func newEncounterDetailKeyMap() encounterDetailKeyMap {
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "stop encounter"),
 		),
+		previousTurn: key.NewBinding(
+			key.WithKeys("left"),
+			key.WithHelp("←", "previous turn"),
+		),
+		nextTurn: key.NewBinding(
+			key.WithKeys("right"),
+			key.WithHelp("→", "next turn"),
+		),
 	}
 }
 
 func (k encounterDetailKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.back}
+	return []key.Binding{k.previousTurn, k.nextTurn, k.back}
 }
 
 func (k encounterDetailKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
+		{k.previousTurn, k.nextTurn},
 		{k.back},
 	}
 }
@@ -269,7 +337,8 @@ func (k encounterDetailKeyMap) FullHelp() [][]key.Binding {
 var _ list.Item = (*initiativeGroupItem)(nil)
 
 type initiativeGroupItem struct {
-	group IniativeGroup
+	group         IniativeGroup
+	isCurrentTurn bool
 }
 
 func (i initiativeGroupItem) FilterValue() string {
@@ -313,8 +382,8 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 
 	var content string
 
-	// Check if this is the current turn (index 0 is first in initiative order)
-	isCurrentTurn := index == 0 // For now, assume first item is current turn
+	// Check if this is the current turn by accessing encounter's currentTurn
+	isCurrentTurn := i.isCurrentTurn
 	
 	// Single creature on same line
 	if len(i.group.Creatures) == 1 {
