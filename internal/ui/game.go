@@ -19,6 +19,8 @@ const (
 	logTab
 )
 
+type gameDataChangedMsg struct{}
+
 var _ tea.Model = (*GameModel)(nil)
 
 type GameModel struct {
@@ -28,6 +30,8 @@ type GameModel struct {
 
 	activeTab gameTab
 	keyMap    gameKeyMap
+
+	characterModel *CharacterModel
 
 	width  int
 	height int
@@ -71,13 +75,15 @@ func (k gameKeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
+
 func newGame(game *data.Game, width, height int) *GameModel {
 	return &GameModel{
-		game:   game,
-		help:   help.New(),
-		keyMap: newGameKeyMap(),
-		width:  width,
-		height: height,
+		game:           game,
+		help:           help.New(),
+		keyMap:         newGameKeyMap(),
+		characterModel: newCharacter(game, width, height),
+		width:          width,
+		height:         height,
 	}
 }
 
@@ -88,27 +94,101 @@ func (m *GameModel) Init() tea.Cmd {
 func (m *GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		return m, nil
-
+		return m.broadcastWindowResize(msg)
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.tab):
-			m.activeTab = (m.activeTab + 1) % 4
-			return m, nil
-		case key.Matches(msg, m.keyMap.shiftTab):
-			m.activeTab = (m.activeTab - 1 + 4) % 4
-			return m, nil
-		case key.Matches(msg, m.keyMap.back):
-			return m, tea.Cmd(func() tea.Msg {
-				return gameDeselectedMsg{}
-			})
-		case key.Matches(msg, m.keyMap.quit):
+		// Only handle emergency quit globally
+		if key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))) {
 			return m, tea.Quit
 		}
+		// Everything else delegated to active tab
+		return m.delegateToActiveTab(msg)
+	case characterDataChangedMsg:
+		// Character data was modified, bubble up to app level to save
+		return m, func() tea.Msg {
+			return gameDataChangedMsg{}
+		}
+	case tabNavigationMsg:
+		// Handle tab navigation from sub-models
+		if msg.direction == 1 {
+			m.activeTab = (m.activeTab + 1) % 4
+		} else {
+			m.activeTab = (m.activeTab - 1 + 4) % 4
+		}
+		return m, nil
+	case gameBackMsg:
+		// Handle back navigation from sub-models
+		return m, func() tea.Msg {
+			return gameDeselectedMsg{}
+		}
+	case gameQuitMsg:
+		// Handle quit from sub-models
+		return m, tea.Quit
+	default:
+		return m.delegateToActiveTab(msg)
 	}
+}
 
+func (m *GameModel) broadcastWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	
+	// Pass window size to all sub-models
+	if m.characterModel != nil {
+		charModel, _ := m.characterModel.Update(msg)
+		if cm, ok := charModel.(*CharacterModel); ok {
+			m.characterModel = cm
+		}
+	}
+	// Add other sub-models here when they exist
+	
+	return m, nil
+}
+
+func (m *GameModel) delegateToActiveTab(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch m.activeTab {
+	case charactersTab:
+		if m.characterModel != nil {
+			charModel, cmd := m.characterModel.Update(msg)
+			if cm, ok := charModel.(*CharacterModel); ok {
+				m.characterModel = cm
+			}
+			return m, cmd
+		}
+	case encounterTab:
+		return m.handlePlaceholderTab(msg)
+	case statsTab:
+		return m.handlePlaceholderTab(msg)
+	case logTab:
+		return m.handlePlaceholderTab(msg)
+	}
+	return m, nil
+}
+
+func (m *GameModel) handlePlaceholderTab(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle basic navigation for unimplemented tabs
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch {
+		case key.Matches(keyMsg, key.NewBinding(key.WithKeys("tab"))):
+			return m, func() tea.Msg {
+				return tabNavigationMsg{direction: 1}
+			}
+		case key.Matches(keyMsg, key.NewBinding(key.WithKeys("shift+tab"))):
+			return m, func() tea.Msg {
+				return tabNavigationMsg{direction: -1}
+			}
+		case key.Matches(keyMsg, key.NewBinding(key.WithKeys("esc"))):
+			return m, func() tea.Msg {
+				return gameBackMsg{}
+			}
+		case key.Matches(keyMsg, key.NewBinding(key.WithKeys("q"))):
+			return m, func() tea.Msg {
+				return gameQuitMsg{}
+			}
+		case key.Matches(keyMsg, key.NewBinding(key.WithKeys("?"))):
+			m.help.ShowAll = !m.help.ShowAll
+			return m, nil
+		}
+	}
 	return m, nil
 }
 
@@ -193,7 +273,14 @@ func (m GameModel) View() string {
 	availHeight -= lipgloss.Height(tabRow)
 
 	// Render help and subtract its height
-	helpView := m.help.View(m.keyMap)
+	var helpView string
+	if m.activeTab == charactersTab && m.characterModel != nil {
+		// Use character model's help
+		helpView = m.characterModel.help.View(m.characterModel.keyMap)
+	} else {
+		// Use game-level help for other tabs
+		helpView = m.help.View(m.keyMap)
+	}
 	availHeight -= lipgloss.Height(helpView)
 
 	// Tab content - placeholder for now
@@ -208,13 +295,19 @@ func (m GameModel) View() string {
 			AlignVertical(lipgloss.Center).
 			Render(content)
 	case charactersTab:
-		content := "Characters tab content - placeholder"
-		contentArea = lipgloss.NewStyle().
-			Height(availHeight).
-			Width(m.width).
-			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Render(content)
+		if m.characterModel != nil {
+			// Set the size for the character model
+			m.characterModel.SetSize(m.width, availHeight)
+			contentArea = m.characterModel.View()
+		} else {
+			content := "Character model not initialized"
+			contentArea = lipgloss.NewStyle().
+				Height(availHeight).
+				Width(m.width).
+				AlignHorizontal(lipgloss.Center).
+				AlignVertical(lipgloss.Center).
+				Render(content)
+		}
 	case statsTab:
 		content := "Stats tab content - placeholder"
 		contentArea = lipgloss.NewStyle().

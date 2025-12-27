@@ -21,7 +21,8 @@ var _ tea.Model = (*AppModel)(nil)
 
 type AppModel struct {
 	*data.Data
-	currentGame *data.Game
+	currentGame     *data.Game
+	currentGameUUID string
 
 	currentView appView
 
@@ -63,6 +64,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gameViewedMsg:
 		{
 			m.currentGame = m.getGame(msg.uuid)
+			m.currentGameUUID = msg.uuid
 			m.currentView = GameView
 			m.game = newGame(m.currentGame, m.width, m.height)
 			return m, m.game.Init()
@@ -117,8 +119,22 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			m.currentView = GameListView
 			m.currentGame = nil
+			m.currentGameUUID = ""
 			m.game = nil
 			m.form = nil
+			return m, nil
+		}
+	case gameDataChangedMsg:
+		{
+			// Game data (including characters) has changed, save it
+			if m.Data != nil {
+				// IMPORTANT: Copy the current game data back to the map
+				// since we're working with a pointer to a copy
+				if m.currentGame != nil && m.currentGameUUID != "" {
+					m.Games[m.currentGameUUID] = *m.currentGame
+				}
+				m.Save()
+			}
 			return m, nil
 		}
 	}
