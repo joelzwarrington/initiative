@@ -83,7 +83,12 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Summary = ""
 				e.StartedAt = time.Time{}
 				e.EndedAt = time.Time{}
+				e.Round = 0
 				e.encounterCreateForm = nil
+				
+				// Remove widgets when stopping encounter
+				e.skeleton.DeleteAllWidgets()
+				
 				return e, nil
 			}
 		}
@@ -94,6 +99,7 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case createEncounterMsg:
 		e.Summary = msg.summary
 		e.StartedAt = time.Now()
+		e.Round = 1 // Start at round 1
 		e.IniativeGroups = msg.initiativeGroups
 		e.encounterCreateForm = nil
 
@@ -108,6 +114,10 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			items = append(items, initiativeGroupItem{group: group})
 		}
 		e.list.SetItems(items)
+		
+		// Add round tracking widget
+		e.updateRoundWidget()
+		
 		e.view = encounterDetail
 		return e, nil
 	case cancelEncounterCreationMsg:
@@ -193,6 +203,11 @@ func (e encounter) View() string {
 	}
 
 	return ""
+}
+
+// Widget management
+func (e *encounter) updateRoundWidget() {
+	e.skeleton.AddWidget("round", fmt.Sprintf("Round: %d", e.Round))
 }
 
 // Messages

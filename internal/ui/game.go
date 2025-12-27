@@ -8,6 +8,7 @@ type Encounter struct {
 	StartedAt time.Time
 	EndedAt   time.Time
 
+	Round          int
 	IniativeGroups []IniativeGroup
 }
 
