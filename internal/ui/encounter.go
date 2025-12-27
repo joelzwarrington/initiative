@@ -1,4 +1,4 @@
-package nui
+package ui
 
 import (
 	"fmt"
