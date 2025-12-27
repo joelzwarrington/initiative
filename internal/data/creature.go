@@ -33,3 +33,8 @@ type Monster struct {
 func (m *Monster) GetName() string {
 	return m.Name
 }
+
+type Encounter struct {
+	Summary    string
+	Characters []string
+}

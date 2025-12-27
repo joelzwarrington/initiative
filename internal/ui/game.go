@@ -32,6 +32,7 @@ type GameModel struct {
 	keyMap    gameKeyMap
 
 	characterModel *CharacterModel
+	encounterModel *EncounterModel
 
 	width  int
 	height int
@@ -82,6 +83,7 @@ func newGame(game *data.Game, width, height int) *GameModel {
 		help:           help.New(),
 		keyMap:         newGameKeyMap(),
 		characterModel: newCharacter(game, width, height),
+		encounterModel: newEncounter(game, width, height),
 		width:          width,
 		height:         height,
 	}
@@ -139,13 +141,23 @@ func (m *GameModel) broadcastWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea
 			m.characterModel = cm
 		}
 	}
-	// Add other sub-models here when they exist
+	if m.encounterModel != nil {
+		m.encounterModel.SetSize(msg.Width, msg.Height)
+	}
 	
 	return m, nil
 }
 
 func (m *GameModel) delegateToActiveTab(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.activeTab {
+	case encounterTab:
+		if m.encounterModel != nil {
+			encModel, cmd := m.encounterModel.Update(msg)
+			if em, ok := encModel.(*EncounterModel); ok {
+				m.encounterModel = em
+			}
+			return m, cmd
+		}
 	case charactersTab:
 		if m.characterModel != nil {
 			charModel, cmd := m.characterModel.Update(msg)
@@ -154,8 +166,6 @@ func (m *GameModel) delegateToActiveTab(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		}
-	case encounterTab:
-		return m.handlePlaceholderTab(msg)
 	case statsTab:
 		return m.handlePlaceholderTab(msg)
 	case logTab:
@@ -277,6 +287,9 @@ func (m GameModel) View() string {
 	if m.activeTab == charactersTab && m.characterModel != nil {
 		// Use character model's help
 		helpView = m.characterModel.help.View(m.characterModel.keyMap)
+	} else if m.activeTab == encounterTab && m.encounterModel != nil {
+		// Use encounter model's help
+		helpView = m.encounterModel.help.View(m.encounterModel.keyMap)
 	} else {
 		// Use game-level help for other tabs
 		helpView = m.help.View(m.keyMap)
@@ -287,13 +300,19 @@ func (m GameModel) View() string {
 	var contentArea string
 	switch m.activeTab {
 	case encounterTab:
-		content := "Encounter tab content - placeholder"
-		contentArea = lipgloss.NewStyle().
-			Height(availHeight).
-			Width(m.width).
-			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Render(content)
+		if m.encounterModel != nil {
+			// Set the size for the encounter model
+			m.encounterModel.SetSize(m.width, availHeight)
+			contentArea = m.encounterModel.View()
+		} else {
+			content := "Encounter model not initialized"
+			contentArea = lipgloss.NewStyle().
+				Height(availHeight).
+				Width(m.width).
+				AlignHorizontal(lipgloss.Center).
+				AlignVertical(lipgloss.Center).
+				Render(content)
+		}
 	case charactersTab:
 		if m.characterModel != nil {
 			// Set the size for the character model
