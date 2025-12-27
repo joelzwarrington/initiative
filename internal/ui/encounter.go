@@ -135,10 +135,11 @@ func (e encounter) View() string {
 	switch e.view {
 	case encounterPlaceholder:
 		{
-			// Calculate available height for content
-			helpStyle := lipgloss.NewStyle().PaddingBottom(1)
+			availHeight := e.skeleton.GetContentHeight()
+			e.help.Width = e.skeleton.GetContentWidth()
+			helpStyle := lipgloss.NewStyle().Padding(0, 1)
 			helpView := helpStyle.Render(e.help.View(e.placeholderKeys))
-			availHeight := e.skeleton.GetContentHeight() - lipgloss.Height(helpView)
+			availHeight = availHeight - lipgloss.Height(helpView)
 
 			// Create main content area
 			placeholderStyle := lipgloss.NewStyle().
@@ -164,10 +165,9 @@ func (e encounter) View() string {
 		}
 	case encounterDetail:
 		{
-			// Calculate available height for content
-			helpStyle := lipgloss.NewStyle().PaddingBottom(1)
-			helpView := helpStyle.Render(e.help.View(e.detailKeys))
-			availHeight := e.skeleton.GetContentHeight() - lipgloss.Height(helpView)
+			helpStyle := lipgloss.NewStyle().Padding(0, 1)
+			availHeight := e.skeleton.GetContentHeight()
+			e.help.Width = e.skeleton.GetContentWidth()
 
 			// Create header with encounter summary
 			headerStyle := lipgloss.NewStyle().
@@ -175,18 +175,14 @@ func (e encounter) View() string {
 				Foreground(lipgloss.Color("205")).
 				MarginBottom(1)
 			header := headerStyle.Render(fmt.Sprintf("Encounter: %s", e.Summary))
+			help := helpStyle.Render(e.help.View(e.detailKeys))
 
-			// Set list dimensions accounting for header and help
-			headerHeight := lipgloss.Height(header) + 1 // +1 for margin
-			listHeight := availHeight - headerHeight
+			listHeight := availHeight - lipgloss.Height(header) - lipgloss.Height(help)
 
 			e.list.SetHeight(listHeight)
 			e.list.SetWidth(e.skeleton.GetContentWidth())
 
-			// Combine header and list
-			content := lipgloss.JoinVertical(lipgloss.Left, header, e.list.View())
-
-			return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
+			return lipgloss.JoinVertical(lipgloss.Left, header, e.list.View(), help)
 		}
 	}
 
@@ -229,7 +225,7 @@ func newEncounterDetailKeyMap() encounterDetailKeyMap {
 	return encounterDetailKeyMap{
 		back: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "back"),
+			key.WithHelp("esc", "stop encounter"),
 		),
 	}
 }
