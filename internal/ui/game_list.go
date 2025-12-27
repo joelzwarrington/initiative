@@ -106,6 +106,29 @@ func (m *GameListModel) RemoveGame(uuid string) {
 	}
 }
 
+func (m *GameListModel) UpdateGame(uuid string, game data.Game) {
+	items := m.list.Items()
+	
+	for i, item := range items {
+		if existingItem, ok := item.(gameItem); ok && existingItem.uuid == uuid {
+			// Update existing item
+			updatedItem := gameItem{
+				uuid: uuid, 
+				Game: game,
+			}
+			m.list.SetItem(i, updatedItem)
+			return
+		}
+	}
+	
+	// If not found, add as new item
+	newItem := gameItem{
+		uuid: uuid, 
+		Game: game,
+	}
+	m.list.InsertItem(len(items), newItem)
+}
+
 func (m *GameListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:

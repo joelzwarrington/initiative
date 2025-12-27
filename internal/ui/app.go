@@ -94,6 +94,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Games[gameUUID] = game
 				m.Save()
 
+				// Update the list with the new/updated game
+				m.list.UpdateGame(gameUUID, game)
+
 				m.currentGame = &game
 			}
 			m.currentView = GameView
