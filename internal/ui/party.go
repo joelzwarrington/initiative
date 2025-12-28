@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"initiative/internal/dnd"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -26,7 +28,7 @@ const (
 
 type party struct {
 	skeleton *skeleton.Skeleton
-	party    *map[string]Character
+	party    *map[string]dnd.Character
 
 	view partyView
 
@@ -40,7 +42,7 @@ type party struct {
 	character string
 }
 
-func newParty(s *skeleton.Skeleton, p *map[string]Character) *party {
+func newParty(s *skeleton.Skeleton, p *map[string]dnd.Character) *party {
 	items := []list.Item{}
 
 	if p != nil {
@@ -190,7 +192,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if p.party != nil {
 						// Update the character in the map
 						character := (*p.party)[p.character]
-						character.name = name
+						character = character.WithName(name)
 						(*p.party)[p.character] = character
 
 						// Find and update the corresponding list item with the updated character
@@ -205,12 +207,12 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				} else {
 					// 2. adding new character - generate new UUID
-					character := Character{name: name}
-					uuid := fmt.Sprintf("char_%d", len(*p.party))
+					character := dnd.NewCharacter(name)
 					if p.party == nil {
-						newParty := make(map[string]Character)
+						newParty := make(map[string]dnd.Character)
 						p.party = &newParty
 					}
+					uuid := fmt.Sprintf("char_%d", len(*p.party))
 					(*p.party)[uuid] = character
 					newItem := characterItem{uuid: uuid, Character: character}
 					p.list.InsertItem(len(p.list.Items()), newItem)
@@ -325,7 +327,7 @@ var _ list.Item = (*characterItem)(nil)
 
 type characterItem struct {
 	uuid string
-	Character
+	dnd.Character
 }
 
 func (c characterItem) FilterValue() string { return c.Name() }

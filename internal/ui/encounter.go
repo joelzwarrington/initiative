@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"initiative/internal/dnd"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -29,10 +31,11 @@ const (
 )
 
 type encounter struct {
-	Encounter
+	dnd.Encounter
 
 	skeleton *skeleton.Skeleton
-	party    *map[string]Character
+	party    *map[string]dnd.Character
+	sources  map[string]*dnd.Source
 
 	view                encounterView
 	encounterCreateForm *encounterCreationForm
@@ -43,7 +46,7 @@ type encounter struct {
 	currentTurn         int // Index of current turn in initiative order
 }
 
-func newEncounter(skeleton *skeleton.Skeleton, party *map[string]Character) *encounter {
+func newEncounter(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounter {
 	// Create empty list for initiative groups
 	initiativeList := list.New([]list.Item{}, &initiativeGroupItemDelegate{}, skeleton.GetContentWidth(), skeleton.GetContentHeight())
 	initiativeList.SetStatusBarItemName("group", "groups")
@@ -55,6 +58,7 @@ func newEncounter(skeleton *skeleton.Skeleton, party *map[string]Character) *enc
 	return &encounter{
 		skeleton: skeleton,
 		party:    party,
+		sources:  sources,
 
 		view:            encounterPlaceholder,
 		list:            initiativeList,
@@ -81,17 +85,17 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case encounterDetail:
 			if key.Matches(msg, e.detailKeys.back) {
 				e.view = encounterPlaceholder
-				e.IniativeGroups = []IniativeGroup{}
+				e.InitiativeGroups = []dnd.InitiativeGroup{}
 				e.Summary = ""
 				e.StartedAt = time.Time{}
 				e.EndedAt = time.Time{}
 				e.Round = 0
 				e.currentTurn = 0
 				e.encounterCreateForm = nil
-				
+
 				// Remove widgets when stopping encounter
 				e.skeleton.DeleteAllWidgets()
-				
+
 				return e, nil
 			}
 			if key.Matches(msg, e.detailKeys.previousTurn) {
@@ -104,29 +108,29 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case startEncounterCreateMsg:
-		e.encounterCreateForm = newEncounterCreateForm(e.skeleton, e.party)
+		e.encounterCreateForm = newEncounterCreateForm(e.skeleton, e.party, e.sources)
 		e.view = encounterCreateForm
 		return e, e.encounterCreateForm.Init()
 	case createEncounterMsg:
 		e.Summary = msg.summary
 		e.StartedAt = time.Now()
 		e.Round = 1 // Start at round 1
-		e.IniativeGroups = msg.initiativeGroups
+		e.InitiativeGroups = msg.initiativeGroups
 		e.encounterCreateForm = nil
 
 		// Sort initiative groups by initiative value (highest to lowest)
-		sort.Slice(e.IniativeGroups, func(i, j int) bool {
-			return e.IniativeGroups[i].Iniative > e.IniativeGroups[j].Iniative
+		sort.Slice(e.InitiativeGroups, func(i, j int) bool {
+			return e.InitiativeGroups[i].Initiative > e.InitiativeGroups[j].Initiative
 		})
 
 		// Update the list with sorted initiative groups
 		e.updateInitiativeList()
 		e.list.SetItems(e.createInitiativeListItems())
-		
+
 		// Initialize current turn and add round tracking widget
 		e.currentTurn = 0 // Start with first creature in initiative order
 		e.skeleton.AddWidget("round", fmt.Sprintf("Round: %d", e.Round))
-		
+
 		e.view = encounterDetail
 		return e, nil
 	case cancelEncounterCreationMsg:
@@ -222,7 +226,7 @@ func (e *encounter) updateRoundWidget() {
 // Initiative list management
 func (e *encounter) createInitiativeListItems() []list.Item {
 	items := []list.Item{}
-	for i, group := range e.IniativeGroups {
+	for i, group := range e.InitiativeGroups {
 		items = append(items, initiativeGroupItem{
 			group:         group,
 			isCurrentTurn: i == e.currentTurn,
@@ -237,12 +241,12 @@ func (e *encounter) updateInitiativeList() {
 
 // Turn navigation
 func (e *encounter) nextTurn() {
-	if len(e.IniativeGroups) == 0 {
+	if len(e.InitiativeGroups) == 0 {
 		return
 	}
-	
+
 	e.currentTurn++
-	if e.currentTurn >= len(e.IniativeGroups) {
+	if e.currentTurn >= len(e.InitiativeGroups) {
 		// End of round - go to beginning and increment round
 		e.currentTurn = 0
 		e.Round++
@@ -252,19 +256,19 @@ func (e *encounter) nextTurn() {
 }
 
 func (e *encounter) previousTurn() {
-	if len(e.IniativeGroups) == 0 {
+	if len(e.InitiativeGroups) == 0 {
 		return
 	}
-	
+
 	// Don't allow going back if we're at round 1, turn 0 (start of encounter)
 	if e.Round == 1 && e.currentTurn == 0 {
 		return
 	}
-	
+
 	e.currentTurn--
 	if e.currentTurn < 0 {
 		// Beginning of round - go to end and decrement round
-		e.currentTurn = len(e.IniativeGroups) - 1
+		e.currentTurn = len(e.InitiativeGroups) - 1
 		e.Round--
 		e.updateRoundWidget()
 	}
@@ -337,7 +341,7 @@ func (k encounterDetailKeyMap) FullHelp() [][]key.Binding {
 var _ list.Item = (*initiativeGroupItem)(nil)
 
 type initiativeGroupItem struct {
-	group         IniativeGroup
+	group         dnd.InitiativeGroup
 	isCurrentTurn bool
 }
 
@@ -345,14 +349,14 @@ func (i initiativeGroupItem) FilterValue() string {
 	if len(i.group.Creatures) > 0 {
 		return i.group.Creatures[0].Name()
 	}
-	return fmt.Sprintf("Initiative: %d", i.group.Iniative)
+	return fmt.Sprintf("Initiative: %d", i.group.Initiative)
 }
 
 // List delegate for initiative groups
 type initiativeGroupItemDelegate struct{}
 
 func (d initiativeGroupItemDelegate) Height() int {
-	return 3 // Allow space for multi-line trees
+	return 1 // Single line per item - trees will expand as needed
 }
 func (d initiativeGroupItemDelegate) Spacing() int { return 0 }
 func (d *initiativeGroupItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
@@ -384,16 +388,16 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 
 	// Check if this is the current turn by accessing encounter's currentTurn
 	isCurrentTurn := i.isCurrentTurn
-	
+
 	// Single creature on same line
 	if len(i.group.Creatures) == 1 {
 		creature := i.group.Creatures[0]
-		
+
 		// Format: "14 • Wizard" with right-aligned initiative (2 chars)
-		initiativeNum := initiativeStyle.Render(fmt.Sprintf("%2d", i.group.Iniative))
+		initiativeNum := initiativeStyle.Render(fmt.Sprintf("%2d", i.group.Initiative))
 		separator := separatorStyle.Render(" • ")
 		creatureName := creatureStyle.Render(creature.Name())
-		
+
 		if isCurrentTurn {
 			// Show green arrow for current turn: "→ 14 • Wizard"
 			arrow := currentTurnStyle.Render("→")
@@ -404,21 +408,21 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		}
 	} else {
 		// Multiple creatures using tree
-		initiativeNum := fmt.Sprintf("%2d", i.group.Iniative) // Right-aligned 2 chars
-		
+		initiativeNum := fmt.Sprintf("%2d", i.group.Initiative) // Right-aligned 2 chars
+
 		// Create tree with initiative as root
 		initiativeTree := tree.New().
 			Root(initiativeStyle.Render(initiativeNum)).
 			EnumeratorStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
 			ItemStyle(creatureStyle)
-		
+
 		// Add each creature as child
 		for _, creature := range i.group.Creatures {
 			initiativeTree.Child(creature.Name())
 		}
-		
+
 		treeContent := initiativeTree.String()
-		
+
 		if isCurrentTurn {
 			// Add green arrow before tree
 			arrow := currentTurnStyle.Render("→")
@@ -454,6 +458,8 @@ type encounterCreationStep int
 
 const (
 	stepSummaryAndCharacters encounterCreationStep = iota
+	stepMonsterSelection
+	stepMonsterQuantities
 	stepGatheringInitiative
 	stepComplete
 )
@@ -462,21 +468,26 @@ type encounterCreationForm struct {
 	step     encounterCreationStep
 	form     *huh.Form
 	skeleton *skeleton.Skeleton
-	party    *map[string]Character
+	party    *map[string]dnd.Character
+	sources  map[string]*dnd.Source
 
 	// Form data
 	summary                string
 	selectedCharacterUUIDs []string
+	selectedMonsters       []string
+	monsterQuantities      map[string]int
 	currentInitiativeIndex int
-	initiativeGroups       []IniativeGroup
+	initiativeGroups       []dnd.InitiativeGroup
 }
 
-func newEncounterCreateForm(skeleton *skeleton.Skeleton, party *map[string]Character) *encounterCreationForm {
+func newEncounterCreateForm(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounterCreationForm {
 	return &encounterCreationForm{
-		step:             stepSummaryAndCharacters,
-		skeleton:         skeleton,
-		party:            party,
-		initiativeGroups: []IniativeGroup{},
+		step:              stepSummaryAndCharacters,
+		skeleton:          skeleton,
+		party:             party,
+		sources:           sources,
+		monsterQuantities: make(map[string]int),
+		initiativeGroups:  []dnd.InitiativeGroup{},
 	}
 }
 
@@ -539,8 +550,75 @@ func (f *encounterCreationForm) createSummaryForm() {
 	)
 }
 
+func (f *encounterCreationForm) createMonsterSelectionForm() {
+	var monsterOptions []huh.Option[string]
+
+	// Collect monsters from all available sources
+	for _, source := range f.sources {
+		if source != nil {
+			for _, monster := range source.Monsters {
+				monsterOptions = append(monsterOptions,
+					huh.NewOption(monster.Name(), monster.Name()),
+				)
+			}
+		}
+	}
+
+	// If no monsters available, skip to initiative
+	if len(monsterOptions) == 0 {
+		f.step = stepGatheringInitiative
+		f.createInitiativeForm()
+		return
+	}
+
+	f.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Key("monsters").
+				Title("Select Monsters").
+				Options(monsterOptions...),
+		),
+	)
+}
+
+func (f *encounterCreationForm) createMonsterQuantitiesForm() {
+	if len(f.selectedMonsters) == 0 {
+		f.step = stepGatheringInitiative
+		f.createInitiativeForm()
+		return
+	}
+
+	fields := []huh.Field{
+		huh.NewNote().Title("Monster Quantities"),
+	}
+
+	for _, monsterName := range f.selectedMonsters {
+		defaultValue := "1"
+		fields = append(fields,
+			huh.NewInput().
+				Key(fmt.Sprintf("quantity_%s", monsterName)).
+				Title(monsterName).
+				Value(&defaultValue).
+				Validate(func(str string) error {
+					if strings.TrimSpace(str) == "" {
+						return fmt.Errorf("Quantity is required")
+					}
+					value, err := strconv.Atoi(strings.TrimSpace(str))
+					if err != nil || value <= 0 {
+						return fmt.Errorf("Quantity must be a positive number")
+					}
+					return nil
+				}),
+		)
+	}
+
+	f.form = huh.NewForm(
+		huh.NewGroup(fields...),
+	)
+}
+
 func (f *encounterCreationForm) createInitiativeForm() {
-	if len(f.selectedCharacterUUIDs) == 0 {
+	if len(f.selectedCharacterUUIDs) == 0 && len(f.selectedMonsters) == 0 {
 		f.step = stepComplete
 		return
 	}
@@ -550,6 +628,7 @@ func (f *encounterCreationForm) createInitiativeForm() {
 		huh.NewNote().Title("Initiative"),
 	}
 
+	// Add character initiative fields
 	for _, uuid := range f.selectedCharacterUUIDs {
 		var characterName string
 		if f.party != nil {
@@ -562,6 +641,25 @@ func (f *encounterCreationForm) createInitiativeForm() {
 			huh.NewInput().
 				Key(fmt.Sprintf("initiative_%s", uuid)).
 				Title(fmt.Sprintf("%s", characterName)).
+				Validate(func(str string) error {
+					if strings.TrimSpace(str) == "" {
+						return fmt.Errorf("Initiative is required")
+					}
+					value, err := strconv.Atoi(strings.TrimSpace(str))
+					if err != nil || value <= 0 {
+						return fmt.Errorf("Initiative must be a positive number")
+					}
+					return nil
+				}),
+		)
+	}
+
+	// Add monster initiative fields (one per monster type)
+	for _, monsterName := range f.selectedMonsters {
+		fields = append(fields,
+			huh.NewInput().
+				Key(fmt.Sprintf("monster_initiative_%s", monsterName)).
+				Title(fmt.Sprintf("%s", monsterName)).
 				Validate(func(str string) error {
 					if strings.TrimSpace(str) == "" {
 						return fmt.Errorf("Initiative is required")
@@ -603,6 +701,39 @@ func (f *encounterCreationForm) Update(msg tea.Msg) (*encounterCreationForm, tea
 		case stepSummaryAndCharacters:
 			f.summary = f.form.GetString("summary")
 			f.selectedCharacterUUIDs = f.form.Get("characters").([]string)
+			f.step = stepMonsterSelection
+			f.createMonsterSelectionForm()
+			return f, f.form.Init()
+
+		case stepMonsterSelection:
+			f.selectedMonsters = f.form.Get("monsters").([]string)
+			f.step = stepMonsterQuantities
+			f.createMonsterQuantitiesForm()
+			if f.step == stepGatheringInitiative {
+				// Skip quantities if no monsters selected
+				f.createInitiativeForm()
+				if f.step == stepComplete {
+					return f, tea.Cmd(func() tea.Msg {
+						return createEncounterMsg{
+							summary:          f.summary,
+							initiativeGroups: f.initiativeGroups,
+						}
+					})
+				}
+			}
+			return f, f.form.Init()
+
+		case stepMonsterQuantities:
+			// Parse monster quantities
+			for _, monsterName := range f.selectedMonsters {
+				quantityKey := fmt.Sprintf("quantity_%s", monsterName)
+				quantityStr := f.form.GetString(quantityKey)
+				quantity, err := strconv.Atoi(strings.TrimSpace(quantityStr))
+				if err != nil {
+					quantity = 1 // Default to 1 if parsing fails
+				}
+				f.monsterQuantities[monsterName] = quantity
+			}
 			f.step = stepGatheringInitiative
 			f.createInitiativeForm()
 			if f.step == stepComplete {
@@ -631,12 +762,56 @@ func (f *encounterCreationForm) Update(msg tea.Msg) (*encounterCreationForm, tea
 				// Get character and create initiative group
 				if f.party != nil {
 					if character, exists := (*f.party)[uuid]; exists {
-						group := IniativeGroup{
-							Iniative:  initiativeValue,
-							Creatures: []Creature{character},
+						group := dnd.InitiativeGroup{
+							Initiative: initiativeValue,
+							Creatures:  []dnd.Creature{character},
 						}
 						f.initiativeGroups = append(f.initiativeGroups, group)
 					}
+				}
+			}
+
+			// Process monster initiatives
+			// Create a map for quick monster lookup from all sources
+			monsterMap := make(map[string]dnd.Monster)
+			for _, source := range f.sources {
+				if source != nil {
+					for _, monster := range source.Monsters {
+						monsterMap[monster.Name()] = monster
+					}
+				}
+			}
+
+			for _, monsterName := range f.selectedMonsters {
+				initiativeKey := fmt.Sprintf("monster_initiative_%s", monsterName)
+				initiativeStr := f.form.GetString(initiativeKey)
+
+				// Parse initiative value
+				initiativeValue, err := strconv.Atoi(strings.TrimSpace(initiativeStr))
+				if err != nil {
+					initiativeValue = 1 // Default to 1 if parsing fails
+				}
+
+				// Get quantity for this monster type
+				quantity := f.monsterQuantities[monsterName]
+				if quantity <= 0 {
+					quantity = 1 // Default to 1 if not set
+				}
+
+				// Create monsters and add to initiative group
+				if monster, exists := monsterMap[monsterName]; exists {
+					var creatures []dnd.Creature
+					for i := 0; i < quantity; i++ {
+						// Each monster in the group is a copy of the template
+						creatures = append(creatures, monster)
+					}
+
+					// Create initiative group for all monsters of this type
+					group := dnd.InitiativeGroup{
+						Initiative: initiativeValue,
+						Creatures:  creatures,
+					}
+					f.initiativeGroups = append(f.initiativeGroups, group)
 				}
 			}
 
@@ -675,5 +850,5 @@ func (f *encounterCreationForm) View() string {
 
 type createEncounterMsg struct {
 	summary          string
-	initiativeGroups []IniativeGroup
+	initiativeGroups []dnd.InitiativeGroup
 }

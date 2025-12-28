@@ -1,39 +1,28 @@
-package ui
+package dnd
 
 import "time"
 
+// Core game types
 type Encounter struct {
 	Summary string
 
 	StartedAt time.Time
 	EndedAt   time.Time
 
-	Round          int
-	IniativeGroups []IniativeGroup
+	Round           int
+	InitiativeGroups []InitiativeGroup
 }
 
-type IniativeGroup struct {
-	Iniative  int
-	Creatures []Creature
+type InitiativeGroup struct {
+	Initiative int
+	Creatures  []Creature
 }
 
 type Creature interface {
 	Name() string
 }
 
-var _ Creature = (*Monster)(nil)
-
-type Monster struct {
-	name      string
-	statBlock StatBlock
-}
-
-func (m Monster) Name() string {
-	return m.name
-}
-
-var _ Creature = (*Character)(nil)
-
+// Character represents a player character
 type Character struct {
 	name string
 }
@@ -42,6 +31,32 @@ func (c Character) Name() string {
 	return c.name
 }
 
+func NewCharacter(name string) Character {
+	return Character{name: name}
+}
+
+func (c Character) WithName(name string) Character {
+	return Character{name: name}
+}
+
+// Monster represents a creature from the SRD
+type Monster struct {
+	MonsterName string    `yaml:"name" json:"name"`
+	StatBlock   StatBlock `yaml:"stat_block" json:"stat_block"`
+}
+
+func (m Monster) Name() string {
+	return m.MonsterName
+}
+
+func NewMonster(name string, statBlock StatBlock) Monster {
+	return Monster{
+		MonsterName: name,
+		StatBlock:   statBlock,
+	}
+}
+
+// SRD data types
 type Ability struct {
 	Score    int `yaml:"score" json:"score"`
 	Modifier int `yaml:"modifier" json:"modifier"`
@@ -60,22 +75,6 @@ type ArmorClass struct {
 type HitPoints struct {
 	Fixed int    `yaml:"fixed" json:"fixed"`
 	Roll  string `yaml:"roll" json:"roll"`
-}
-
-type SRDMetadata struct {
-	Name    string `yaml:"name" json:"name"`
-	Key     string `yaml:"key" json:"key"`
-	Version string `yaml:"version" json:"version"`
-}
-
-type SRDMonster struct {
-	Name      string    `yaml:"name" json:"name"`
-	StatBlock StatBlock `yaml:"stat_block" json:"stat_block"`
-}
-
-type SRDDocument struct {
-	Meta     SRDMetadata  `yaml:"meta" json:"meta"`
-	Monsters []SRDMonster `yaml:"monsters" json:"monsters"`
 }
 
 type StatBlock struct {
@@ -101,4 +100,15 @@ type StatBlock struct {
 	Traits           string `yaml:"traits,omitempty" json:"traits,omitempty"`
 	Actions          string `yaml:"actions,omitempty" json:"actions,omitempty"`
 	LegendaryActions string `yaml:"legendary_actions,omitempty" json:"legendary_actions,omitempty"`
+}
+
+type SourceMeta struct {
+	Name    string `yaml:"name" json:"name"`
+	Key     string `yaml:"key" json:"key"`
+	Version string `yaml:"version" json:"version"`
+}
+
+type Source struct {
+	Meta     SourceMeta `yaml:"meta" json:"meta"`
+	Monsters []Monster  `yaml:"monsters" json:"monsters"`
 }

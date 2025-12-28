@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"initiative/internal/dnd"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -9,11 +11,18 @@ import (
 )
 
 func NewProgram() *tea.Program {
-	party := map[string]Character{
-		uuid.New().String(): Character{name: "Lorem"},
-		uuid.New().String(): Character{name: "Ipsum"},
+	party := map[string]dnd.Character{
+		uuid.New().String(): dnd.NewCharacter("Lorem"),
+		uuid.New().String(): dnd.NewCharacter("Ipsum"),
 	}
 	p := &party
+
+	// Load SRD sources at program initialization
+	sources := make(map[string]*dnd.Source)
+	srd, err := dnd.GetSystemReferenceSource()
+	if err == nil && srd != nil {
+		sources[srd.Meta.Key] = srd
+	}
 
 	s := skeleton.NewSkeleton()
 
@@ -28,7 +37,7 @@ func NewProgram() *tea.Program {
 
 	s.LockTabs().SetWrapTabs(true)
 
-	s.AddPage("encounter", "Encounter", newEncounter(s, p))
+	s.AddPage("encounter", "Encounter", newEncounter(s, p, sources))
 	s.AddPage("party", "Party", newParty(s, p))
 
 	return tea.NewProgram(s)
