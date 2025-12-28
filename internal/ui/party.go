@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"initiative/internal/dnd"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/termkit/skeleton"
 )
@@ -74,8 +76,17 @@ func newParty(s *skeleton.Skeleton, p *map[string]dnd.Character) *party {
 
 	l.SetStatusBarItemName("character", "characters")
 	l.SetShowTitle(false)
+	l.StatusMessageLifetime = time.Duration(1500) * time.Millisecond
+	l.StatusMessageLocation = list.InStatusBar
 	l.SetShowHelp(true)
+	l.SetShowNoItems(false)
 	l.DisableQuitKeybindings()
+
+	// Hide the "No items" message
+	styles := l.Styles
+
+	styles.NoItems = styles.NoItems.Width(0).Height(0)
+	l.Styles = styles
 
 	return &party{
 		skeleton: s,
@@ -95,12 +106,25 @@ func (p party) Init() tea.Cmd {
 }
 
 func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Do not respond to custom key handlers when filtering
+		if p.list.FilterState() == list.Filtering {
+			break
+		}
+
 		if key.Matches(msg, p.listKeys.newCharacter) && p.listKeys.newCharacter.Enabled() && p.view == partyList {
 			return p, tea.Cmd(func() tea.Msg {
 				return editCharacterMsg{uuid: ""}
 			})
+		}
+
+		// to debug the status
+		// add key binding so we match
+		if key.Matches(msg, key.NewBinding(key.WithKeys("a"))) && p.view == partyList {
+			return p, p.list.NewStatusMessage("foo")
 		}
 	case viewCharacterMsg:
 		{
@@ -140,6 +164,10 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case deleteCharacterMsg:
 		{
 			if p.party != nil {
+				if character, exists := (*p.party)[msg.uuid]; exists {
+					leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.Name()+" has left the party!")
+					cmds = append(cmds, p.list.NewStatusMessage(leaveMessage))
+				}
 				delete(*p.party, msg.uuid)
 			}
 
@@ -151,7 +179,8 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
-			return p, nil
+
+			return p, tea.Sequence(cmds...)
 		}
 	}
 
@@ -214,11 +243,15 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					uuid := fmt.Sprintf("char_%d", len(*p.party))
 					(*p.party)[uuid] = character
 					newItem := characterItem{uuid: uuid, Character: character}
-					p.list.InsertItem(len(p.list.Items()), newItem)
+					cmds = append(cmds, p.list.InsertItem(len(p.list.Items()), newItem))
+					joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(name+" has joined the party!")
+					cmds = append(cmds, p.list.NewStatusMessage(joinMessage))
 				}
 
 				p.view = partyList
 				p.character = ""
+
+				return p, tea.Batch(cmds...)
 			}
 
 			return p, cmd
@@ -231,19 +264,8 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (p party) View() string {
 	switch p.view {
 	case partyList:
-		// Show status bar only when there are characters to avoid duplicate "No characters" message
-		p.list.SetShowStatusBar(len(p.list.Items()) > 0)
 		p.list.SetHeight(p.skeleton.GetContentHeight())
 		p.list.SetWidth(p.skeleton.GetContentWidth())
-
-		// Center and add padding to the "No items" message
-		styles := p.list.Styles
-		styles.NoItems = styles.NoItems.
-			Align(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Width(p.skeleton.GetContentWidth()).
-			Height(p.skeleton.GetContentHeight() - 4)
-		p.list.Styles = styles
 
 		return p.list.View()
 	case partyDetail:
