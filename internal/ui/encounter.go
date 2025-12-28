@@ -170,7 +170,7 @@ func (e encounter) View() string {
 		{
 			availHeight := e.skeleton.GetContentHeight()
 			e.help.Width = e.skeleton.GetContentWidth()
-			helpStyle := lipgloss.NewStyle().Padding(0, 1)
+			helpStyle := lipgloss.NewStyle().Padding(0, 2)
 			helpView := helpStyle.Render(e.help.View(e.placeholderKeys))
 			availHeight = availHeight - lipgloss.Height(helpView)
 
