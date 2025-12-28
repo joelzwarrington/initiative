@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"initiative/internal/components"
 	"initiative/internal/dnd"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -48,7 +49,10 @@ type encounter struct {
 
 func newEncounter(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounter {
 	// Create empty list for initiative groups
-	initiativeList := list.New([]list.Item{}, &initiativeGroupItemDelegate{}, skeleton.GetContentWidth(), skeleton.GetContentHeight())
+	delegate := &initiativeGroupItemDelegate{
+		health: components.NewHealth(30), // 30 chars width for health bar
+	}
+	initiativeList := list.New([]list.Item{}, delegate, skeleton.GetContentWidth(), skeleton.GetContentHeight())
 	initiativeList.SetStatusBarItemName("group", "groups")
 	initiativeList.SetShowTitle(false)
 	initiativeList.SetShowStatusBar(false)
@@ -353,12 +357,14 @@ func (i initiativeGroupItem) FilterValue() string {
 }
 
 // List delegate for initiative groups
-type initiativeGroupItemDelegate struct{}
+type initiativeGroupItemDelegate struct {
+	health components.Health
+}
 
 func (d initiativeGroupItemDelegate) Height() int {
 	return 1 // Single line per item - trees will expand as needed
 }
-func (d initiativeGroupItemDelegate) Spacing() int { return 0 }
+func (d initiativeGroupItemDelegate) Spacing() int { return 1 }
 func (d *initiativeGroupItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	return nil
 }
@@ -398,13 +404,19 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		separator := separatorStyle.Render(" • ")
 		creatureName := creatureStyle.Render(creature.Name())
 
+		// Check if creature is a monster and add health bar
+		var healthBar string
+		if monster, ok := creature.(dnd.Monster); ok {
+			healthBar = " " + d.health.View(monster.HitPoints, monster.MaximumHitPoints)
+		}
+
 		if isCurrentTurn {
-			// Show green arrow for current turn: "→ 14 • Wizard"
+			// Show green arrow for current turn: "→ 14 • Wizard [health bar]"
 			arrow := currentTurnStyle.Render("→")
-			content = fmt.Sprintf("%s %s%s%s", arrow, initiativeNum, separator, creatureName)
+			content = fmt.Sprintf("%s %s%s%s%s", arrow, initiativeNum, separator, creatureName, healthBar)
 		} else {
-			// Regular format: "  14 • Wizard"
-			content = fmt.Sprintf("  %s%s%s", initiativeNum, separator, creatureName)
+			// Regular format: "  14 • Wizard [health bar]"
+			content = fmt.Sprintf("  %s%s%s%s", initiativeNum, separator, creatureName, healthBar)
 		}
 	} else {
 		// Multiple creatures using tree
@@ -418,7 +430,15 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 
 		// Add each creature as child
 		for _, creature := range i.group.Creatures {
-			initiativeTree.Child(creature.Name())
+			// Check if creature is a monster and add health bar to name
+			var creatureDisplay string
+			if monster, ok := creature.(dnd.Monster); ok {
+				healthBar := d.health.View(monster.HitPoints, monster.MaximumHitPoints)
+				creatureDisplay = creature.Name() + " " + healthBar
+			} else {
+				creatureDisplay = creature.Name()
+			}
+			initiativeTree.Child(creatureDisplay)
 		}
 
 		treeContent := initiativeTree.String()
@@ -802,8 +822,9 @@ func (f *encounterCreationForm) Update(msg tea.Msg) (*encounterCreationForm, tea
 				if monster, exists := monsterMap[monsterName]; exists {
 					var creatures []dnd.Creature
 					for i := 0; i < quantity; i++ {
-						// Each monster in the group is a copy of the template
-						creatures = append(creatures, monster)
+						// Each monster in the group is a copy of the template with initialized health
+						monsterCopy := dnd.NewMonster(monster.MonsterName, monster.StatBlock)
+						creatures = append(creatures, monsterCopy)
 					}
 
 					// Create initiative group for all monsters of this type

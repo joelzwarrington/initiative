@@ -9,7 +9,7 @@ type Encounter struct {
 	StartedAt time.Time
 	EndedAt   time.Time
 
-	Round           int
+	Round            int
 	InitiativeGroups []InitiativeGroup
 }
 
@@ -41,8 +41,10 @@ func (c Character) WithName(name string) Character {
 
 // Monster represents a creature from the SRD
 type Monster struct {
-	MonsterName string    `yaml:"name" json:"name"`
-	StatBlock   StatBlock `yaml:"stat_block" json:"stat_block"`
+	MonsterName      string    `yaml:"name" json:"name"`
+	StatBlock        StatBlock `yaml:"stat_block" json:"stat_block"`
+	HitPoints        int       `yaml:"-" json:"-"`
+	MaximumHitPoints int       `yaml:"-" json:"-"`
 }
 
 func (m Monster) Name() string {
@@ -50,9 +52,12 @@ func (m Monster) Name() string {
 }
 
 func NewMonster(name string, statBlock StatBlock) Monster {
+	maxHP := statBlock.HitPoints.Fixed
 	return Monster{
-		MonsterName: name,
-		StatBlock:   statBlock,
+		MonsterName:      name,
+		StatBlock:        statBlock,
+		HitPoints:        maxHP,
+		MaximumHitPoints: maxHP,
 	}
 }
 

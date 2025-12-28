@@ -4,54 +4,43 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 // Health represents a creature's health status
 type Health struct {
-	maxHealth     int
-	currentHealth int
-	progress      progress.Model
-	width         int
+	progress progress.Model
+	width    int
 }
 
 // NewHealth creates a new health component
-func NewHealth(maxHealth int, width int) Health {
+func NewHealth(width int) Health {
 	prog := progress.New(progress.WithDefaultGradient())
 	prog.Width = width
 
 	return Health{
-		maxHealth:     maxHealth,
-		currentHealth: maxHealth,
-		progress:      prog,
-		width:         width,
+		progress: prog,
+		width:    width,
 	}
-}
-
-// SetHealth updates the current and maximum health values
-func (h *Health) SetHealth(current int, maximum int) {
-	h.maxHealth = maximum
-	if current < 0 {
-		current = 0
-	}
-	if current > h.maxHealth {
-		current = h.maxHealth
-	}
-	h.currentHealth = current
 }
 
 // getPercent returns the health as a percentage (0.0 to 1.0)
-func (h *Health) getPercent() float64 {
-	if h.maxHealth == 0 {
+func getPercent(current, maximum int) float64 {
+	if maximum == 0 {
 		return 0.0
 	}
-	return float64(h.currentHealth) / float64(h.maxHealth)
+	if current < 0 {
+		current = 0
+	}
+	if current > maximum {
+		current = maximum
+	}
+	return float64(current) / float64(maximum)
 }
 
-// GetStatus returns a string describing the health status
-func (h *Health) status() string {
-	percent := h.getPercent()
+// getStatus returns a string describing the health status
+func getStatus(current, maximum int) string {
+	percent := getPercent(current, maximum)
 	switch {
 	case percent == 0:
 		return "Dead"
@@ -74,19 +63,9 @@ func (h *Health) SetWidth(width int) {
 	h.progress.Width = width
 }
 
-// Init implements tea.Model interface (not needed for component usage)
-func (h Health) Init() tea.Cmd {
-	return nil
-}
-
-// Update implements tea.Model interface (not needed for component usage)
-func (h Health) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	return h, nil
-}
-
-// View renders the health component as a string
-func (h Health) View() string {
-	percent := h.getPercent()
+// View renders the health component as a string with given current and maximum health
+func (h Health) View(current, maximum int) string {
+	percent := getPercent(current, maximum)
 
 	// Create single color based on health level
 	var color string
@@ -102,7 +81,7 @@ func (h Health) View() string {
 	}
 
 	// Create health text
-	healthText := fmt.Sprintf("%d/%d (%s)", h.currentHealth, h.maxHealth, h.status())
+	healthText := fmt.Sprintf("%d/%d (%s)", current, maximum, getStatus(current, maximum))
 
 	// Style the health text based on status
 	var textStyle lipgloss.Style
