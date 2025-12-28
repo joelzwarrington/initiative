@@ -613,12 +613,10 @@ func (f *encounterCreationForm) createMonsterQuantitiesForm() {
 	}
 
 	for _, monsterName := range f.selectedMonsters {
-		defaultValue := "1"
 		fields = append(fields,
 			huh.NewInput().
 				Key(fmt.Sprintf("quantity_%s", monsterName)).
 				Title(monsterName).
-				Value(&defaultValue).
 				Validate(func(str string) error {
 					if strings.TrimSpace(str) == "" {
 						return fmt.Errorf("Quantity is required")
