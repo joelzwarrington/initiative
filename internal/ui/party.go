@@ -235,6 +235,16 @@ func (p party) View() string {
 		p.list.SetShowStatusBar(len(p.list.Items()) > 0)
 		p.list.SetHeight(p.skeleton.GetContentHeight())
 		p.list.SetWidth(p.skeleton.GetContentWidth())
+
+		// Center and add padding to the "No items" message
+		styles := p.list.Styles
+		styles.NoItems = styles.NoItems.
+			Align(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Width(p.skeleton.GetContentWidth()).
+			Height(p.skeleton.GetContentHeight() - 4)
+		p.list.Styles = styles
+
 		return p.list.View()
 	case partyDetail:
 		var characterName string
