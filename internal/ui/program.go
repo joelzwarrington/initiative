@@ -6,15 +6,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/google/uuid"
 	"github.com/termkit/skeleton"
 )
 
 func NewProgram() *tea.Program {
-	party := map[string]dnd.Character{
-		uuid.New().String(): dnd.NewCharacter("Lorem"),
-		uuid.New().String(): dnd.NewCharacter("Ipsum"),
-	}
+	party := map[string]dnd.Character{}
 	p := &party
 
 	// Load SRD sources at program initialization
