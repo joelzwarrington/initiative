@@ -413,7 +413,7 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		// Create tree with initiative as root
 		initiativeTree := tree.New().
 			Root(initiativeStyle.Render(initiativeNum)).
-			EnumeratorStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
+			EnumeratorStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(5)).
 			ItemStyle(creatureStyle)
 
 		// Add each creature as child
