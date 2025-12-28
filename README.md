@@ -2,6 +2,8 @@
 
 A terminal application for managing and tracking encounters in **Dungeons & Dragons**.
 
+![Demo](examples/demo.gif)
+
 ## Usage
 
 Run the application.
