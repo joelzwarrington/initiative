@@ -74,7 +74,6 @@ func newParty(s *skeleton.Skeleton, p *map[string]dnd.Character) *party {
 
 	l.SetStatusBarItemName("character", "characters")
 	l.SetShowTitle(false)
-	l.SetShowStatusBar(false)
 	l.SetShowHelp(true)
 	l.DisableQuitKeybindings()
 
@@ -232,6 +231,8 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (p party) View() string {
 	switch p.view {
 	case partyList:
+		// Show status bar only when there are characters to avoid duplicate "No characters" message
+		p.list.SetShowStatusBar(len(p.list.Items()) > 0)
 		p.list.SetHeight(p.skeleton.GetContentHeight())
 		p.list.SetWidth(p.skeleton.GetContentWidth())
 		return p.list.View()
