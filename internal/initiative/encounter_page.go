@@ -88,6 +88,9 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.updateRoundWidget()
 			return p, nil
 		}
+		if key.Matches(msg, p.keys.EndEncounter) && p.encounter != nil {
+			return p, tea.Sequence(append(cmds, p.endEncounter())...)
+		}
 	case encounterFormCancelledMsg:
 		return p, tea.Sequence(append(cmds, p.cancelNewEncounterForm())...)
 	case encounterFormSubmittedMsg:
@@ -141,15 +144,29 @@ func (p *encounterPage) Key() string {
 }
 
 func (p *encounterPage) Title() string {
+	if p.encounter != nil {
+		summary := p.encounter.Summary
+		if len(summary) > 18 {
+			summary = summary[:15] + "..."
+		}
+		return "Encounter > " + summary
+	}
 	return "Encounter"
 }
 
 func (p *encounterPage) FullHelp() [][]key.Binding {
 	if p.encounter != nil {
-		return [][]key.Binding{{
+		keys := [][]key.Binding{{
 			p.keys.PrevTurn,
 			p.keys.NextTurn,
+			p.keys.EndEncounter,
 		}}
+		// Add list navigation keys
+		if p.encounterDelegate != nil {
+			listKeys := p.encounterDelegate.FullHelp()
+			keys = append(keys, listKeys...)
+		}
+		return keys
 	}
 	return [][]key.Binding{{
 		p.keys.NewEncounter,
@@ -158,10 +175,17 @@ func (p *encounterPage) FullHelp() [][]key.Binding {
 
 func (p *encounterPage) ShortHelp() []key.Binding {
 	if p.encounter != nil {
-		return []key.Binding{
+		keys := []key.Binding{
 			p.keys.PrevTurn,
 			p.keys.NextTurn,
+			p.keys.EndEncounter,
 		}
+		// Add list navigation keys
+		if p.encounterDelegate != nil {
+			listKeys := p.encounterDelegate.ShortHelp()
+			keys = append(keys, listKeys...)
+		}
+		return keys
 	}
 	return []key.Binding{
 		p.keys.NewEncounter,
@@ -172,6 +196,7 @@ type EncounterPageKeyMap struct {
 	NewEncounter key.Binding
 	NextTurn     key.Binding
 	PrevTurn     key.Binding
+	EndEncounter key.Binding
 }
 
 func defaultEncounterPageKeyMap() EncounterPageKeyMap {
@@ -187,6 +212,10 @@ func defaultEncounterPageKeyMap() EncounterPageKeyMap {
 		PrevTurn: key.NewBinding(
 			key.WithKeys("left"),
 			key.WithHelp("←", "previous turn"),
+		),
+		EndEncounter: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "end encounter"),
 		),
 	}
 }
@@ -221,9 +250,28 @@ func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) te
 	p.encounterForm = nil
 	p.encounter = &submission.encounter
 	
+	// Update page title with encounter summary
+	summary := p.encounter.Summary
+	if len(summary) > 18 {
+		summary = summary[:15] + "..."
+	}
+	p.s.UpdatePageTitle("encounter", "Encounter > "+summary)
+	
 	// Add round tracking widget and unlock tabs
 	p.s.AddWidget("round", fmt.Sprintf("Round: %d", p.encounter.Round))
 	p.s.UnlockTabs()
+	
+	return nil
+}
+
+func (p *encounterPage) endEncounter() tea.Cmd {
+	p.encounter = nil
+	
+	// Reset page title to default
+	p.s.UpdatePageTitle("encounter", "Encounter")
+	
+	// Clear round tracking widget
+	p.s.DeleteWidget("round")
 	
 	return nil
 }

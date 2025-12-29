@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -29,7 +30,7 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 	initiativeList.SetStatusBarItemName("initiative group", "initiative groups")
 	initiativeList.SetShowTitle(false)
 	initiativeList.SetShowStatusBar(true)
-	initiativeList.SetShowHelp(true)
+	initiativeList.SetShowHelp(false)
 	initiativeList.DisableQuitKeybindings()
 
 	return &encounterDelegate{
@@ -64,6 +65,32 @@ func (d *encounterDelegate) Update(msg tea.Msg, encounter *dnd.Encounter) tea.Cm
 func (d *encounterDelegate) SetSize(width, height int) {
 	d.list.SetWidth(width)
 	d.list.SetHeight(height)
+}
+
+func (d *encounterDelegate) ShortHelp() []key.Binding {
+	// Get list navigation keys
+	listKeys := []key.Binding{
+		d.list.KeyMap.CursorUp,
+		d.list.KeyMap.CursorDown,
+	}
+	
+	// Add list-specific keys
+	if d.list.FilterState() != list.Filtering {
+		listKeys = append(listKeys, d.list.KeyMap.Filter)
+	}
+	
+	return listKeys
+}
+
+func (d *encounterDelegate) FullHelp() [][]key.Binding {
+	// Get list navigation keys
+	navKeys := []key.Binding{
+		d.list.KeyMap.CursorUp,
+		d.list.KeyMap.CursorDown,
+		d.list.KeyMap.Filter,
+	}
+	
+	return [][]key.Binding{navKeys}
 }
 
 // List item for initiative groups
