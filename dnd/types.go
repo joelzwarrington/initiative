@@ -10,7 +10,41 @@ type Encounter struct {
 	EndedAt   time.Time
 
 	Round            int
+	turnIndex        int
 	InitiativeGroups []InitiativeGroup
+}
+
+func (e *Encounter) GetTurnIndex() int {
+	return e.turnIndex
+}
+
+func (e *Encounter) AdvanceTurn() {
+	if len(e.InitiativeGroups) == 0 {
+		return
+	}
+
+	e.turnIndex++
+	if e.turnIndex >= len(e.InitiativeGroups) {
+		e.turnIndex = 0
+		e.Round++
+	}
+}
+
+func (e *Encounter) PreviousTurn() {
+	if len(e.InitiativeGroups) == 0 {
+		return
+	}
+
+	// Don't allow going back if we're at round 1, turn 0
+	if e.Round == 1 && e.turnIndex == 0 {
+		return
+	}
+
+	e.turnIndex--
+	if e.turnIndex < 0 {
+		e.turnIndex = len(e.InitiativeGroups) - 1
+		e.Round--
+	}
 }
 
 type InitiativeGroup struct {

@@ -18,8 +18,6 @@ import (
 	"github.com/termkit/skeleton"
 )
 
-var _ tea.Model = (*encounter)(nil)
-
 type partyView int
 
 const (
@@ -153,7 +151,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						Title("Name").
 						Value(&name),
 				).Title(title),
-			).WithKeyMap(customFormKeyMap())
+			)
 			p.character = msg.uuid
 			p.view = partyForm
 			return p, p.form.Init()

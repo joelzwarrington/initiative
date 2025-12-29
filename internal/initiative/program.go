@@ -34,8 +34,19 @@ func NewProgram() *tea.Program {
 
 	s.LockTabs().SetWrapTabs(true)
 
-	s.AddPage("encounter", "Encounter", ui.NewEncounter(s, p, sources))
+	addPage(s, newEncounterPage(s, p, sources))
 	s.AddPage("party", "Party", ui.NewParty(s, p))
 
 	return tea.NewProgram(s)
+}
+
+type page interface {
+	tea.Model
+
+	Key() string
+	Title() string
+}
+
+func addPage(s *skeleton.Skeleton, p page) {
+	s.AddPage(p.Key(), p.Title(), p)
 }
