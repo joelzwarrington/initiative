@@ -143,10 +143,13 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case editCharacterMsg:
 		{
+			title := "Add character"
+
 			var name string
 			if msg.uuid != "" && p.party != nil {
 				if character, exists := (*p.party)[msg.uuid]; exists {
 					name = character.Name()
+					title = "Edit " + name
 				}
 			}
 			p.form = huh.NewForm(
@@ -155,7 +158,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						Key("name").
 						Title("Name").
 						Value(&name),
-				),
+				).Title(title),
 			)
 			p.character = msg.uuid
 			p.view = partyForm
@@ -165,7 +168,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			if p.party != nil {
 				if character, exists := (*p.party)[msg.uuid]; exists {
-					leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.Name()+" has left the party!")
+					leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.Name() + " has left the party!")
 					cmds = append(cmds, p.list.NewStatusMessage(leaveMessage))
 				}
 				delete(*p.party, msg.uuid)
@@ -244,7 +247,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					(*p.party)[uuid] = character
 					newItem := characterItem{uuid: uuid, Character: character}
 					cmds = append(cmds, p.list.InsertItem(len(p.list.Items()), newItem))
-					joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(name+" has joined the party!")
+					joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(name + " has joined the party!")
 					cmds = append(cmds, p.list.NewStatusMessage(joinMessage))
 				}
 
