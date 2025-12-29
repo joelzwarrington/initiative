@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"initiative/dnd"
 	"initiative/internal/components"
-	"initiative/internal/dnd"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"

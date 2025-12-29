@@ -5,8 +5,8 @@
 !go.sum
 !go.mod
 
-!internal/dnd/srd.md
-!internal/dnd/srd.yaml
+!dnd/srd.md
+!dnd/srd.yaml
 
 !.github/workflows/ci.yaml
 

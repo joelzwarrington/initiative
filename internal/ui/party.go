@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"initiative/internal/dnd"
+	"initiative/dnd"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"

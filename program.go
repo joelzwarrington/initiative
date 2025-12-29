@@ -1,7 +1,7 @@
 package main
 
 import (
-	"initiative/internal/dnd"
+	"initiative/dnd"
 	"initiative/internal/ui"
 
 	"github.com/charmbracelet/bubbles/key"
