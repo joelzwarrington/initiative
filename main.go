@@ -1,7 +1,8 @@
-package initiative
+package main
 
 import (
 	"fmt"
+	"initiative/internal/initiative"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ var rootCmd = &cobra.Command{
 	Use:   "initiative",
 	Short: "A CLI tool for managing tabletop RPG initiative tracking",
 	Run: func(cmd *cobra.Command, args []string) {
-		p := newProgram()
+		p := initiative.NewProgram()
 
 		if _, err := p.Run(); err != nil {
 			panic(err)

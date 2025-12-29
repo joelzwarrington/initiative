@@ -10,7 +10,7 @@ import (
 	"github.com/termkit/skeleton"
 )
 
-func newProgram() *tea.Program {
+func NewProgram() *tea.Program {
 	party := map[string]dnd.Character{}
 	p := &party
 
