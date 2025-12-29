@@ -1,4 +1,4 @@
-package main
+package initiative
 
 import (
 	"initiative/dnd"
