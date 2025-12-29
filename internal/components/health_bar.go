@@ -7,18 +7,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Health represents a creature's health status
-type Health struct {
+// HealthBar represents a creature's health status
+type HealthBar struct {
 	progress progress.Model
 	width    int
 }
 
-// NewHealth creates a new health component
-func NewHealth(width int) Health {
+// NewHealthBar creates a new health bar component
+func NewHealthBar(width int) HealthBar {
 	prog := progress.New(progress.WithDefaultGradient())
 	prog.Width = width
 
-	return Health{
+	return HealthBar{
 		progress: prog,
 		width:    width,
 	}
@@ -58,13 +58,21 @@ func getStatus(current, maximum int) string {
 }
 
 // SetWidth updates the width of the progress bar
-func (h *Health) SetWidth(width int) {
+func (h *HealthBar) SetWidth(width int) {
 	h.width = width
 	h.progress.Width = width
 }
 
 // View renders the health component as a string with given current and maximum health
-func (h Health) View(current, maximum int) string {
+func (h HealthBar) View(current, maximum int) string {
+	// Clamp current health for display
+	if current < 0 {
+		current = 0
+	}
+	if current > maximum && maximum > 0 {
+		current = maximum
+	}
+
 	percent := getPercent(current, maximum)
 
 	// Create single color based on health level

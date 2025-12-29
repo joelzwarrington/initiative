@@ -50,7 +50,7 @@ type encounter struct {
 func NewEncounter(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounter {
 	// Create empty list for initiative groups
 	delegate := &initiativeGroupItemDelegate{
-		health: components.NewHealth(30), // 30 chars width for health bar
+		healthBar: components.NewHealthBar(30), // 30 chars width for health bar
 	}
 	initiativeList := list.New([]list.Item{}, delegate, skeleton.GetContentWidth(), skeleton.GetContentHeight())
 	initiativeList.SetStatusBarItemName("group", "groups")
@@ -360,7 +360,7 @@ func (i initiativeGroupItem) FilterValue() string {
 
 // List delegate for initiative groups
 type initiativeGroupItemDelegate struct {
-	health components.Health
+	healthBar components.HealthBar
 }
 
 func (d initiativeGroupItemDelegate) Height() int {
@@ -409,7 +409,7 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		// Check if creature is a monster and add health bar
 		var healthBar string
 		if monster, ok := creature.(dnd.Monster); ok {
-			healthBar = " " + d.health.View(monster.HitPoints, monster.MaximumHitPoints)
+			healthBar = " " + d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
 		}
 
 		if isCurrentTurn {
@@ -435,7 +435,7 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 			// Check if creature is a monster and add health bar to name
 			var creatureDisplay string
 			if monster, ok := creature.(dnd.Monster); ok {
-				healthBar := d.health.View(monster.HitPoints, monster.MaximumHitPoints)
+				healthBar := d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
 				creatureDisplay = creature.Name() + " " + healthBar
 			} else {
 				creatureDisplay = creature.Name()
