@@ -569,7 +569,7 @@ func (f *encounterCreationForm) createSummaryForm() {
 				Title("Characters").
 				Options(characterOptions...),
 		),
-	)
+	).WithKeyMap(customFormKeyMap())
 }
 
 func (f *encounterCreationForm) createMonsterSelectionForm() {
@@ -600,7 +600,7 @@ func (f *encounterCreationForm) createMonsterSelectionForm() {
 				Title("Select Monsters").
 				Options(monsterOptions...),
 		),
-	)
+	).WithKeyMap(customFormKeyMap())
 }
 
 func (f *encounterCreationForm) createMonsterQuantitiesForm() {
@@ -634,7 +634,7 @@ func (f *encounterCreationForm) createMonsterQuantitiesForm() {
 
 	f.form = huh.NewForm(
 		huh.NewGroup(fields...),
-	)
+	).WithKeyMap(customFormKeyMap())
 }
 
 func (f *encounterCreationForm) createInitiativeForm() {
@@ -696,7 +696,7 @@ func (f *encounterCreationForm) createInitiativeForm() {
 	// Create form with group containing all fields
 	f.form = huh.NewForm(
 		huh.NewGroup(fields...),
-	)
+	).WithKeyMap(customFormKeyMap())
 }
 
 func (f *encounterCreationForm) Update(msg tea.Msg) (*encounterCreationForm, tea.Cmd) {
