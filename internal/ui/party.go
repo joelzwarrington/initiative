@@ -300,8 +300,16 @@ func (p party) View() string {
 
 		return lipgloss.JoinVertical(lipgloss.Left, contentArea, helpView)
 	case partyForm:
-		p.form.WithHeight(p.skeleton.GetContentHeight()).WithWidth(p.skeleton.GetContentWidth())
-		return p.form.View()
+		horizontalPadding := 4 // 2 padding on left and right = 4 total
+		verticalPadding := 2   // 1 padding on top and bottom = 2 total
+		formHeight := p.skeleton.GetContentHeight() - verticalPadding
+		formWidth := p.skeleton.GetContentWidth() - horizontalPadding
+
+		p.form.WithHeight(formHeight).WithWidth(formWidth)
+		
+		// Apply padding: 1 vertical, 2 horizontal
+		paddingStyle := lipgloss.NewStyle().Padding(1, 2)
+		return paddingStyle.Render(p.form.View())
 	}
 
 	return ""

@@ -852,9 +852,10 @@ func (f *encounterCreationForm) Update(msg tea.Msg) (*encounterCreationForm, tea
 
 func (f *encounterCreationForm) View() string {
 	if f.form != nil {
-		paddingSize := 2
-		formHeight := f.skeleton.GetContentHeight() - paddingSize
-		formWidth := f.skeleton.GetContentWidth() - paddingSize
+		horizontalPadding := 4 // 2 padding on left and right = 4 total
+		verticalPadding := 2   // 1 padding on top and bottom = 2 total
+		formHeight := f.skeleton.GetContentHeight() - verticalPadding
+		formWidth := f.skeleton.GetContentWidth() - horizontalPadding
 
 		f.form.WithHeight(formHeight).
 			WithWidth(formWidth).
@@ -862,8 +863,8 @@ func (f *encounterCreationForm) View() string {
 			WithShowHelp(true).
 			WithAccessible(true)
 
-		// Apply padding around the entire form
-		paddingStyle := lipgloss.NewStyle().Padding(1)
+		// Apply padding: 1 vertical, 2 horizontal
+		paddingStyle := lipgloss.NewStyle().Padding(1, 2)
 		return paddingStyle.Render(f.form.View())
 	}
 	return ""
