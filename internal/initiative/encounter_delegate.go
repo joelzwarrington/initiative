@@ -1,5 +1,3 @@
-
-
 package initiative
 
 import (
@@ -25,7 +23,7 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 	delegate := &initiativeGroupItemDelegate{
 		healthBar: components.NewHealthBar(30),
 	}
-	
+
 	initiativeList := list.New([]list.Item{}, delegate, width, height)
 	initiativeList.SetStatusBarItemName("initiative group", "initiative groups")
 	initiativeList.SetShowTitle(false)
@@ -51,7 +49,7 @@ func (d *encounterDelegate) Render(w io.Writer, encounter *dnd.Encounter) {
 			isCurrentTurn: i == encounter.GetTurnIndex(),
 		})
 	}
-	
+
 	d.list.SetItems(items)
 	fmt.Fprint(w, d.list.View())
 }
@@ -73,12 +71,12 @@ func (d *encounterDelegate) ShortHelp() []key.Binding {
 		d.list.KeyMap.CursorUp,
 		d.list.KeyMap.CursorDown,
 	}
-	
+
 	// Add list-specific keys
 	if d.list.FilterState() != list.Filtering {
 		listKeys = append(listKeys, d.list.KeyMap.Filter)
 	}
-	
+
 	return listKeys
 }
 
@@ -89,7 +87,7 @@ func (d *encounterDelegate) FullHelp() [][]key.Binding {
 		d.list.KeyMap.CursorDown,
 		d.list.KeyMap.Filter,
 	}
-	
+
 	return [][]key.Binding{navKeys}
 }
 
@@ -101,7 +99,7 @@ type initiativeGroupItem struct {
 
 func (i initiativeGroupItem) FilterValue() string {
 	if len(i.group.Creatures) > 0 {
-		return i.group.Creatures[0].Name()
+		return i.group.Creatures[0].GetName()
 	}
 	return fmt.Sprintf("Initiative: %d", i.group.Initiative)
 }
@@ -115,8 +113,8 @@ func (d initiativeGroupItemDelegate) Height() int {
 	return 1
 }
 
-func (d initiativeGroupItemDelegate) Spacing() int { 
-	return 1 
+func (d initiativeGroupItemDelegate) Spacing() int {
+	return 1
 }
 
 func (d *initiativeGroupItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
@@ -155,7 +153,7 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 		// Format: "14 • Wizard" with right-aligned initiative (2 chars)
 		initiativeNum := initiativeStyle.Render(fmt.Sprintf("%2d", i.group.Initiative))
 		separator := separatorStyle.Render(" • ")
-		creatureName := creatureStyle.Render(creature.Name())
+		creatureName := creatureStyle.Render(creature.GetName())
 
 		// Check if creature is a monster and add health bar
 		var healthBar string
@@ -187,9 +185,9 @@ func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int
 			var creatureDisplay string
 			if monster, ok := creature.(dnd.Monster); ok {
 				healthBar := d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
-				creatureDisplay = creature.Name() + " " + healthBar
+				creatureDisplay = creature.GetName() + " " + healthBar
 			} else {
-				creatureDisplay = creature.Name()
+				creatureDisplay = creature.GetName()
 			}
 			initiativeTree.Child(creatureDisplay)
 		}

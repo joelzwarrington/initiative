@@ -243,7 +243,7 @@ func (f *encounterForm) getMonsters() map[string]dnd.Monster {
 
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
-				if monster.Name() == monsterName {
+				if monster.GetName() == monsterName {
 					monsters[value] = monster
 					break
 				}
@@ -258,7 +258,7 @@ func getCharacterOptions(characters *map[string]dnd.Character) []huh.Option[stri
 	var options []huh.Option[string]
 	if characters != nil {
 		for uuid, character := range *characters {
-			options = append(options, huh.NewOption(character.Name(), uuid).Selected(true))
+			options = append(options, huh.NewOption(character.GetName(), uuid).Selected(true))
 		}
 	}
 	return options
@@ -268,8 +268,8 @@ func getMonsterOptions(sources map[string]*dnd.Source) []huh.Option[string] {
 	var options []huh.Option[string]
 	for sourceKey, source := range sources {
 		for _, monster := range source.Monsters {
-			value := sourceKey + ":" + monster.Name()
-			options = append(options, huh.NewOption(monster.Name(), value))
+			value := sourceKey + ":" + monster.GetName()
+			options = append(options, huh.NewOption(monster.GetName(), value))
 		}
 	}
 	return options
@@ -342,7 +342,7 @@ func (f *encounterForm) nextStep() tea.Cmd {
 		// Add character initiative fields
 		for uuid, character := range characters {
 			key := fmt.Sprintf("initiative_%s", uuid)
-			title := fmt.Sprintf("%s's initiative", character.Name())
+			title := fmt.Sprintf("%s's initiative", character.GetName())
 
 			fields = append(
 				fields,
@@ -366,7 +366,7 @@ func (f *encounterForm) nextStep() tea.Cmd {
 		}
 
 		for id, monster := range monsters {
-			name := monster.Name()
+			name := monster.GetName()
 			title := fmt.Sprintf("%s's quantity and initiative\n", name)
 
 			groups = append(
@@ -490,13 +490,13 @@ func (f *encounterForm) submit() tea.Cmd {
 		// Find the monster in sources
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
-				if monster.Name() == monsterName {
+				if monster.GetName() == monsterName {
 					// Create multiple monsters for this group
 					var creatures []dnd.Creature
 					for i := 0; i < quantity; i++ {
 						monsterName := name
 						if monsterName == "" {
-							monsterName = monster.Name()
+							monsterName = monster.GetName()
 						}
 
 						newMonster := dnd.NewMonster(monsterName, monster.StatBlock)

@@ -1,7 +1,9 @@
 package initiative
 
 import (
-	"initiative/dnd"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,16 +11,15 @@ import (
 	"github.com/termkit/skeleton"
 )
 
-func NewProgram() *tea.Program {
-	characters := map[string]dnd.Character{}
-	p := &characters
+var gameInstance *Game
 
-	// Load SRD sources at program initialization
-	sources := make(map[string]*dnd.Source)
-	srd, err := dnd.GetSystemReferenceSource()
-	if err == nil && srd != nil {
-		sources[srd.Meta.Key] = srd
+func NewProgram(filepath string, withSRD bool) *tea.Program {
+	game, err := LoadGame(filepath, withSRD)
+	if err != nil {
+		panic(err)
 	}
+
+	p := &game.Characters
 
 	s := skeleton.NewSkeleton()
 
@@ -33,10 +34,17 @@ func NewProgram() *tea.Program {
 
 	s.LockTabs().SetWrapTabs(true)
 
-	addPage(s, newEncounterPage(s, p, sources))
+	addPage(s, newEncounterPage(s, p, game.sources))
 	addPage(s, newCharacterPage(s, p))
 
-	return tea.NewProgram(s)
+	// Store game reference for saving on exit
+	gameInstance = game
+
+	// Set up signal handler for saving on exit
+	setupSignalHandler()
+
+	prog := tea.NewProgram(s)
+	return prog
 }
 
 type page interface {
@@ -48,4 +56,24 @@ type page interface {
 
 func addPage(s *skeleton.Skeleton, p page) {
 	s.AddPage(p.Key(), p.Title(), p)
+}
+
+func setupSignalHandler() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-c
+		SaveGame()
+		os.Exit(0)
+	}()
+}
+
+func SaveGame() {
+	if gameInstance != nil {
+		if err := gameInstance.Save(); err != nil {
+			// We can't really handle errors here since we're exiting
+			// Maybe log to stderr in the future
+		}
+	}
 }

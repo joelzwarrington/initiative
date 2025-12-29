@@ -53,42 +53,42 @@ type InitiativeGroup struct {
 }
 
 type Creature interface {
-	Name() string
+	GetName() string
 }
 
 // Character represents a player character
 type Character struct {
-	name string
+	Name string `yaml:"name" json:"name"`
 }
 
-func (c Character) Name() string {
-	return c.name
+func (c Character) GetName() string {
+	return c.Name
 }
 
 func NewCharacter(name string) Character {
-	return Character{name: name}
+	return Character{Name: name}
 }
 
 func (c Character) WithName(name string) Character {
-	return Character{name: name}
+	return Character{Name: name}
 }
 
 // Monster represents a creature from the SRD
 type Monster struct {
-	MonsterName      string    `yaml:"name" json:"name"`
+	Name             string    `yaml:"name" json:"name"`
 	StatBlock        StatBlock `yaml:"stat_block" json:"stat_block"`
 	HitPoints        int       `yaml:"-" json:"-"`
 	MaximumHitPoints int       `yaml:"-" json:"-"`
 }
 
-func (m Monster) Name() string {
-	return m.MonsterName
+func (m Monster) GetName() string {
+	return m.Name
 }
 
 func NewMonster(name string, statBlock StatBlock) Monster {
 	maxHP := statBlock.HitPoints.Fixed
 	return Monster{
-		MonsterName:      name,
+		Name:             name,
 		StatBlock:        statBlock,
 		HitPoints:        maxHP,
 		MaximumHitPoints: maxHP,

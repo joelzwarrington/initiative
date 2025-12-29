@@ -38,7 +38,7 @@ func newCharacterForm(uuid string, existingCharacter *dnd.Character, width int, 
 	var name string
 
 	if uuid != "" && existingCharacter != nil {
-		name = existingCharacter.Name()
+		name = existingCharacter.GetName()
 		title = "Edit " + name + "\n"
 	}
 

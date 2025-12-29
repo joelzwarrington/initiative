@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/uuid"
 	"github.com/termkit/skeleton"
 )
 
@@ -220,14 +221,14 @@ func (p *characterPage) editCharacter(uuid string) tea.Cmd {
 
 func (p *characterPage) viewCharacter(uuid string) tea.Cmd {
 	p.currentCharacter = uuid
-	
+
 	var characterName string
 	if p.characters != nil {
 		if character, exists := (*p.characters)[uuid]; exists {
-			characterName = character.Name()
+			characterName = character.GetName()
 		}
 	}
-	
+
 	p.s.UpdatePageTitle("party", "Party > "+characterName)
 	return nil
 }
@@ -258,7 +259,7 @@ func (p *characterPage) submitCharacterForm(submission characterFormSubmittedMsg
 		})
 	} else {
 		// Adding new character - generate new UUID
-		uuid := fmt.Sprintf("char_%d", len(*p.characters))
+		uuid := uuid.New().String()
 		return tea.Cmd(func() tea.Msg {
 			return characterAddedMsg{
 				uuid:      uuid,
@@ -275,10 +276,10 @@ func (p *characterPage) renderCharacterList() string {
 	helpStyle := lipgloss.NewStyle().Padding(0, 1)
 	helpView := helpStyle.Render(p.help.View(p))
 	helpHeight := lipgloss.Height(helpView)
-	
+
 	listHeight := p.s.GetContentHeight() - helpHeight
 	p.characterList.SetSize(p.s.GetContentWidth(), listHeight)
-	
+
 	listView := p.characterList.View()
 	return lipgloss.JoinVertical(lipgloss.Left, listView, helpView)
 }
@@ -293,7 +294,7 @@ func (p *characterPage) renderCharacterDetail() string {
 	var characterName string
 	if p.characters != nil {
 		if character, exists := (*p.characters)[p.currentCharacter]; exists {
-			characterName = character.Name()
+			characterName = character.GetName()
 		}
 	}
 
