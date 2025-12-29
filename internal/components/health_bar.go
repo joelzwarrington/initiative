@@ -64,7 +64,7 @@ func (h *HealthBar) SetWidth(width int) {
 }
 
 // View renders the health component as a string with given current and maximum health
-func (h HealthBar) View(current, maximum int) string {
+func (h *HealthBar) View(current, maximum int) string {
 	// Clamp current health for display
 	if current < 0 {
 		current = 0
