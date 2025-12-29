@@ -1,7 +1,8 @@
-package ui
+package main
 
 import (
 	"initiative/internal/dnd"
+	"initiative/internal/ui"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,7 +10,7 @@ import (
 	"github.com/termkit/skeleton"
 )
 
-func NewProgram() *tea.Program {
+func newProgram() *tea.Program {
 	party := map[string]dnd.Character{}
 	p := &party
 
@@ -33,8 +34,8 @@ func NewProgram() *tea.Program {
 
 	s.LockTabs().SetWrapTabs(true)
 
-	s.AddPage("encounter", "Encounter", newEncounter(s, p, sources))
-	s.AddPage("party", "Party", newParty(s, p))
+	s.AddPage("encounter", "Encounter", ui.NewEncounter(s, p, sources))
+	s.AddPage("party", "Party", ui.NewParty(s, p))
 
 	return tea.NewProgram(s)
 }

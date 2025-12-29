@@ -44,7 +44,7 @@ type party struct {
 	character string
 }
 
-func newParty(s *skeleton.Skeleton, p *map[string]dnd.Character) *party {
+func NewParty(s *skeleton.Skeleton, p *map[string]dnd.Character) *party {
 	items := []list.Item{}
 
 	if p != nil {
@@ -306,7 +306,7 @@ func (p party) View() string {
 		formWidth := p.skeleton.GetContentWidth() - horizontalPadding
 
 		p.form.WithHeight(formHeight).WithWidth(formWidth)
-		
+
 		// Apply padding: 1 vertical, 2 horizontal
 		paddingStyle := lipgloss.NewStyle().Padding(1, 2)
 		return paddingStyle.Render(p.form.View())

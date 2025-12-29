@@ -47,7 +47,7 @@ type encounter struct {
 	currentTurn         int // Index of current turn in initiative order
 }
 
-func newEncounter(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounter {
+func NewEncounter(skeleton *skeleton.Skeleton, party *map[string]dnd.Character, sources map[string]*dnd.Source) *encounter {
 	// Create empty list for initiative groups
 	delegate := &initiativeGroupItemDelegate{
 		health: components.NewHealth(30), // 30 chars width for health bar
