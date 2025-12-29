@@ -135,10 +135,12 @@ func (e encounter) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.currentTurn = 0 // Start with first creature in initiative order
 		e.skeleton.AddWidget("round", fmt.Sprintf("Round: %d", e.Round))
 
+		e.skeleton.UnlockTabs()
 		e.view = encounterDetail
 		return e, nil
 	case cancelEncounterCreationMsg:
 		e.encounterCreateForm = nil
+		e.skeleton.UnlockTabs()
 		e.view = encounterPlaceholder
 		return e, nil
 	}

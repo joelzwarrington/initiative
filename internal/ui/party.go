@@ -120,12 +120,6 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return editCharacterMsg{uuid: ""}
 			})
 		}
-
-		// to debug the status
-		// add key binding so we match
-		if key.Matches(msg, key.NewBinding(key.WithKeys("a"))) && p.view == partyList {
-			return p, p.list.NewStatusMessage("foo")
-		}
 	case viewCharacterMsg:
 		{
 			p.character = msg.uuid
@@ -210,9 +204,19 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case partyForm:
 		{
+			p.skeleton.LockTabs()
+
 			form, cmd := p.form.Update(msg)
 			if f, ok := form.(*huh.Form); ok {
 				p.form = f
+			}
+
+			// Handle form quit (ESC pressed)
+			if p.form.State == huh.StateAborted {
+				p.skeleton.UnlockTabs()
+				p.view = partyList
+				p.character = ""
+				return p, nil
 			}
 
 			if p.form.State == huh.StateCompleted {
@@ -251,6 +255,7 @@ func (p party) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, p.list.NewStatusMessage(joinMessage))
 				}
 
+				p.skeleton.UnlockTabs()
 				p.view = partyList
 				p.character = ""
 
