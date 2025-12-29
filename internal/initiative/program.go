@@ -2,7 +2,6 @@ package initiative
 
 import (
 	"initiative/dnd"
-	"initiative/internal/ui"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,8 +10,8 @@ import (
 )
 
 func NewProgram() *tea.Program {
-	party := map[string]dnd.Character{}
-	p := &party
+	characters := map[string]dnd.Character{}
+	p := &characters
 
 	// Load SRD sources at program initialization
 	sources := make(map[string]*dnd.Source)
@@ -35,7 +34,7 @@ func NewProgram() *tea.Program {
 	s.LockTabs().SetWrapTabs(true)
 
 	addPage(s, newEncounterPage(s, p, sources))
-	s.AddPage("party", "Party", ui.NewParty(s, p))
+	addPage(s, newCharacterPage(s, p))
 
 	return tea.NewProgram(s)
 }
