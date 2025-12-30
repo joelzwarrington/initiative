@@ -27,5 +27,5 @@ func Execute() {
 func init() {
 	// Add the same flags for tui subcommand.
 	rootCmd.Flags().StringP("game", "g", "", "Path to game file (default: ~/.config/initiative/game.yaml)")
-	rootCmd.Flags().StringSliceP("source", "s", []string{}, "Monster/character sources to load. Use 'srd' for built-in D&D content or provide file paths (default: srd)")
+	rootCmd.Flags().StringSliceP("source", "s", []string{}, "Source to use, can be specified multiple times. Use 'srd' to include the system reference document, or specify no source to include automatically (default: srd)")
 }
