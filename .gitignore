@@ -9,7 +9,9 @@
 !dnd/srd.yaml
 
 !.github/workflows/ci.yaml
+
 !.goreleaser.yaml
+!scripts/install.sh
 
 !examples/*.gif
 !examples/*.tape

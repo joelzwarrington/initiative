@@ -8,6 +8,15 @@
 
 version: 2
 
+project_name: initiative
+
+metadata:
+  maintainers:
+    - "Joel Warrington <joelw@hey.com>"
+  license: "MIT"
+  homepage: "https://github.com/joelzwarrington/initiative"
+  description: "TUI to effectively manage Dungeon & Dragons encounters"
+
 before:
   hooks:
     - go mod tidy
@@ -35,6 +44,17 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+
+# Code signing configuration
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
 
 changelog:
   sort: asc
