@@ -10,7 +10,7 @@ func TestRootCommandHasSameFlagsAsTUI(t *testing.T) {
 	// Verify we're working with proper cobra commands
 	var _ *cobra.Command = rootCmd
 	var _ *cobra.Command = tuiCmd
-	
+
 	// Get flags from both commands
 	rootFlags := rootCmd.Flags()
 	tuiFlags := tuiCmd.Flags()
@@ -53,12 +53,12 @@ func TestRootCommandDefaultsToTUI(t *testing.T) {
 func TestRootCommandStructure(t *testing.T) {
 	// Test that expected subcommands are present
 	expectedCommands := []string{"tui"}
-	
+
 	// Verify rootCmd is properly configured
 	if rootCmd == nil {
 		t.Fatal("rootCmd should not be nil")
 	}
-	
+
 	commands := rootCmd.Commands()
 	for _, expectedCmd := range expectedCommands {
 		found := false
@@ -88,6 +88,20 @@ func TestRootCommandMetadata(t *testing.T) {
 	}
 
 	// Long description is optional - we prefer concise help
+}
+
+func TestRootCommandVersion(t *testing.T) {
+	if rootCmd.Version == "" {
+		t.Error("root command should have a version set")
+	}
+
+	if version == "" {
+		t.Error("version variable should be set")
+	}
+
+	if rootCmd.Version != version {
+		t.Errorf("expected root command version to be '%s', got '%s'", version, rootCmd.Version)
+	}
 }
 
 // Helper function (shared between test files)

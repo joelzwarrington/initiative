@@ -7,10 +7,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version = "dev"
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "initiative",
-	Short: "CLI & TUI to run D&D games",
+	Use:     "initiative",
+	Short:   "CLI & TUI to run D&D games",
+	Version: version,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Default to TUI command when no subcommand is specified
 		return runTUI(cmd, args)
