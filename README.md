@@ -12,46 +12,46 @@ A powerful CLI for running **Dungeons & Dragons** encounters. Track initiative, 
 
 **initiative** is built with [Cobra](https://github.com/spf13/cobra) and the [Charm](https://charm.land/) ecosystem: [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Bubbles](https://github.com/charmbracelet/bubbles), [Lipgloss](https://github.com/charmbracelet/lipgloss), [Huh?](https://github.com/charmbracelet/huh), and [more](#built-with).
 
-# Encounters
+## Encounters
 
 <!-- todo: implement tape -->
 <!-- <img src="examples/encounters.gif" width="640" alt="Managing encounters"> -->
 
 Start encounters to track initiative of characters and monsters, health of the monsters and track effects throughout the encounter.
 
-# Characters
+## Characters
 
 <!-- todo: implement tape -->
 <!-- <img src="examples/characters.gif" width="640" alt="Managing characters"> -->
 
 Organize your party members and NPCs, which can be added to encounters quickly.
 
-# Initiative
+## Initiative
 
 <!-- todo: implement tape -->
 <!-- <img src="examples/initiative.gif" width="640" alt="Initiative tracking"> -->
 
 Automatically sort and manage turn order during combat. Navigate between characters seamlessly and keep the game flowing.
 
-# Health
+## Health
 
 <!-- todo: implement tape -->
 <!-- <img src="examples/health.gif" width="640" alt="Health tracking"> -->
 
 Track hit points and damage with visual health bars and intuitive controls for quick updates during gameplay.
 
-# Sources
+## Sources
 
 <!-- todo: implement tape -->
 <!-- <img src="examples/sources.gif" width="640" alt="Managing sources"> -->
 
 **initiative** is shipped with the System Reference Document, but allows you to bring additional sources!
 
-# Contributing
+## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-# Feedback
+## Feedback
 
 We'd love to hear from you!
 
@@ -59,7 +59,7 @@ We'd love to hear from you!
 - **Ideas**: [Share your ideas](https://github.com/joelzwarrington/initiative/discussions/new?category=ideas) for new features or improvements
 - **Questions**: [Ask questions](https://github.com/joelzwarrington/initiative/discussions/new?category=q-a) about usage or functionality
 
-# Built With
+## Built With
 
 - [[Cobra](https://github.com/spf13/cobra)] library for creating powerful modern CLI applications
 - [[Bubble Tea](https://github.com/charmbracelet/bubbletea)] powerful terminal user interface framework
@@ -68,7 +68,7 @@ We'd love to hear from you!
 - [[Lipgloss](https://github.com/charmbracelet/lipgloss)] beautiful terminal styling
 - [[Huh?](https://github.com/charmbracelet/huh)] interactive prompts and forms
 
-# License
+## License
 
 [MIT](https://github.com/joelzwarrington/initiative/raw/main/LICENSE)
 
