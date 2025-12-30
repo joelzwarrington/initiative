@@ -1,10 +1,10 @@
-Output examples/demo.gif
+# VHS tape to demonstrate multiple features in the hero section of our README.md
 
+## Output
+Output demo.gif
+
+## Settings
 Set WindowBar Colorful
-Set FontSize 14
-Set Width 1028
-Set Height 640
-Set TypingSpeed 0.1
 
 Hide
 Type "go build ."
