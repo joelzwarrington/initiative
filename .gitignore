@@ -7,7 +7,7 @@
 
 !dnd/srd.yaml
 
-!.github/workflows/ci.yaml
+!.github/**/*
 
 !.goreleaser.yaml
 !scripts/install.sh
