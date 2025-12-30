@@ -73,10 +73,17 @@ tar -xzf "$FILENAME"
 
 # Find install directory
 INSTALL_DIR="/usr/local/bin"
+NEEDS_PATH_WARNING=false
+
 if [ ! -w "$INSTALL_DIR" ]; then
-    echo "Installing to ~/bin (add to PATH if not already there)"
     INSTALL_DIR="$HOME/bin"
     mkdir -p "$INSTALL_DIR"
+    
+    # Check if ~/bin is in PATH
+    case ":$PATH:" in
+        *":$HOME/bin:"*|*":~/bin:"*) ;;
+        *) NEEDS_PATH_WARNING=true ;;
+    esac
 fi
 
 # Move binary
@@ -84,3 +91,25 @@ mv "$BINARY_NAME" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/$BINARY_NAME"
 
 echo "✓ Initiative installed successfully to $INSTALL_DIR/$BINARY_NAME"
+
+# Warn about PATH if needed
+if [ "$NEEDS_PATH_WARNING" = true ]; then
+    echo ""
+    echo "⚠️  Warning: $HOME/bin is not in your PATH"
+    echo "To use 'initiative' from anywhere, add this line to your shell config:"
+    echo ""
+    if [ -n "$BASH_VERSION" ]; then
+        echo "  echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
+    elif [ -n "$ZSH_VERSION" ]; then
+        echo "  echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+    else
+        echo "  # For Fish shell:"
+        echo "  echo 'set -gx PATH \$HOME/bin \$PATH' >> ~/.config/fish/config.fish"
+        echo "  source ~/.config/fish/config.fish"
+        echo ""
+        echo "  # For Bash/Zsh:"
+        echo "  echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.bashrc  # or ~/.zshrc"
+    fi
+    echo ""
+    echo "Or run directly with: $INSTALL_DIR/$BINARY_NAME"
+fi
