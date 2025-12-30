@@ -14,7 +14,7 @@ var withSRD bool
 
 var rootCmd = &cobra.Command{
 	Use:   "initiative",
-	Short: "A CLI tool for managing tabletop RPG initiative tracking",
+	Short: "CLI & TUI to run D&D games",
 	Run: func(cmd *cobra.Command, args []string) {
 		if saveFilename == "" {
 			homeDir, err := os.UserHomeDir()
