@@ -145,7 +145,7 @@ func TestHitPointProcessing(t *testing.T) {
 			// Simulate hit point adjustment processing
 			group := &encounter.InitiativeGroups[0]
 			creature := group.Creatures[0]
-			
+
 			if mon, ok := creature.(dnd.Monster); ok {
 				if tt.adjustmentType == HitPointDamage {
 					mon.HitPoints -= tt.adjustment
