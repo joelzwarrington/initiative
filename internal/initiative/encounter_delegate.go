@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/tree"
 	"github.com/joelzwarrington/initiative/dnd"
 	"github.com/joelzwarrington/initiative/internal/components"
 )
@@ -20,12 +19,12 @@ type encounterDelegate struct {
 }
 
 func newEncounterDelegate(width, height int) *encounterDelegate {
-	delegate := &initiativeGroupItemDelegate{
+	delegate := &creatureItemDelegate{
 		healthBar: components.NewHealthBar(30),
 	}
 
 	initiativeList := list.New([]list.Item{}, delegate, width, height)
-	initiativeList.SetStatusBarItemName("initiative group", "initiative groups")
+	initiativeList.SetStatusBarItemName("creature", "creatures")
 	initiativeList.SetShowTitle(false)
 	initiativeList.SetShowStatusBar(true)
 	initiativeList.SetShowHelp(false)
@@ -43,11 +42,19 @@ func (d *encounterDelegate) Render(w io.Writer, encounter *dnd.Encounter) {
 	}
 
 	items := []list.Item{}
-	for i, group := range encounter.InitiativeGroups {
-		items = append(items, initiativeGroupItem{
-			group:         group,
-			isCurrentTurn: i == encounter.GetTurnIndex(),
-		})
+	for groupIndex, group := range encounter.InitiativeGroups {
+		isCurrentTurnGroup := groupIndex == encounter.GetTurnIndex()
+
+		for creatureIndex, creature := range group.Creatures {
+			items = append(items, creatureItem{
+				creature:      creature,
+				initiative:    group.Initiative,
+				groupIndex:    groupIndex,
+				creatureIndex: creatureIndex,
+				totalInGroup:  len(group.Creatures),
+				isCurrentTurn: isCurrentTurnGroup,
+			})
+		}
 	}
 
 	d.list.SetItems(items)
@@ -91,135 +98,89 @@ func (d *encounterDelegate) FullHelp() [][]key.Binding {
 	return [][]key.Binding{navKeys}
 }
 
-// List item for initiative groups
-type initiativeGroupItem struct {
-	group         dnd.InitiativeGroup
+// List item for individual creatures
+type creatureItem struct {
+	creature      dnd.Creature
+	initiative    int
+	groupIndex    int
+	creatureIndex int
+	totalInGroup  int
 	isCurrentTurn bool
 }
 
-func (i initiativeGroupItem) FilterValue() string {
-	if len(i.group.Creatures) > 0 {
-		return i.group.Creatures[0].GetName()
-	}
-	return fmt.Sprintf("Initiative: %d", i.group.Initiative)
+func (c creatureItem) FilterValue() string {
+	return c.creature.GetName()
 }
 
-// List delegate for initiative groups
-type initiativeGroupItemDelegate struct {
+// List delegate for individual creatures
+type creatureItemDelegate struct {
 	healthBar components.HealthBar
 }
 
-func (d initiativeGroupItemDelegate) Height() int {
-	return 1
+func (d creatureItemDelegate) Height() int {
+	return 3
 }
 
-func (d initiativeGroupItemDelegate) Spacing() int {
-	return 1
+func (d creatureItemDelegate) Spacing() int {
+	return 0
 }
 
-func (d *initiativeGroupItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	return nil
 }
 
-func (d initiativeGroupItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(initiativeGroupItem)
+func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	creature, ok := listItem.(creatureItem)
 	if !ok {
 		return
 	}
 
-	// Styling
-	initiativeStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("214"))
-	creatureStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("252"))
-	currentTurnStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("46")) // Green for current turn
-	selectionStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("170")) // Purple for selection
-	separatorStyle := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{
-		Light: "#DDDADA",
-		Dark:  "#3C3C3C",
-	})
+	isFirst := creature.creatureIndex == 0
+	isLast := creature.creatureIndex == creature.totalInGroup-1
 
-	var content string
-
-	isCurrentTurn := i.isCurrentTurn
-
-	// Single creature on same line
-	if len(i.group.Creatures) == 1 {
-		creature := i.group.Creatures[0]
-
-		// Format: "14 • Wizard" with right-aligned initiative (2 chars)
-		initiativeNum := initiativeStyle.Render(fmt.Sprintf("%2d", i.group.Initiative))
-		separator := separatorStyle.Render(" • ")
-		creatureName := creatureStyle.Render(creature.GetName())
-
-		// Check if creature is a monster and add health bar
-		var healthBar string
-		if monster, ok := creature.(dnd.Monster); ok {
-			healthBar = " " + d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
-		}
-
-		if isCurrentTurn {
-			// Show green arrow for current turn: "→ 14 • Wizard [health bar]"
-			arrow := currentTurnStyle.Render("→")
-			content = fmt.Sprintf("%s %s%s%s%s", arrow, initiativeNum, separator, creatureName, healthBar)
-		} else {
-			// Regular format: "  14 • Wizard [health bar]"
-			content = fmt.Sprintf("  %s%s%s%s", initiativeNum, separator, creatureName, healthBar)
-		}
-	} else {
-		// Multiple creatures using tree
-		initiativeNum := fmt.Sprintf("%2d", i.group.Initiative) // Right-aligned 2 chars
-
-		// Create tree with initiative as root
-		initiativeTree := tree.New().
-			Root(initiativeStyle.Render(initiativeNum)).
-			EnumeratorStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(5)).
-			ItemStyle(creatureStyle)
-
-		// Add each creature as child
-		for _, creature := range i.group.Creatures {
-			// Check if creature is a monster and add health bar to name
-			var creatureDisplay string
-			if monster, ok := creature.(dnd.Monster); ok {
-				healthBar := d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
-				creatureDisplay = creature.GetName() + " " + healthBar
-			} else {
-				creatureDisplay = creature.GetName()
-			}
-			initiativeTree.Child(creatureDisplay)
-		}
-
-		treeContent := initiativeTree.String()
-
-		if isCurrentTurn {
-			// Add green arrow before tree
-			arrow := currentTurnStyle.Render("→")
-			lines := strings.Split(treeContent, "\n")
-			if len(lines) > 0 {
-				lines[0] = arrow + " " + lines[0]
-				content = strings.Join(lines, "\n")
-			} else {
-				content = arrow + " " + treeContent
-			}
-		} else {
-			// Add spacing before tree
-			lines := strings.Split(treeContent, "\n")
-			for i, line := range lines {
-				lines[i] = "  " + line
-			}
-			content = strings.Join(lines, "\n")
-		}
+	turnAwareForeground := lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
+	if creature.isCurrentTurn {
+		turnAwareForeground = lipgloss.AdaptiveColor{Light: "#00FF00", Dark: "#46FF46"}
 	}
 
-	// Apply selection highlighting
-	if index == m.Index() {
-		content = selectionStyle.Render("> ") + content
-	} else {
-		content = "  " + content
+	prefix := " "
+	if m.Index() == index {
+		prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Render(">")
 	}
 
-	fmt.Fprint(w, content)
+	if isFirst {
+		initiative := lipgloss.NewStyle().Foreground(turnAwareForeground).Render(fmt.Sprintf("%2d", creature.initiative))
+		separator := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}).Render("•")
+
+		prefix = fmt.Sprintf("%s %s %s ", prefix, initiative, separator)
+	} else {
+		prefix = prefix + strings.Repeat(" ", 6)
+	}
+
+	health := ""
+	if monster, ok := creature.creature.(dnd.Monster); ok {
+		health = " " + d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
+	}
+
+	top := 0
+	if !isFirst {
+		top = 1
+	}
+
+	content := lipgloss.NewStyle().
+		Padding(top, 1, 0, 1).
+		Render(prefix + creature.creature.GetName() + health)
+
+	top = 0
+	if isFirst && index > 0 {
+		top = 1
+	}
+
+	border := lipgloss.NewStyle().
+		Margin(top, 0, 0, 0).
+		Border(lipgloss.RoundedBorder(), isFirst, true, isLast, true).
+		BorderForeground(turnAwareForeground).
+		Width(m.Width() - 2)
+
+	fmt.Fprint(w, border.Render(content))
 }
