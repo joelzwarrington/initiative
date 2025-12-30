@@ -12,6 +12,7 @@
 
 !.goreleaser.yaml
 !scripts/install.sh
+!scripts/release
 
 !examples/*.gif
 !examples/*.tape

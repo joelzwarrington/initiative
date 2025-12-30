@@ -1,0 +1,160 @@
+#!/bin/bash
+
+# Release script for initiative
+# Usage: ./scripts/release [major|minor|patch]
+# Default: minor
+#
+# MAJOR version when you make incompatible API changes
+# MINOR version when you add functionality in a backward compatible manner  
+# PATCH version when you make backward compatible bug fixes
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Print colored output
+print_info() {
+    echo -e "${BLUE}ℹ ${1}${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}✓ ${1}${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠ ${1}${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ ${1}${NC}"
+    exit 1
+}
+
+# Show help if requested
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "Release script for initiative"
+    echo ""
+    echo "Usage: ./scripts/release [major|minor|patch]"
+    echo "Default: minor"
+    echo ""
+    echo "Version bump types:"
+    echo "  major - Incompatible API changes (X.0.0)"
+    echo "  minor - Add functionality in backward compatible manner (0.X.0)"
+    echo "  patch - Backward compatible bug fixes (0.0.X)"
+    echo ""
+    echo "Requirements:"
+    echo "  - Clean working directory (no uncommitted changes)"
+    echo "  - Must be on main branch"
+    echo "  - Tests must pass"
+    echo "  - Build must succeed"
+    exit 0
+fi
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    print_error "Not in a git repository"
+fi
+
+# Check if working directory is clean
+if [[ -n $(git status --porcelain) ]]; then
+    print_error "Working directory is not clean. Please commit or stash your changes."
+fi
+
+# Make sure we're on main branch
+current_branch=$(git branch --show-current)
+if [[ "$current_branch" != "main" ]]; then
+    print_error "Not on main branch. Currently on: $current_branch"
+fi
+
+# Pull latest changes
+print_info "Pulling latest changes from origin..."
+git pull origin main
+
+# Get current version from git tags
+current_version=$(git tag --sort=-version:refname | head -n1)
+
+if [[ -z "$current_version" ]]; then
+    current_version="v0.0.0"
+    print_warning "No existing tags found. Starting from v0.0.0"
+else
+    print_info "Current version: $current_version"
+fi
+
+# Parse current version (remove 'v' prefix)
+version_number=${current_version#v}
+
+# Parse version components using parameter expansion
+major=$(echo "$version_number" | cut -d. -f1)
+minor=$(echo "$version_number" | cut -d. -f2)
+patch=$(echo "$version_number" | cut -d. -f3)
+
+# Set defaults if components are missing
+major=${major:-0}
+minor=${minor:-0}
+patch=${patch:-0}
+
+# Determine bump type (default to minor)
+bump_type=${1:-minor}
+
+case $bump_type in
+    major)
+        major=$((major + 1))
+        minor=0
+        patch=0
+        ;;
+    minor)
+        minor=$((minor + 1))
+        patch=0
+        ;;
+    patch)
+        patch=$((patch + 1))
+        ;;
+    *)
+        print_error "Invalid bump type: $bump_type. Use: major, minor, or patch"
+        ;;
+esac
+
+new_version="v${major}.${minor}.${patch}"
+
+print_info "Bumping version: $current_version → $new_version ($bump_type)"
+
+# Confirm with user
+echo
+read -p "Create release $new_version? [y/N] " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    print_info "Release cancelled"
+    exit 0
+fi
+
+# Run tests before releasing
+print_info "Running tests..."
+if ! go test ./...; then
+    print_error "Tests failed. Cannot create release."
+fi
+
+# Build to make sure it compiles
+print_info "Building project..."
+if ! go build; then
+    print_error "Build failed. Cannot create release."
+fi
+
+# Create and push the tag
+print_info "Creating git tag: $new_version"
+git tag -a "$new_version" -m "Release $new_version"
+
+print_info "Pushing tag to origin..."
+git push origin "$new_version"
+
+print_success "Release $new_version created successfully!"
+print_info "GitHub Actions should automatically build and publish the release."
+
+# Show recent tags
+echo
+print_info "Recent tags:"
+git tag --sort=-version:refname | head -5
