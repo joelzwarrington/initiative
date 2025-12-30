@@ -16,6 +16,7 @@
 !examples/*.gif
 !examples/*.tape
 
+!CONTRIBUTING.md
 !README.md
 !LICENSE
 !CLAUDE.md
