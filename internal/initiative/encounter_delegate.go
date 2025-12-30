@@ -2,8 +2,6 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
-	"initiative/internal/components"
 	"io"
 	"strings"
 
@@ -12,6 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/tree"
+	"github.com/joelzwarrington/initiative/dnd"
+	"github.com/joelzwarrington/initiative/internal/components"
 )
 
 type encounterDelegate struct {

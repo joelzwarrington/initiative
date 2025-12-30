@@ -1,9 +1,9 @@
 package initiative
 
 import (
-	"initiative/dnd"
 	"os"
 
+	"github.com/joelzwarrington/initiative/dnd"
 	"gopkg.in/yaml.v3"
 )
 

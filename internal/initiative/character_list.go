@@ -2,7 +2,6 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
 	"io"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joelzwarrington/initiative/dnd"
 )
 
 type characterList struct {
@@ -160,18 +160,18 @@ func (c *characterList) ShortHelp() []key.Binding {
 		c.list.KeyMap.CursorUp,
 		c.list.KeyMap.CursorDown,
 	}
-	
+
 	// Add delegate keys for character actions (we know we have a characterItemDelegate)
 	delegate := newCharacterItemKeyMap()
 	if len(c.list.Items()) > 0 {
 		listKeys = append(listKeys, delegate.view, delegate.edit, delegate.delete)
 	}
-	
+
 	// Add list-specific keys
 	if c.list.FilterState() != list.Filtering {
 		listKeys = append(listKeys, c.list.KeyMap.Filter)
 	}
-	
+
 	return listKeys
 }
 
@@ -181,17 +181,17 @@ func (c *characterList) FullHelp() [][]key.Binding {
 		c.list.KeyMap.CursorUp,
 		c.list.KeyMap.CursorDown,
 	}
-	
+
 	actionKeys := []key.Binding{
 		c.list.KeyMap.Filter,
 	}
-	
+
 	// Add delegate keys for character actions if items exist
 	if len(c.list.Items()) > 0 {
 		delegate := newCharacterItemKeyMap()
 		actionKeys = append(actionKeys, delegate.view, delegate.edit, delegate.delete)
 	}
-	
+
 	return [][]key.Binding{navKeys, actionKeys}
 }
 

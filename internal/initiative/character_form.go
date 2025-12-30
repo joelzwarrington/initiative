@@ -2,7 +2,6 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -10,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joelzwarrington/initiative/dnd"
 )
 
 type characterFormStyles struct {

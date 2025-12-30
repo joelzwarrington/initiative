@@ -2,14 +2,14 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
-	"initiative/internal/components"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
+	"github.com/joelzwarrington/initiative/dnd"
+	"github.com/joelzwarrington/initiative/internal/components"
 	"github.com/termkit/skeleton"
 )
 

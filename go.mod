@@ -1,4 +1,4 @@
-module initiative
+module github.com/joelzwarrington/initiative
 
 go 1.24.0
 

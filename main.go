@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"initiative/internal/initiative"
 	"os"
 	"path/filepath"
 
+	"github.com/joelzwarrington/initiative/internal/initiative"
 	"github.com/spf13/cobra"
 )
 

@@ -2,14 +2,14 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
-	"initiative/internal/components"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joelzwarrington/initiative/dnd"
+	"github.com/joelzwarrington/initiative/internal/components"
 	"github.com/termkit/skeleton"
 )
 
@@ -120,14 +120,14 @@ func (p *encounterPage) View() string {
 		helpStyle := lipgloss.NewStyle().Padding(0, 1)
 		helpView := helpStyle.Render(p.help.View(p))
 		helpHeight := lipgloss.Height(helpView)
-		
+
 		listHeight := p.s.GetContentHeight() - helpHeight
 		p.encounterDelegate.SetSize(p.s.GetContentWidth(), listHeight)
-		
+
 		var buf strings.Builder
 		p.encounterDelegate.Render(&buf, p.encounter)
 		listView := buf.String()
-		
+
 		return lipgloss.JoinVertical(lipgloss.Left, listView, helpView)
 	case p.isAddingNewEncounter():
 		return p.encounterForm.View()
@@ -249,29 +249,29 @@ func (p *encounterPage) updateRoundWidget() {
 func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) tea.Cmd {
 	p.encounterForm = nil
 	p.encounter = &submission.encounter
-	
+
 	// Update page title with encounter summary
 	summary := p.encounter.Summary
 	if len(summary) > 18 {
 		summary = summary[:15] + "..."
 	}
 	p.s.UpdatePageTitle("encounter", "Encounter > "+summary)
-	
+
 	// Add round tracking widget and unlock tabs
 	p.s.AddWidget("round", fmt.Sprintf("Round: %d", p.encounter.Round))
 	p.s.UnlockTabs()
-	
+
 	return nil
 }
 
 func (p *encounterPage) endEncounter() tea.Cmd {
 	p.encounter = nil
-	
+
 	// Reset page title to default
 	p.s.UpdatePageTitle("encounter", "Encounter")
-	
+
 	// Clear round tracking widget
 	p.s.DeleteWidget("round")
-	
+
 	return nil
 }

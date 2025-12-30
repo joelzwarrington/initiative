@@ -1,10 +1,11 @@
 package initiative
 
 import (
-	"initiative/dnd"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/joelzwarrington/initiative/dnd"
 )
 
 func TestLoadGame(t *testing.T) {

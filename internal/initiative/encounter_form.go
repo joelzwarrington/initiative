@@ -2,8 +2,6 @@ package initiative
 
 import (
 	"fmt"
-	"initiative/dnd"
-	"initiative/internal/form"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joelzwarrington/initiative/dnd"
+	"github.com/joelzwarrington/initiative/internal/form"
 )
 
 type encounterFormStyles struct {
@@ -40,7 +40,7 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 
 	// Get form's key bindings
 	formKeys := form.KeyBinds()
-	
+
 	// Add our custom ESC binding
 	escKey := key.NewBinding(
 		key.WithKeys("esc"),
@@ -171,12 +171,12 @@ func (f *encounterForm) View() string {
 
 	// Render form content
 	formView := f.styles.container.Render(form.View())
-	
+
 	// Render custom help
 	f.help.Width = f.width - f.styles.help.GetHorizontalPadding()
 	helpKeys := f.getHelpKeys()
 	helpView := f.styles.help.Render(f.help.ShortHelpView(helpKeys))
-	
+
 	// Join form and help vertically
 	return lipgloss.JoinVertical(lipgloss.Left, formView, helpView)
 }
