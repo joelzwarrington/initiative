@@ -14,7 +14,7 @@ type Game struct {
 	sources    map[string]*dnd.Source   `yaml:"-" json:"-"`
 }
 
-func LoadGame(filepath string, includeSRD bool) (*Game, error) {
+func LoadGame(filepath string, sourceSpecs []string) (*Game, error) {
 	game := &Game{
 		Characters: make(map[string]dnd.Character),
 		sources:    make(map[string]*dnd.Source),
@@ -27,10 +27,15 @@ func LoadGame(filepath string, includeSRD bool) (*Game, error) {
 		}
 	}
 
-	if includeSRD {
-		srd, err := dnd.GetSystemReferenceSource()
-		if err == nil && srd != nil {
-			game.sources[srd.Meta.Key] = srd
+	// Load sources (embedded or file paths)
+	for _, sourceSpec := range sourceSpecs {
+		source, err := dnd.LoadSource(sourceSpec)
+		if err != nil {
+			// Print error but don't fail - allow game to continue without this source
+			println("Warning: Failed to load source", sourceSpec+":", err.Error())
+		} else if source != nil {
+			game.sources[source.Meta.Key] = source
+			println("Loaded source", source.Meta.Name, "with", len(source.Monsters), "monsters")
 		}
 	}
 

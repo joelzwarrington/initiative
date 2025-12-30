@@ -65,7 +65,7 @@ func TestLoadGame(t *testing.T) {
 				}
 			}
 
-			game, err := LoadGame(filepath, tt.includeSRD)
+			game, err := LoadGame(filepath, []string{})
 
 			if tt.wantErr {
 				if err == nil {
@@ -196,7 +196,7 @@ func TestGameRoundTrip(t *testing.T) {
 				t.Fatalf("Failed to save game: %v", err)
 			}
 
-			loadedGame, err := LoadGame(filepath, false)
+			loadedGame, err := LoadGame(filepath, []string{})
 			if err != nil {
 				t.Fatalf("Failed to load game: %v", err)
 			}

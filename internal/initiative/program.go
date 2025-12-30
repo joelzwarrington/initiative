@@ -13,8 +13,8 @@ import (
 
 var gameInstance *Game
 
-func NewProgram(filepath string, withSRD bool) *tea.Program {
-	game, err := LoadGame(filepath, withSRD)
+func NewProgram(filepath string, sources []string) *tea.Program {
+	game, err := LoadGame(filepath, sources)
 	if err != nil {
 		panic(err)
 	}
