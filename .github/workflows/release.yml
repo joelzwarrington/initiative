@@ -1,4 +1,4 @@
-name: goreleaser
+name: release
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: write
-  id-token: write  # Required for Cosign OIDC
+  id-token: write # Required for Cosign OIDC
 
 jobs:
   goreleaser:
@@ -33,4 +33,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COSIGN_EXPERIMENTAL: 1  # Enable keyless signing
+          COSIGN_EXPERIMENTAL: 1 # Enable keyless signing
