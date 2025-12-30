@@ -45,7 +45,7 @@ Track hit points and damage with visual health bars and intuitive controls for q
 <!-- todo: implement tape -->
 <!-- <img src="examples/sources.gif" width="640" alt="Managing sources"> -->
 
-**initiative** is shipped with the System Reference Document, but allows you to bring additional sources!
+**initiative** is shipped with the [System Reference Document](https://www.dndbeyond.com/srd), but allows you to bring additional sources!
 
 ## Contributing
 
