@@ -10,13 +10,6 @@ version: 2
 
 project_name: initiative
 
-metadata:
-  maintainers:
-    - "Joel Warrington <joelw@hey.com>"
-  license: "MIT"
-  homepage: "https://github.com/joelzwarrington/initiative"
-  description: "TUI to effectively manage Dungeon & Dragons encounters"
-
 before:
   hooks:
     - go mod tidy
