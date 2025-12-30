@@ -11,11 +11,11 @@ import (
 
 func TestBuildTUIConfig(t *testing.T) {
 	tests := []struct {
-		name         string
-		gameFile     string
-		sources      []string
-		expectSRD    bool
-		expectError  bool
+		name        string
+		gameFile    string
+		sources     []string
+		expectSRD   bool
+		expectError bool
 	}{
 		{
 			name:      "defaults to srd source",
@@ -43,7 +43,7 @@ func TestBuildTUIConfig(t *testing.T) {
 			cmd := &cobra.Command{}
 			cmd.Flags().String("game", tt.gameFile, "")
 			cmd.Flags().StringSlice("source", tt.sources, "")
-			
+
 			cfg, err := buildTUIConfig(cmd)
 
 			if tt.expectError {
@@ -127,7 +127,7 @@ func TestTUIConfigWithCustomPath(t *testing.T) {
 func TestTUIConfigDirectoryCreation(t *testing.T) {
 	// Test with a temporary directory to ensure we can create dirs
 	tempDir := t.TempDir()
-	
+
 	// Temporarily change HOME to our temp dir
 	originalHome := os.Getenv("HOME")
 	os.Setenv("HOME", tempDir)

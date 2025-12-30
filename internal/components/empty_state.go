@@ -56,23 +56,23 @@ func (e *EmptyState) View() string {
 
 	// Calculate available height for content area
 	availHeight := e.height - helpHeight
-	
+
 	// Create message with top-left positioning and padding
 	messageStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("240")).
 		Padding(1, 2, 0, 2) // 1 top, 2 left/right, 0 bottom
-		
+
 	message := messageStyle.Render(e.message)
-	
+
 	// Create content area that takes remaining space with message at top-left
 	contentStyle := lipgloss.NewStyle().
 		Height(availHeight).
 		Width(e.width).
 		AlignHorizontal(lipgloss.Left).
 		AlignVertical(lipgloss.Top)
-		
+
 	contentArea := contentStyle.Render(message)
-	
+
 	// Join content and help at bottom
 	return lipgloss.JoinVertical(lipgloss.Left, contentArea, helpView)
 }

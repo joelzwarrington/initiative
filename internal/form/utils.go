@@ -14,12 +14,12 @@ func GetInt(form *huh.Form, key string) (int, bool) {
 	if rawValue == "" {
 		return 0, false
 	}
-	
+
 	parsed, err := strconv.Atoi(strings.TrimSpace(rawValue))
 	if err != nil {
 		return 0, false
 	}
-	
+
 	return parsed, true
 }
 
