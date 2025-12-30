@@ -26,6 +26,7 @@ type encounterPage struct {
 
 	emptyState        *components.EmptyState
 	encounterForm     *encounterForm
+	hitPointForm      *hitPointForm
 	encounterDelegate *encounterDelegate
 	help              help.Model
 }
@@ -66,6 +67,9 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if p.encounterForm != nil {
 			p.encounterForm.SetSize(p.width, p.height)
 		}
+		if p.hitPointForm != nil {
+			p.hitPointForm.SetSize(p.width, p.height)
+		}
 		if p.encounterDelegate != nil {
 			p.encounterDelegate.SetSize(p.width, p.height)
 		}
@@ -75,6 +79,11 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return p, nil
 	case tea.KeyMsg:
+		// Don't process page-level keys when forms are active
+		if p.isAddingNewEncounter() || p.isAdjustingHitPoints() {
+			break
+		}
+
 		if key.Matches(msg, p.keys.NewEncounter) && p.isEmptyState() {
 			return p, tea.Sequence(append(cmds, p.beginNewEncounterForm())...)
 		}
@@ -95,6 +104,12 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return p, tea.Sequence(append(cmds, p.cancelNewEncounterForm())...)
 	case encounterFormSubmittedMsg:
 		return p, tea.Sequence(append(cmds, p.addNewEncounter(msg))...)
+	case adjustHitPointsMsg:
+		return p, tea.Sequence(append(cmds, p.beginHitPointForm(msg))...)
+	case hitPointFormCancelledMsg:
+		return p, tea.Sequence(append(cmds, p.cancelHitPointForm())...)
+	case hitPointFormSubmittedMsg:
+		return p, tea.Sequence(append(cmds, p.processHitPointAdjustment(msg))...)
 	}
 
 	if p.isAddingNewEncounter() {
@@ -105,7 +120,15 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if p.encounter != nil && p.encounterDelegate != nil {
+	if p.isAdjustingHitPoints() {
+		form, cmd := p.hitPointForm.Update(msg)
+		cmds = append(cmds, cmd)
+		if form, ok := form.(*hitPointForm); ok {
+			p.hitPointForm = form
+		}
+	}
+
+	if p.encounter != nil && p.encounterDelegate != nil && !p.isAdjustingHitPoints() {
 		cmds = append(cmds, p.encounterDelegate.Update(msg, p.encounter))
 	}
 
@@ -114,6 +137,8 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (p *encounterPage) View() string {
 	switch true {
+	case p.isAdjustingHitPoints():
+		return p.hitPointForm.View()
 	case p.encounter != nil:
 		// Calculate available height for list (subtract help height)
 		p.help.Width = p.s.GetContentWidth()
@@ -122,6 +147,7 @@ func (p *encounterPage) View() string {
 		helpHeight := lipgloss.Height(helpView)
 
 		listHeight := p.s.GetContentHeight() - helpHeight
+
 		p.encounterDelegate.SetSize(p.s.GetContentWidth(), listHeight)
 
 		var buf strings.Builder
@@ -224,8 +250,12 @@ func (p *encounterPage) isAddingNewEncounter() bool {
 	return p.encounterForm != nil
 }
 
+func (p *encounterPage) isAdjustingHitPoints() bool {
+	return p.hitPointForm != nil
+}
+
 func (p *encounterPage) isEmptyState() bool {
-	return !p.isAddingNewEncounter() && p.encounter == nil
+	return !p.isAddingNewEncounter() && !p.isAdjustingHitPoints() && p.encounter == nil
 }
 
 func (p *encounterPage) beginNewEncounterForm() tea.Cmd {
@@ -272,6 +302,85 @@ func (p *encounterPage) endEncounter() tea.Cmd {
 
 	// Clear round tracking widget
 	p.s.DeleteWidget("round")
+
+	return nil
+}
+
+func (p *encounterPage) beginHitPointForm(msg adjustHitPointsMsg) tea.Cmd {
+	if p.encounter == nil || len(p.encounter.InitiativeGroups) <= msg.groupIndex {
+		return nil
+	}
+
+	group := p.encounter.InitiativeGroups[msg.groupIndex]
+	if len(group.Creatures) <= msg.creatureIndex {
+		return nil
+	}
+
+	creature := group.Creatures[msg.creatureIndex]
+	p.s.LockTabs()
+	p.hitPointForm = newHitPointForm(msg.groupIndex, msg.creatureIndex, creature.GetName(), p.s.GetContentWidth(), p.s.GetContentHeight(), msg.isDamage)
+	return p.hitPointForm.Init()
+}
+
+func (p *encounterPage) cancelHitPointForm() tea.Cmd {
+	p.hitPointForm = nil
+	p.s.UnlockTabs()
+	return nil
+}
+
+func (p *encounterPage) processHitPointAdjustment(msg hitPointFormSubmittedMsg) tea.Cmd {
+	p.hitPointForm = nil
+	p.s.UnlockTabs()
+
+	if p.encounter == nil || len(p.encounter.InitiativeGroups) <= msg.groupIndex {
+		return nil
+	}
+
+	group := &p.encounter.InitiativeGroups[msg.groupIndex]
+	if len(group.Creatures) <= msg.creatureIndex {
+		return nil
+	}
+
+	creature := group.Creatures[msg.creatureIndex]
+
+	// Only process hit point adjustments for monsters
+	if monster, ok := creature.(dnd.Monster); ok {
+		if msg.adjustmentType == HitPointDamage {
+			monster.HitPoints -= msg.adjustment
+			if monster.HitPoints < 0 {
+				monster.HitPoints = 0
+			}
+		} else {
+			monster.HitPoints += msg.adjustment
+			if monster.HitPoints > monster.MaximumHitPoints {
+				monster.HitPoints = monster.MaximumHitPoints
+			}
+		}
+		group.Creatures[msg.creatureIndex] = monster
+
+		// Create status message with bold components and consistent coloring
+		var statusMessage string
+		if msg.adjustmentType == HitPointDamage {
+			redBold := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
+			redNormal := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+			creatureName := redBold.Render(creature.GetName())
+			amount := redBold.Render(fmt.Sprintf("%d", msg.adjustment))
+			actionType := redNormal.Render("damage")
+			took := redNormal.Render(" took ")
+			statusMessage = creatureName + took + amount + redNormal.Render(" ") + actionType
+		} else {
+			greenBold := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
+			greenNormal := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+			creatureName := greenBold.Render(creature.GetName())
+			amount := greenBold.Render(fmt.Sprintf("%d", msg.adjustment))
+			actionType := greenNormal.Render("hit points")
+			healed := greenNormal.Render(" healed ")
+			statusMessage = creatureName + healed + amount + greenNormal.Render(" ") + actionType
+		}
+
+		// Return a status message command for the encounter delegate's list
+		return p.encounterDelegate.list.NewStatusMessage(statusMessage)
+	}
 
 	return nil
 }

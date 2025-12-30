@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -21,6 +22,7 @@ type encounterDelegate struct {
 func newEncounterDelegate(width, height int) *encounterDelegate {
 	delegate := &creatureItemDelegate{
 		healthBar: components.NewHealthBar(30),
+		keys:      newCreatureItemKeyMap(),
 	}
 
 	initiativeList := list.New([]list.Item{}, delegate, width, height)
@@ -29,6 +31,8 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 	initiativeList.SetShowStatusBar(true)
 	initiativeList.SetShowHelp(false)
 	initiativeList.DisableQuitKeybindings()
+	initiativeList.StatusMessageLifetime = time.Duration(3000) * time.Millisecond
+	initiativeList.StatusMessageLocation = list.InStatusBar
 
 	return &encounterDelegate{
 		list:      initiativeList,
@@ -79,6 +83,12 @@ func (d *encounterDelegate) ShortHelp() []key.Binding {
 		d.list.KeyMap.CursorDown,
 	}
 
+	// Add creature action keys if items exist
+	if len(d.list.Items()) > 0 {
+		delegate := newCreatureItemKeyMap()
+		listKeys = append(listKeys, delegate.dealDamage, delegate.heal)
+	}
+
 	// Add list-specific keys
 	if d.list.FilterState() != list.Filtering {
 		listKeys = append(listKeys, d.list.KeyMap.Filter)
@@ -95,6 +105,16 @@ func (d *encounterDelegate) FullHelp() [][]key.Binding {
 		d.list.KeyMap.Filter,
 	}
 
+	// Add creature action keys if items exist
+	actionKeys := []key.Binding{}
+	if len(d.list.Items()) > 0 {
+		delegate := newCreatureItemKeyMap()
+		actionKeys = append(actionKeys, delegate.dealDamage, delegate.heal)
+	}
+
+	if len(actionKeys) > 0 {
+		return [][]key.Binding{navKeys, actionKeys}
+	}
 	return [][]key.Binding{navKeys}
 }
 
@@ -112,13 +132,21 @@ func (c creatureItem) FilterValue() string {
 	return c.creature.GetName()
 }
 
+// Messages
+type adjustHitPointsMsg struct {
+	groupIndex    int
+	creatureIndex int
+	isDamage      bool
+}
+
 // List delegate for individual creatures
 type creatureItemDelegate struct {
 	healthBar components.HealthBar
+	keys      creatureItemKeyMap
 }
 
 func (d creatureItemDelegate) Height() int {
-	return 3
+	return 4
 }
 
 func (d creatureItemDelegate) Spacing() int {
@@ -126,6 +154,34 @@ func (d creatureItemDelegate) Spacing() int {
 }
 
 func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+	item, ok := m.SelectedItem().(creatureItem)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, d.keys.dealDamage):
+			if ok {
+				return tea.Cmd(func() tea.Msg {
+					return adjustHitPointsMsg{
+						groupIndex:    item.groupIndex,
+						creatureIndex: item.creatureIndex,
+						isDamage:      true,
+					}
+				})
+			}
+		case key.Matches(msg, d.keys.heal):
+			if ok {
+				return tea.Cmd(func() tea.Msg {
+					return adjustHitPointsMsg{
+						groupIndex:    item.groupIndex,
+						creatureIndex: item.creatureIndex,
+						isDamage:      false,
+					}
+				})
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -183,4 +239,39 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 		Width(m.Width() - 2)
 
 	fmt.Fprint(w, border.Render(content))
+}
+
+// Key mappings for creature items
+type creatureItemKeyMap struct {
+	dealDamage key.Binding
+	heal       key.Binding
+}
+
+func newCreatureItemKeyMap() creatureItemKeyMap {
+	return creatureItemKeyMap{
+		dealDamage: key.NewBinding(
+			key.WithKeys("d"),
+			key.WithHelp("d", "deal damage"),
+		),
+		heal: key.NewBinding(
+			key.WithKeys("h"),
+			key.WithHelp("h", "heal"),
+		),
+	}
+}
+
+func (d creatureItemKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		d.dealDamage,
+		d.heal,
+	}
+}
+
+func (d creatureItemKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			d.dealDamage,
+			d.heal,
+		},
+	}
 }
