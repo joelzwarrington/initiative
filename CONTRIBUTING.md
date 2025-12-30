@@ -14,7 +14,7 @@ Search [existing issues](https://github.com/joelzwarrington/initiative/issues) t
 
 ## Features
 
-Open a [Discussion](https://github.com/joelzwarrington/initiative/discussions/new?category=ideas) first for feedback before coding.
+It's suggested you open a [discussion](https://github.com/joelzwarrington/initiative/discussions/new?category=ideas) first for feedback before coding, but pull requests *may* be accepted without prior discussion.
 
 ## Pull Requests
 
