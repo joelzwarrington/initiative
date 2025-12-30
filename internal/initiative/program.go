@@ -13,10 +13,10 @@ import (
 
 var gameInstance *Game
 
-func NewProgram(filepath string, sources []string) *tea.Program {
+func NewProgram(filepath string, sources []string) (*tea.Program, error) {
 	game, err := LoadGame(filepath, sources)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	p := &game.Characters
@@ -44,7 +44,7 @@ func NewProgram(filepath string, sources []string) *tea.Program {
 	setupSignalHandler()
 
 	prog := tea.NewProgram(s)
-	return prog
+	return prog, nil
 }
 
 type page interface {

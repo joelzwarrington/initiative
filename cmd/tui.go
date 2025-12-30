@@ -71,10 +71,13 @@ func buildTUIConfig(cmd *cobra.Command) (*TUIConfig, error) {
 }
 
 func runTUIWithConfig(cfg *TUIConfig) error {
-	p := initiative.NewProgram(cfg.GameFile, cfg.Sources)
+	p, err := initiative.NewProgram(cfg.GameFile, cfg.Sources)
+	if err != nil {
+		return err
+	}
 
 	if _, err := p.Run(); err != nil {
-		return fmt.Errorf("failed to run TUI: %w", err)
+		return err
 	}
 
 	initiative.SaveGame()

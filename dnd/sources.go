@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,7 +18,7 @@ func LoadSourceFromFS(path string) (*Source, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read source file %s: %w", path, err)
 	}
-	
+
 	var source Source
 	err = yaml.Unmarshal(data, &source)
 	if err != nil {
@@ -30,9 +31,12 @@ func LoadSourceFromFS(path string) (*Source, error) {
 func LoadSourceFromFile(filepath string) (*Source, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("source file '%s' not found", filepath)
+		}
 		return nil, fmt.Errorf("failed to read source file %s: %w", filepath, err)
 	}
-	
+
 	var source Source
 	err = yaml.Unmarshal(data, &source)
 	if err != nil {
@@ -47,22 +51,21 @@ func LoadSource(sourceSpec string) (*Source, error) {
 	embeddedSources := map[string]string{
 		"srd": "srd.yaml",
 	}
-	
+
 	// Check if it's a known embedded source key
 	if embeddedPath, exists := embeddedSources[sourceSpec]; exists {
 		return LoadSourceFromFS(embeddedPath)
 	}
-	
+
 	// Try as embedded file path first
 	source, err := LoadSourceFromFS(sourceSpec)
 	if err == nil {
 		return source, nil
 	}
-	
+
 	// If that fails, try as external file path
 	return LoadSourceFromFile(sourceSpec)
 }
-
 
 // ListAvailableSources returns all available source files in the embedded FS
 func ListAvailableSources() ([]string, error) {

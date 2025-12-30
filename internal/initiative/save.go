@@ -31,11 +31,10 @@ func LoadGame(filepath string, sourceSpecs []string) (*Game, error) {
 	for _, sourceSpec := range sourceSpecs {
 		source, err := dnd.LoadSource(sourceSpec)
 		if err != nil {
-			// Print error but don't fail - allow game to continue without this source
-			println("Warning: Failed to load source", sourceSpec+":", err.Error())
-		} else if source != nil {
+			return nil, err
+		}
+		if source != nil {
 			game.sources[source.Meta.Key] = source
-			println("Loaded source", source.Meta.Name, "with", len(source.Monsters), "monsters")
 		}
 	}
 

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -18,8 +19,16 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
+	// Disable automatic error and usage display
+	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
+
 	err := rootCmd.Execute()
 	if err != nil {
+		red := "\033[31m"
+		reset := "\033[0m"
+
+		fmt.Fprintf(os.Stderr, "%s✗ %s%s\n", red, err.Error(), reset)
 		os.Exit(1)
 	}
 }
