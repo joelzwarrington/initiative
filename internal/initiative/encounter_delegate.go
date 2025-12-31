@@ -14,14 +14,16 @@ import (
 )
 
 type encounterDelegate struct {
-	list      list.Model
-	healthBar components.HealthBar
+	list         list.Model
+	healthBar    components.HealthBar
+	creatureKeys creatureItemKeyMap
 }
 
 func newEncounterDelegate(width, height int) *encounterDelegate {
+	creatureKeys := newCreatureItemKeyMap()
 	delegate := &creatureItemDelegate{
 		healthBar: components.NewHealthBar(30),
-		keys:      newCreatureItemKeyMap(),
+		keys:      creatureKeys,
 	}
 
 	initiativeList := list.New([]list.Item{}, delegate, width, height)
@@ -57,8 +59,9 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 	initiativeList.KeyMap = keyMap
 
 	return &encounterDelegate{
-		list:      initiativeList,
-		healthBar: components.NewHealthBar(30),
+		list:         initiativeList,
+		healthBar:    components.NewHealthBar(30),
+		creatureKeys: creatureKeys,
 	}
 }
 
@@ -99,45 +102,69 @@ func (d *encounterDelegate) SetSize(width, height int) {
 }
 
 func (d *encounterDelegate) ShortHelp() []key.Binding {
-	// Get list navigation keys
-	listKeys := []key.Binding{
+	// Update key states
+	d.updateKeyStates()
+	
+	// Get list navigation keys (excluding filter for short help)
+	keys := []key.Binding{
 		d.list.KeyMap.CursorUp,
 		d.list.KeyMap.CursorDown,
+		d.list.KeyMap.PrevPage,
+		d.list.KeyMap.NextPage,
+		// Note: Filter excluded from short help to keep it concise
 	}
-
-	// Add creature action keys if items exist
-	if len(d.list.Items()) > 0 {
-		delegate := newCreatureItemKeyMap()
-		listKeys = append(listKeys, delegate.dealDamage, delegate.heal)
-	}
-
-	// Add list-specific keys
-	if d.list.FilterState() != list.Filtering {
-		listKeys = append(listKeys, d.list.KeyMap.Filter)
-	}
-
-	return listKeys
+	
+	// Add creature action keys
+	keys = append(keys, d.creatureKeys.dealDamage, d.creatureKeys.heal)
+	
+	return keys
 }
 
 func (d *encounterDelegate) FullHelp() [][]key.Binding {
-	// Get list navigation keys
-	navKeys := []key.Binding{
+	// Update key states
+	d.updateKeyStates()
+	
+	// Organize keys into logical groups
+	navigationKeys := []key.Binding{
 		d.list.KeyMap.CursorUp,
 		d.list.KeyMap.CursorDown,
+		d.list.KeyMap.PrevPage,
+		d.list.KeyMap.NextPage,
+	}
+	
+	filterKeys := []key.Binding{
 		d.list.KeyMap.Filter,
 	}
-
-	// Add creature action keys if items exist
-	actionKeys := []key.Binding{}
-	if len(d.list.Items()) > 0 {
-		delegate := newCreatureItemKeyMap()
-		actionKeys = append(actionKeys, delegate.dealDamage, delegate.heal)
+	
+	result := [][]key.Binding{navigationKeys, filterKeys}
+	
+	// Add creature action keys as separate column
+	actionKeys := []key.Binding{
+		d.creatureKeys.dealDamage,
+		d.creatureKeys.heal,
 	}
+	result = append(result, actionKeys)
+	
+	return result
+}
 
-	if len(actionKeys) > 0 {
-		return [][]key.Binding{navKeys, actionKeys}
-	}
-	return [][]key.Binding{navKeys}
+func (d *encounterDelegate) updateKeyStates() {
+	hasItems := len(d.list.Items()) > 0
+	isFiltering := d.list.FilterState() == list.Filtering
+	
+	// Navigation keys should only be enabled when there are items
+	d.list.KeyMap.CursorUp.SetEnabled(hasItems)
+	d.list.KeyMap.CursorDown.SetEnabled(hasItems)
+	d.list.KeyMap.PrevPage.SetEnabled(hasItems)
+	d.list.KeyMap.NextPage.SetEnabled(hasItems)
+	
+	// Filter key enabled when not currently filtering and has items
+	d.list.KeyMap.Filter.SetEnabled(hasItems && !isFiltering)
+	
+	// Creature actions only when items exist and not filtering
+	creatureActionsEnabled := hasItems && !isFiltering
+	d.creatureKeys.dealDamage.SetEnabled(creatureActionsEnabled)
+	d.creatureKeys.heal.SetEnabled(creatureActionsEnabled)
 }
 
 // List item for individual creatures
@@ -258,7 +285,7 @@ func newCreatureItemKeyMap() creatureItemKeyMap {
 	return creatureItemKeyMap{
 		dealDamage: key.NewBinding(
 			key.WithKeys("d"),
-			key.WithHelp("d", "deal damage"),
+			key.WithHelp("d", "damage"),
 		),
 		heal: key.NewBinding(
 			key.WithKeys("h"),

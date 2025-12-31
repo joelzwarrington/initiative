@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joelzwarrington/initiative/dnd"
@@ -100,6 +101,10 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, p.keys.EndEncounter) && p.encounter != nil {
 			return p, tea.Sequence(append(cmds, p.endEncounter())...)
 		}
+		if key.Matches(msg, p.keys.ToggleHelp) {
+			p.help.ShowAll = !p.help.ShowAll
+			return p, nil
+		}
 	case encounterFormCancelledMsg:
 		return p, tea.Sequence(append(cmds, p.cancelNewEncounterForm())...)
 	case encounterFormSubmittedMsg:
@@ -181,41 +186,88 @@ func (p *encounterPage) Title() string {
 }
 
 func (p *encounterPage) FullHelp() [][]key.Binding {
-	if p.encounter != nil {
-		keys := [][]key.Binding{{
-			p.keys.PrevTurn,
-			p.keys.NextTurn,
-			p.keys.EndEncounter,
+	// Update key states based on current state
+	p.updateKeyStates()
+	
+	if p.isEmptyState() {
+		// Empty state: only show new and help
+		return [][]key.Binding{{
+			p.keys.NewEncounter,
+			p.keys.ToggleHelp,
 		}}
-		// Add list navigation keys
-		if p.encounterDelegate != nil {
-			listKeys := p.encounterDelegate.FullHelp()
-			keys = append(keys, listKeys...)
-		}
-		return keys
 	}
-	return [][]key.Binding{{
-		p.keys.NewEncounter,
-	}}
+	
+	// Organize keys into the requested columns:
+	// 1. List controls (up, down, prev page, next page, filter)
+	var listControls []key.Binding
+	if p.encounterDelegate != nil {
+		listControls = []key.Binding{
+			p.encounterDelegate.list.KeyMap.CursorUp,
+			p.encounterDelegate.list.KeyMap.CursorDown,
+			p.encounterDelegate.list.KeyMap.PrevPage,
+			p.encounterDelegate.list.KeyMap.NextPage,
+			p.encounterDelegate.list.KeyMap.Filter,
+		}
+	}
+	
+	// 2. Turn controls (prev turn, next turn)
+	turnControls := []key.Binding{
+		p.keys.PrevTurn,
+		p.keys.NextTurn,
+	}
+	
+	// 3. Delegate keys (damage, heal)
+	var delegateKeys []key.Binding
+	if p.encounterDelegate != nil {
+		delegateKeys = []key.Binding{
+			p.encounterDelegate.creatureKeys.dealDamage,
+			p.encounterDelegate.creatureKeys.heal,
+		}
+	}
+	
+	// 4. End/help
+	endHelpKeys := []key.Binding{
+		p.keys.EndEncounter,
+		p.keys.ToggleHelp,
+	}
+	
+	return [][]key.Binding{listControls, turnControls, delegateKeys, endHelpKeys}
 }
 
 func (p *encounterPage) ShortHelp() []key.Binding {
-	if p.encounter != nil {
-		keys := []key.Binding{
-			p.keys.PrevTurn,
-			p.keys.NextTurn,
-			p.keys.EndEncounter,
-		}
-		// Add list navigation keys
+	// Update key states based on current state
+	p.updateKeyStates()
+	
+	// Return only essential keys in specified order: up, down, prev turn, next turn, damage, heal, help
+	keys := []key.Binding{}
+	
+	// Add new encounter key when in empty state
+	if p.isEmptyState() {
+		keys = append(keys, p.keys.NewEncounter)
+	} else {
+		// When encounter exists, show essential navigation and action keys
 		if p.encounterDelegate != nil {
-			listKeys := p.encounterDelegate.ShortHelp()
-			keys = append(keys, listKeys...)
+			keys = append(keys, 
+				p.encounterDelegate.list.KeyMap.CursorUp,        // up
+				p.encounterDelegate.list.KeyMap.CursorDown,      // down
+			)
 		}
-		return keys
+		keys = append(keys,
+			p.keys.PrevTurn,                                     // prev turn
+			p.keys.NextTurn,                                     // next turn
+		)
+		if p.encounterDelegate != nil {
+			keys = append(keys,
+				p.encounterDelegate.creatureKeys.dealDamage,     // damage
+				p.encounterDelegate.creatureKeys.heal,           // heal
+			)
+		}
 	}
-	return []key.Binding{
-		p.keys.NewEncounter,
-	}
+	
+	// Always show help
+	keys = append(keys, p.keys.ToggleHelp)
+	
+	return keys
 }
 
 type EncounterPageKeyMap struct {
@@ -223,6 +275,7 @@ type EncounterPageKeyMap struct {
 	NextTurn     key.Binding
 	PrevTurn     key.Binding
 	EndEncounter key.Binding
+	ToggleHelp   key.Binding
 }
 
 func defaultEncounterPageKeyMap() EncounterPageKeyMap {
@@ -237,11 +290,15 @@ func defaultEncounterPageKeyMap() EncounterPageKeyMap {
 		),
 		PrevTurn: key.NewBinding(
 			key.WithKeys("left"),
-			key.WithHelp("←", "previous turn"),
+			key.WithHelp("←", "prev turn"),
 		),
 		EndEncounter: key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "end"),
+		),
+		ToggleHelp: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
 		),
 	}
 }
@@ -256,6 +313,40 @@ func (p *encounterPage) isAdjustingHitPoints() bool {
 
 func (p *encounterPage) isEmptyState() bool {
 	return !p.isAddingNewEncounter() && !p.isAdjustingHitPoints() && p.encounter == nil
+}
+
+func (p *encounterPage) updateKeyStates() {
+	// Only manage keys that change based on state
+	hasEncounter := p.encounter != nil
+	isEmpty := p.isEmptyState()
+	
+	// Check if we're at the very beginning (round 1, first turn)
+	canGoBack := hasEncounter && !(p.encounter.Round == 1 && p.encounter.GetTurnIndex() == 0)
+	
+	// Check if list is currently filtering
+	isFiltering := false
+	if p.encounterDelegate != nil {
+		isFiltering = p.encounterDelegate.list.FilterState() == list.Filtering
+	}
+	
+	// These keys are contextually enabled/disabled
+	p.keys.NewEncounter.SetEnabled(isEmpty)
+	p.keys.PrevTurn.SetEnabled(canGoBack)  // Disable when first turn of first round
+	p.keys.NextTurn.SetEnabled(hasEncounter)
+	p.keys.EndEncounter.SetEnabled(hasEncounter && !isFiltering)  // Disable when filtering
+	// Help key is always enabled
+	p.keys.ToggleHelp.SetEnabled(true)
+	
+	// Update delegate key states if available
+	if p.encounterDelegate != nil {
+		p.encounterDelegate.updateKeyStates()
+		
+		// Disable creature actions when no encounter
+		if !hasEncounter {
+			p.encounterDelegate.creatureKeys.dealDamage.SetEnabled(false)
+			p.encounterDelegate.creatureKeys.heal.SetEnabled(false)
+		}
+	}
 }
 
 func (p *encounterPage) beginNewEncounterForm() tea.Cmd {
