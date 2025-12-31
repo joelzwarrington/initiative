@@ -21,7 +21,6 @@ type encounterFormStyles struct {
 	help      lipgloss.Style
 }
 
-
 func (f *encounterForm) isFilteringActive(form *huh.Form) bool {
 	// Get the currently focused field
 	focusedField := form.GetFocusedField()
@@ -42,7 +41,6 @@ func (f *encounterForm) isFilteringActive(form *huh.Form) bool {
 	return false
 }
 
-
 func (f *encounterForm) getHelpKeys() []key.Binding {
 	form := f.getCurrentForm()
 	if form == nil {
@@ -51,7 +49,7 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 
 	// Get form's key bindings
 	formKeys := form.KeyBinds()
-	
+
 	// Add our custom ESC quit binding if it's enabled
 	if f.keys.Quit.Enabled() {
 		formKeys = append(formKeys, f.keys.Quit)

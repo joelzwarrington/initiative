@@ -59,7 +59,6 @@ func TestGetCharacterOptions(t *testing.T) {
 	}
 }
 
-
 func TestEncounterFormFilteringKeyBind(t *testing.T) {
 	characters := &map[string]dnd.Character{
 		"1": dnd.NewCharacter("Alice"),
@@ -88,19 +87,19 @@ func TestEncounterFormFilteringKeyBind(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			form := newEncounterForm(characters, nil, 40, 10)
-			
+
 			// Navigate to the characters field using NextGroup()
 			currentForm := form.getCurrentForm()
 			if tt.name == "navigate to characters field and start filtering" {
 				currentForm.NextGroup()
 			}
-			
+
 			// Apply setup keys
 			for _, keyMsg := range tt.setupKeys {
 				updatedModel, _ := form.Update(keyMsg)
 				form = updatedModel.(*encounterForm)
 			}
-			
+
 			// Check if esc help is shown
 			helpKeys := form.getHelpKeys()
 			hasEscHelp := false
@@ -110,7 +109,7 @@ func TestEncounterFormFilteringKeyBind(t *testing.T) {
 					break
 				}
 			}
-			
+
 			if hasEscHelp != tt.expectEscHelp {
 				t.Errorf("expected esc help: %v, got: %v", tt.expectEscHelp, hasEscHelp)
 			}
