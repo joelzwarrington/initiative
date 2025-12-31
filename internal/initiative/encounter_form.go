@@ -21,17 +21,27 @@ type encounterFormStyles struct {
 	help      lipgloss.Style
 }
 
-func customFormKeyMap() *huh.KeyMap {
-	keyMap := huh.NewDefaultKeyMap()
 
-	// Set ESC to quit the form
-	keyMap.Quit = key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "cancel"),
-	)
+func (f *encounterForm) isFilteringActive(form *huh.Form) bool {
+	// Get the currently focused field
+	focusedField := form.GetFocusedField()
+	if focusedField == nil {
+		return false
+	}
 
-	return keyMap
+	// Check if the focused field is a MultiSelect and is filtering
+	if multiSelect, ok := focusedField.(*huh.MultiSelect[string]); ok {
+		return multiSelect.GetFiltering()
+	}
+
+	// Check if the focused field is a Select and is filtering
+	if selectField, ok := focusedField.(*huh.Select[string]); ok {
+		return selectField.GetFiltering()
+	}
+
+	return false
 }
+
 
 func (f *encounterForm) getHelpKeys() []key.Binding {
 	form := f.getCurrentForm()
@@ -41,16 +51,13 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 
 	// Get form's key bindings
 	formKeys := form.KeyBinds()
+	
+	// Add our custom ESC quit binding if it's enabled
+	if f.keys.Quit.Enabled() {
+		formKeys = append(formKeys, f.keys.Quit)
+	}
 
-	// Add our custom ESC binding
-	escKey := key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "cancel"),
-	)
-
-	// Combine form keys with our custom keys
-	allKeys := append(formKeys, escKey)
-	return allKeys
+	return formKeys
 }
 
 type encounterFormCancelledMsg struct{}
@@ -63,6 +70,7 @@ type encounterFormNextStepMsg struct{}
 type encounterForm struct {
 	forms  *[]*huh.Form
 	styles encounterFormStyles
+	keys   *huh.KeyMap
 
 	characters *map[string]dnd.Character
 	sources    map[string]*dnd.Source
@@ -73,6 +81,13 @@ type encounterForm struct {
 }
 
 func newEncounterForm(c *map[string]dnd.Character, s map[string]*dnd.Source, width int, height int) *encounterForm {
+	// Create shared keymap
+	keyMap := huh.NewDefaultKeyMap()
+	keyMap.Quit = key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "cancel"),
+	)
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Key("summary").Title("Summary").
@@ -101,7 +116,7 @@ func newEncounterForm(c *map[string]dnd.Character, s map[string]*dnd.Source, wid
 					return nil // Allow empty monster selection
 				}),
 		).Title("Add monsters to encounter"),
-	).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(customFormKeyMap())
+	).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(keyMap)
 
 	form.CancelCmd = func() tea.Msg {
 		return encounterFormPreviousStepMsg{}
@@ -113,6 +128,7 @@ func newEncounterForm(c *map[string]dnd.Character, s map[string]*dnd.Source, wid
 	f := &encounterForm{
 		width: width, height: height,
 		forms: &[]*huh.Form{form},
+		keys:  keyMap,
 		styles: encounterFormStyles{
 			container: lipgloss.NewStyle().Padding(1, 2, 0, 2), // 1 top, 2 horizontal, 0 bottom
 			help:      lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 2),
@@ -148,10 +164,19 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return f, tea.Sequence(append(cmds, f.nextStep())...)
 	}
 
+	// Check filtering state before form update
+	wasFiltering := f.isFilteringActive(currentForm)
+
 	form, cmd := currentForm.Update(msg)
 	cmds = append(cmds, cmd)
 	if form, ok := form.(*huh.Form); ok {
 		(*f.forms)[len(*f.forms)-1] = form
+
+		// Check filtering state after form update and update keymap if changed
+		isFiltering := f.isFilteringActive(form)
+		if wasFiltering != isFiltering {
+			f.keys.Quit.SetEnabled(!isFiltering)
+		}
 
 		// Handle form quit (ESC pressed)
 		if form.State == huh.StateAborted {
@@ -428,7 +453,7 @@ func (f *encounterForm) nextStep() tea.Cmd {
 			return f.submit()
 		}
 
-		form := huh.NewForm(groups...).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(customFormKeyMap())
+		form := huh.NewForm(groups...).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(f.keys)
 
 		form.CancelCmd = func() tea.Msg {
 			return encounterFormPreviousStepMsg{}

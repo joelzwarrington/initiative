@@ -3,6 +3,7 @@ package initiative
 import (
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joelzwarrington/initiative/dnd"
 )
 
@@ -53,6 +54,65 @@ func TestGetCharacterOptions(t *testing.T) {
 				if option.Key != tt.expected[i] {
 					t.Errorf("option %d: expected name %q, got %q", i, tt.expected[i], option.Key)
 				}
+			}
+		})
+	}
+}
+
+
+func TestEncounterFormFilteringKeyBind(t *testing.T) {
+	characters := &map[string]dnd.Character{
+		"1": dnd.NewCharacter("Alice"),
+		"2": dnd.NewCharacter("Bob"),
+	}
+
+	tests := []struct {
+		name          string
+		setupKeys     []tea.KeyMsg
+		expectEscHelp bool
+	}{
+		{
+			name:          "initial state shows esc help",
+			setupKeys:     []tea.KeyMsg{},
+			expectEscHelp: true,
+		},
+		{
+			name: "navigate to characters field and start filtering",
+			setupKeys: []tea.KeyMsg{
+				{Type: tea.KeyRunes, Runes: []rune("/")}, // Start filtering on characters field
+			},
+			expectEscHelp: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			form := newEncounterForm(characters, nil, 40, 10)
+			
+			// Navigate to the characters field using NextGroup()
+			currentForm := form.getCurrentForm()
+			if tt.name == "navigate to characters field and start filtering" {
+				currentForm.NextGroup()
+			}
+			
+			// Apply setup keys
+			for _, keyMsg := range tt.setupKeys {
+				updatedModel, _ := form.Update(keyMsg)
+				form = updatedModel.(*encounterForm)
+			}
+			
+			// Check if esc help is shown
+			helpKeys := form.getHelpKeys()
+			hasEscHelp := false
+			for _, binding := range helpKeys {
+				if binding.Help().Key == "esc" && binding.Help().Desc == "cancel" {
+					hasEscHelp = true
+					break
+				}
+			}
+			
+			if hasEscHelp != tt.expectEscHelp {
+				t.Errorf("expected esc help: %v, got: %v", tt.expectEscHelp, hasEscHelp)
 			}
 		})
 	}
