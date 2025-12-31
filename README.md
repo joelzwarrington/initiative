@@ -25,8 +25,7 @@ Start encounters to track initiative of characters and monsters, health of the m
 
 ## Characters
 
-<!-- todo: implement tape -->
-<!-- <img src="examples/characters.gif" width="640" alt="Managing characters"> -->
+<img src="examples/characters.gif" width="640" alt="Managing characters">
 
 Organize your party members and NPCs, which can be added to encounters quickly.
 
