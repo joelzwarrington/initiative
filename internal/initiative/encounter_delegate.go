@@ -161,8 +161,18 @@ func (d *encounterDelegate) updateKeyStates() {
 	// Filter key enabled when not currently filtering and has items
 	d.list.KeyMap.Filter.SetEnabled(hasItems && !isFiltering)
 	
-	// Creature actions only when items exist and not filtering
-	creatureActionsEnabled := hasItems && !isFiltering
+	// Check if selected creature is a monster (only monsters have health)
+	selectedIsMonster := false
+	if hasItems && !isFiltering {
+		if selectedItem := d.list.SelectedItem(); selectedItem != nil {
+			if creatureItem, ok := selectedItem.(creatureItem); ok {
+				_, selectedIsMonster = creatureItem.creature.(dnd.Monster)
+			}
+		}
+	}
+	
+	// Creature actions only when items exist, not filtering, and monster is selected
+	creatureActionsEnabled := hasItems && !isFiltering && selectedIsMonster
 	d.creatureKeys.dealDamage.SetEnabled(creatureActionsEnabled)
 	d.creatureKeys.heal.SetEnabled(creatureActionsEnabled)
 }
