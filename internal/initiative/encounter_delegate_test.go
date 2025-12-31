@@ -28,18 +28,18 @@ func TestEncounterDelegateRender(t *testing.T) {
 					},
 				},
 			},
-			expected: `                                                            
-  1 creature                                                
-                                                            
-╭──────────────────────────────────────────────────────────╮
-│ > 15 • Fighter                                           │
-╰──────────────────────────────────────────────────────────╯
-                                                            
-                                                            
-                                                            
-                                                            
-                                                            
-                                                            `,
+			expected: `                
+  1 creature    
+                
+ > 15 • Fighter 
+                
+                
+                
+                
+                
+                
+                
+                `,
 		},
 		{
 			name: "multiple initiative groups",
@@ -55,18 +55,18 @@ func TestEncounterDelegateRender(t *testing.T) {
 					},
 				},
 			},
-			expected: `                                                            
-  2 creatures                                               
-                                                            
-╭──────────────────────────────────────────────────────────╮
-│ > 20 • Wizard                                            │
-╰──────────────────────────────────────────────────────────╯
-                                                            
-╭──────────────────────────────────────────────────────────╮
-│   15 • Fighter                                           │
-╰──────────────────────────────────────────────────────────╯
-                                                            
-                                                            `,
+			expected: `                
+  2 creatures   
+                
+ > 20 • Wizard  
+                
+   15 • Fighter 
+                
+                
+                
+                
+                
+                `,
 		},
 		{
 			name: "multiple creatures in single group",
@@ -81,18 +81,18 @@ func TestEncounterDelegateRender(t *testing.T) {
 					},
 				},
 			},
-			expected: `                                                            
-  2 creatures                                               
-                                                            
-╭──────────────────────────────────────────────────────────╮
-│ > 12 • Goblin 1 ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)          │
-│                                                          │
-│        Goblin 2 ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)          │
-╰──────────────────────────────────────────────────────────╯
-                                                            
-                                                            
-                                                            
-                                                            `,
+			expected: `                                                 
+  2 creatures                                    
+                                                 
+ > 12 • Goblin 1  ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)
+                                                 
+   12 • Goblin 2  ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)
+                                                 
+                                                 
+                                                 
+                                                 
+                                                 
+                                                 `,
 		},
 	}
 

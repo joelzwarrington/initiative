@@ -3,7 +3,6 @@ package initiative
 import (
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -146,11 +145,11 @@ type creatureItemDelegate struct {
 }
 
 func (d creatureItemDelegate) Height() int {
-	return 4
+	return 1
 }
 
 func (d creatureItemDelegate) Spacing() int {
-	return 0
+	return 1
 }
 
 func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
@@ -186,59 +185,44 @@ func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	creature, ok := listItem.(creatureItem)
+	item, ok := listItem.(creatureItem)
 	if !ok {
 		return
 	}
 
-	isFirst := creature.creatureIndex == 0
-	isLast := creature.creatureIndex == creature.totalInGroup-1
-
 	turnAwareForeground := lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
-	if creature.isCurrentTurn {
+	if item.isCurrentTurn {
 		turnAwareForeground = lipgloss.AdaptiveColor{Light: "#00FF00", Dark: "#46FF46"}
 	}
 
-	prefix := " "
+	spacer := " "
+
+	selection := " "
 	if m.Index() == index {
-		prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Render(">")
+		selection = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Render(">")
 	}
 
-	if isFirst {
-		initiative := lipgloss.NewStyle().Foreground(turnAwareForeground).Render(fmt.Sprintf("%2d", creature.initiative))
-		separator := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}).Render("•")
+	initiative := lipgloss.NewStyle().Foreground(turnAwareForeground).Render(fmt.Sprintf("%2d •", item.initiative))
 
-		prefix = fmt.Sprintf("%s %s %s ", prefix, initiative, separator)
-	} else {
-		prefix = prefix + strings.Repeat(" ", 6)
-	}
+	prefix := lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		spacer, selection, spacer, initiative, spacer,
+	)
 
 	health := ""
-	if monster, ok := creature.creature.(dnd.Monster); ok {
+	if monster, ok := item.creature.(dnd.Monster); ok {
 		health = " " + d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
 	}
 
-	top := 0
-	if !isFirst {
-		top = 1
-	}
+	content :=
+		lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			prefix,
+			item.creature.GetName(), spacer,
+			health,
+		)
 
-	content := lipgloss.NewStyle().
-		Padding(top, 1, 0, 1).
-		Render(prefix + creature.creature.GetName() + health)
-
-	top = 0
-	if isFirst && index > 0 {
-		top = 1
-	}
-
-	border := lipgloss.NewStyle().
-		Margin(top, 0, 0, 0).
-		Border(lipgloss.RoundedBorder(), isFirst, true, isLast, true).
-		BorderForeground(turnAwareForeground).
-		Width(m.Width() - 2)
-
-	fmt.Fprint(w, border.Render(content))
+	fmt.Fprint(w, content)
 }
 
 // Key mappings for creature items
