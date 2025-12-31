@@ -3,6 +3,7 @@ package initiative
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,13 +23,13 @@ type characterList struct {
 }
 
 func newCharacterList(characters *map[string]dnd.Character, width int, height int) *characterList {
-	items := []list.Item{}
-
-	if characters != nil {
-		for uuid, character := range *characters {
-			items = append(items, characterItem{uuid: uuid, Character: character})
-		}
+	cl := &characterList{
+		characters: characters,
+		width:      width,
+		height:     height,
 	}
+
+	items := cl.toItems()
 
 	delegate := &characterItemDelegate{
 		keys: newCharacterItemKeyMap(),
@@ -68,16 +69,40 @@ func newCharacterList(characters *map[string]dnd.Character, width int, height in
 	)
 	l.KeyMap = keyMap
 
-	return &characterList{
-		list:       l,
-		characters: characters,
-		width:      width,
-		height:     height,
-	}
+	cl.list = l
+	return cl
 }
 
 func (c *characterList) Init() tea.Cmd {
 	return nil
+}
+
+func (c *characterList) toItems() []list.Item {
+	items := []list.Item{}
+
+	if c.characters != nil {
+		for uuid, character := range *c.characters {
+			items = append(items, characterItem{uuid: uuid, Character: character})
+		}
+	}
+
+	// Sort items by character name (case-insensitive)
+	sort.Slice(items, func(i, j int) bool {
+		charI := items[i].(characterItem)
+		charJ := items[j].(characterItem)
+		return strings.ToLower(charI.GetName()) < strings.ToLower(charJ.GetName())
+	})
+
+	return items
+}
+
+func (c *characterList) findCharacterIndex(uuid string, items []list.Item) int {
+	for i, item := range items {
+		if charItem, ok := item.(characterItem); ok && charItem.uuid == uuid {
+			return i
+		}
+	}
+	return -1
 }
 
 func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -93,13 +118,15 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(*c.characters, msg.uuid)
 		}
 
-		items := c.list.Items()
-		for i, item := range items {
-			if charItem, ok := item.(characterItem); ok && charItem.uuid == msg.uuid {
-				c.list.RemoveItem(i)
-				c.list.Select(max(0, i-1))
-				break
-			}
+		// Rebuild sorted items and maintain selection
+		currentIndex := c.list.Index()
+		items := c.toItems()
+		c.list.SetItems(items)
+
+		// Adjust selection after deletion
+		if len(items) > 0 {
+			newIndex := min(currentIndex, len(items)-1)
+			c.list.Select(newIndex)
 		}
 
 		return c, tea.Batch(cmds...)
@@ -108,14 +135,12 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if c.characters != nil {
 			(*c.characters)[msg.uuid] = msg.character
 
-			// Update the corresponding list item
-			items := c.list.Items()
-			for i, item := range items {
-				if charItem, ok := item.(characterItem); ok && charItem.uuid == msg.uuid {
-					updatedItem := characterItem{uuid: msg.uuid, Character: msg.character}
-					c.list.SetItem(i, updatedItem)
-					break
-				}
+			items := c.toItems()
+			c.list.SetItems(items)
+
+			// Find and select the updated character
+			if newIndex := c.findCharacterIndex(msg.uuid, items); newIndex != -1 {
+				c.list.Select(newIndex)
 			}
 		}
 
@@ -128,8 +153,16 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		(*c.characters)[msg.uuid] = msg.character
-		newItem := characterItem{uuid: msg.uuid, Character: msg.character}
-		cmds = append(cmds, c.list.InsertItem(len(c.list.Items()), newItem))
+
+		// Rebuild sorted items and move selection to new character
+		items := c.toItems()
+		c.list.SetItems(items)
+
+		// Find and select the new character
+		if newIndex := c.findCharacterIndex(msg.uuid, items); newIndex != -1 {
+			c.list.Select(newIndex)
+		}
+
 		joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(msg.character.GetName() + " has joined the party!")
 		cmds = append(cmds, c.list.NewStatusMessage(joinMessage))
 
