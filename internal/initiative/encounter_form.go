@@ -255,11 +255,26 @@ func (f *encounterForm) getMonsters() map[string]dnd.Monster {
 	return monsters
 }
 
+// getCharacterOptions outputs a list of sorted form options from a map of characters
 func getCharacterOptions(characters *map[string]dnd.Character) []huh.Option[string] {
 	var options []huh.Option[string]
 	if characters != nil {
+		type entry struct {
+			uuid      string
+			character dnd.Character
+		}
+
+		var entries []entry
 		for uuid, character := range *characters {
-			options = append(options, huh.NewOption(character.GetName(), uuid).Selected(true))
+			entries = append(entries, entry{uuid: uuid, character: character})
+		}
+
+		sort.Slice(entries, func(i, j int) bool {
+			return strings.ToLower(entries[i].character.GetName()) < strings.ToLower(entries[j].character.GetName())
+		})
+
+		for _, entry := range entries {
+			options = append(options, huh.NewOption(entry.character.GetName(), entry.uuid).Selected(true))
 		}
 	}
 	return options
