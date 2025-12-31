@@ -1,0 +1,115 @@
+meta:
+  name: Homebrew
+  key: HOMEBREW
+  version: 1.0.0
+monsters:
+  - name: Fire Salamander
+    stat_block:
+      meta: Large elemental, neutral evil
+      armor_class:
+        value: 15
+        type: Natural Armor
+      hit_points:
+        fixed: 90
+        roll: 12d10 + 24
+      speed: 30 ft., burrow 20 ft.
+      str:
+        score: 18
+        modifier: 4
+      dex:
+        score: 14
+        modifier: 2
+      con:
+        score: 15
+        modifier: 2
+      int:
+        score: 11
+        modifier: 0
+      wis:
+        score: 10
+        modifier: 0
+      cha:
+        score: 12
+        modifier: 1
+      damage_resistances: Fire
+      senses: Darkvision 60 ft., Passive Perception 10
+      languages: Ignan
+      challenge:
+        rating: 7
+        experience_points: 2900
+      traits: "<p><em><strong>Heated Body.</strong></em> A creature that touches the salamander or hits it with a melee attack while within 5 feet takes 7 (2d6) fire damage.</p>"
+      actions: "<p><em><strong>Multiattack.</strong></em> The salamander makes two attacks: one with its bite and one with its tail. </p><p><em><strong>Bite.</strong></em> <em>Melee Weapon Attack:</em> +7 to hit, reach 5 ft., one target. <em>Hit:</em> 11 (2d6 + 4) piercing damage plus 7 (2d6) fire damage. </p><p><em><strong>Tail.</strong></em> <em>Melee Weapon Attack:</em> +7 to hit, reach 10 ft., one target. <em>Hit:</em> 11 (2d6 + 4) bludgeoning damage plus 7 (2d6) fire damage.</p>"
+  - name: Crystal Golem
+    stat_block:
+      meta: Huge construct, unaligned
+      armor_class:
+        value: 20
+        type: Natural Armor
+      hit_points:
+        fixed: 210
+        roll: 20d12 + 80
+      speed: 20 ft.
+      str:
+        score: 22
+        modifier: 6
+      dex:
+        score: 9
+        modifier: -1
+      con:
+        score: 18
+        modifier: 4
+      int:
+        score: 3
+        modifier: -4
+      wis:
+        score: 11
+        modifier: 0
+      cha:
+        score: 1
+        modifier: -5
+      damage_immunities: Poison, Psychic
+      condition_immunities: Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+      senses: Darkvision 120 ft., Passive Perception 10
+      challenge:
+        rating: 12
+        experience_points: 8400
+      traits: "<p><em><strong>Immutable Form.</strong></em> The golem is immune to any spell or effect that would alter its form. </p><p><em><strong>Magic Resistance.</strong></em> The golem has advantage on saving throws against spells and other magical effects. </p><p><em><strong>Crystal Shards.</strong></em> When the golem takes damage, crystal shards explode outward. Each creature within 10 feet must make a DC 17 Dexterity saving throw, taking 7 (2d6) piercing damage on failure.</p>"
+      actions: "<p><em><strong>Multiattack.</strong></em> The golem makes two slam attacks. </p><p><em><strong>Slam.</strong></em> <em>Melee Weapon Attack:</em> +12 to hit, reach 10 ft., one target. <em>Hit:</em> 22 (3d10 + 6) bludgeoning damage.</p>"
+  - name: Void Wraith
+    stat_block:
+      meta: Medium undead, chaotic evil
+      armor_class:
+        value: 16
+        type: Natural Armor
+      hit_points:
+        fixed: 95
+        roll: 17d8 + 17
+      speed: 0 ft., fly 50 ft. (hover)
+      str:
+        score: 6
+        modifier: -2
+      dex:
+        score: 18
+        modifier: 4
+      con:
+        score: 13
+        modifier: 1
+      int:
+        score: 12
+        modifier: 1
+      wis:
+        score: 14
+        modifier: 2
+      cha:
+        score: 15
+        modifier: 2
+      damage_resistances: Acid, Cold, Fire, Lightning, Thunder; Bludgeoning, Piercing, and Slashing from Nonmagical Attacks
+      damage_immunities: Necrotic, Poison
+      condition_immunities: Charmed, Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained
+      senses: Darkvision 60 ft., Passive Perception 12
+      languages: Common
+      challenge:
+        rating: 8
+        experience_points: 3900
+      traits: "<p><em><strong>Incorporeal Movement.</strong></em> The wraith can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object. </p><p><em><strong>Void Aura.</strong></em> Any creature that starts its turn within 10 feet of the wraith must make a DC 15 Constitution saving throw or have their maximum hit points reduced by 5 (1d10). This reduction lasts until the creature finishes a long rest.</p>"
+      actions: "<p><em><strong>Life Drain.</strong></em> <em>Melee Weapon Attack:</em> +8 to hit, reach 5 ft., one creature. <em>Hit:</em> 21 (4d8 + 4) necrotic damage. The target must make a DC 15 Constitution saving throw or its hit point maximum is reduced by the damage taken. If this reduces a humanoid to 0 hit points, it rises as a wraith in 1d4 rounds.</p>"

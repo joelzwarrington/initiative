@@ -11,17 +11,13 @@
 
 A powerful CLI for running **Dungeons & Dragons** encounters. Track initiative, health, effects, and turns with an intuitive terminal interface.
 
-<!-- todo: update the tape to showcase the app -->
-<!-- <img src="examples/demo.gif" width="640" alt="Demo of initiative"> -->
-
 **initiative** is built with [Cobra](https://github.com/spf13/cobra) and the [Charm](https://charm.land/) ecosystem: [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Bubbles](https://github.com/charmbracelet/bubbles), [Lipgloss](https://github.com/charmbracelet/lipgloss), [Huh?](https://github.com/charmbracelet/huh), and [more](#built-with).
 
 ## Encounters
 
-<!-- todo: implement tape -->
-<!-- <img src="examples/encounters.gif" width="640" alt="Managing encounters"> -->
+<img src="examples/encounters.gif" width="640" alt="Setting up an encounter">
 
-Start encounters to track initiative of characters and monsters, health of the monsters and track effects throughout the encounter.
+Setup encounters with characters and monsters by providing initiative, quantities.
 
 ## Characters
 
@@ -32,23 +28,27 @@ Organize your party members and NPCs, which can be added to encounters quickly.
 ## Initiative
 
 <!-- todo: implement tape -->
-<!-- <img src="examples/initiative.gif" width="640" alt="Initiative tracking"> -->
+<img src="examples/initiative.gif" width="640" alt="Tracking initiative">
 
-Automatically sort and manage turn order during combat. Navigate between characters seamlessly and keep the game flowing.
+Manage turn order and initiative tracking during combat encounters.
 
 ## Health
 
-<!-- todo: implement tape -->
-<!-- <img src="examples/health.gif" width="640" alt="Health tracking"> -->
+<img src="examples/health.gif" width="640" alt="Tracking monster health">
 
-Track hit points and damage with visual health bars and intuitive controls for quick updates during gameplay.
+Track monster hit points throughout the encounter.
+
+## Saved game files
+
+<img src="examples/saves.gif" width="640" alt="Game file persistence">
+
+Your party data saves automatically and persists across sessions. Manage multiple campaigns with custom file paths using the `--game` flag.
 
 ## Sources
 
-<!-- todo: implement tape -->
-<!-- <img src="examples/sources.gif" width="640" alt="Managing sources"> -->
+<img src="examples/sources.gif" width="640" alt="Using custom sources">
 
-**initiative** is shipped with the [System Reference Document](https://www.dndbeyond.com/srd), but allows you to bring additional sources!
+The [System Reference Document](https://www.dndbeyond.com/srd) comes built-in with all core monsters. Expand your creature library with custom sources using the `--source` flag.
 
 ## Contributing
 

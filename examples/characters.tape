@@ -1,4 +1,8 @@
-# VHS tape to demonstrate managing characters
+# Showcase management of characters in the party
+#
+# 1. Adding characters
+# 2. Editing a character
+# 3. Removing a character
 
 ## Output
 Output characters.gif
@@ -40,7 +44,7 @@ Sleep 0.5
 Enter
 
 Sleep 1
-Down
+Up
 Sleep 1
 Type "e"
 
@@ -55,3 +59,6 @@ Sleep 1
 Type "d"
 
 Sleep 2
+
+Hide
+git restore game.yaml
