@@ -2,6 +2,7 @@ package initiative
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -513,6 +514,11 @@ func (f *encounterForm) submit() tea.Cmd {
 			}
 		}
 	}
+
+	// Sort initiative groups by initiative value in descending order (highest first)
+	sort.Slice(initiativeGroups, func(i, j int) bool {
+		return initiativeGroups[i].Initiative > initiativeGroups[j].Initiative
+	})
 
 	return func() tea.Msg {
 		return encounterFormSubmittedMsg{
