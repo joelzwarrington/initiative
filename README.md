@@ -1,5 +1,9 @@
 # Initiative
 
+<p>
+  <img src="banner.svg" width="640" alt="Initiative Logo">
+</p>
+
 [![Latest Release](https://img.shields.io/github/release/joelzwarrington/initiative.svg)](https://github.com/joelzwarrington/initiative/releases)
 [![GoDoc](https://godoc.org/github.com/joelzwarrington/initiative?status.svg)](https://godoc.org/github.com/joelzwarrington/initiative)
 [![Build Status](https://github.com/joelzwarrington/initiative/workflows/ci/badge.svg)](https://github.com/joelzwarrington/initiative/actions)

@@ -17,6 +17,7 @@
 !examples/*.tape
 
 !CONTRIBUTING.md
+!banner.svg
 !README.md
 !LICENSE
 !CLAUDE.md
