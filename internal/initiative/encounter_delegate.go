@@ -33,6 +33,29 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 	initiativeList.StatusMessageLifetime = time.Duration(3000) * time.Millisecond
 	initiativeList.StatusMessageLocation = list.InStatusBar
 
+	// Customize keymap to avoid conflicts with our creature actions
+	keyMap := list.DefaultKeyMap()
+	// Update up/down help text to just show arrows
+	keyMap.CursorUp = key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("↑", "up"),
+	)
+	keyMap.CursorDown = key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("↓", "down"),
+	)
+	// Remove 'd' from NextPage to avoid conflict with dealDamage
+	keyMap.NextPage = key.NewBinding(
+		key.WithKeys("ctrl+right", "l", "pgdown", "f"),
+		key.WithHelp("ctrl+→", "next page"),
+	)
+	// Remove 'h' from PrevPage to avoid conflict with heal
+	keyMap.PrevPage = key.NewBinding(
+		key.WithKeys("ctrl+left", "pgup", "b", "u"),
+		key.WithHelp("ctrl+←", "prev page"),
+	)
+	initiativeList.KeyMap = keyMap
+
 	return &encounterDelegate{
 		list:      initiativeList,
 		healthBar: components.NewHealthBar(30),

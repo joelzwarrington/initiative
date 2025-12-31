@@ -229,7 +229,7 @@ func defaultEncounterPageKeyMap() EncounterPageKeyMap {
 	return EncounterPageKeyMap{
 		NewEncounter: key.NewBinding(
 			key.WithKeys("n"),
-			key.WithHelp("n", "new encounter"),
+			key.WithHelp("n", "new"),
 		),
 		NextTurn: key.NewBinding(
 			key.WithKeys("right"),
@@ -241,7 +241,7 @@ func defaultEncounterPageKeyMap() EncounterPageKeyMap {
 		),
 		EndEncounter: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "end encounter"),
+			key.WithHelp("esc", "end"),
 		),
 	}
 }
