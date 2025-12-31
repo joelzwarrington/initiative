@@ -104,7 +104,7 @@ func (d *encounterDelegate) SetSize(width, height int) {
 func (d *encounterDelegate) ShortHelp() []key.Binding {
 	// Update key states
 	d.updateKeyStates()
-	
+
 	// Get list navigation keys (excluding filter for short help)
 	keys := []key.Binding{
 		d.list.KeyMap.CursorUp,
@@ -113,17 +113,17 @@ func (d *encounterDelegate) ShortHelp() []key.Binding {
 		d.list.KeyMap.NextPage,
 		// Note: Filter excluded from short help to keep it concise
 	}
-	
+
 	// Add creature action keys
 	keys = append(keys, d.creatureKeys.dealDamage, d.creatureKeys.heal)
-	
+
 	return keys
 }
 
 func (d *encounterDelegate) FullHelp() [][]key.Binding {
 	// Update key states
 	d.updateKeyStates()
-	
+
 	// Organize keys into logical groups
 	navigationKeys := []key.Binding{
 		d.list.KeyMap.CursorUp,
@@ -131,36 +131,36 @@ func (d *encounterDelegate) FullHelp() [][]key.Binding {
 		d.list.KeyMap.PrevPage,
 		d.list.KeyMap.NextPage,
 	}
-	
+
 	filterKeys := []key.Binding{
 		d.list.KeyMap.Filter,
 	}
-	
+
 	result := [][]key.Binding{navigationKeys, filterKeys}
-	
+
 	// Add creature action keys as separate column
 	actionKeys := []key.Binding{
 		d.creatureKeys.dealDamage,
 		d.creatureKeys.heal,
 	}
 	result = append(result, actionKeys)
-	
+
 	return result
 }
 
 func (d *encounterDelegate) updateKeyStates() {
 	hasItems := len(d.list.Items()) > 0
 	isFiltering := d.list.FilterState() == list.Filtering
-	
+
 	// Navigation keys should only be enabled when there are items
 	d.list.KeyMap.CursorUp.SetEnabled(hasItems)
 	d.list.KeyMap.CursorDown.SetEnabled(hasItems)
 	d.list.KeyMap.PrevPage.SetEnabled(hasItems)
 	d.list.KeyMap.NextPage.SetEnabled(hasItems)
-	
+
 	// Filter key enabled when not currently filtering and has items
 	d.list.KeyMap.Filter.SetEnabled(hasItems && !isFiltering)
-	
+
 	// Check if selected creature is a monster (only monsters have health)
 	selectedIsMonster := false
 	if hasItems && !isFiltering {
@@ -170,7 +170,7 @@ func (d *encounterDelegate) updateKeyStates() {
 			}
 		}
 	}
-	
+
 	// Creature actions only when items exist, not filtering, and monster is selected
 	creatureActionsEnabled := hasItems && !isFiltering && selectedIsMonster
 	d.creatureKeys.dealDamage.SetEnabled(creatureActionsEnabled)

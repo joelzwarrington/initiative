@@ -28,6 +28,7 @@ type encounterPage struct {
 	emptyState        *components.EmptyState
 	encounterForm     *encounterForm
 	hitPointForm      *hitPointForm
+	cancellationForm  *cancellationForm
 	encounterDelegate *encounterDelegate
 	help              help.Model
 }
@@ -71,6 +72,9 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if p.hitPointForm != nil {
 			p.hitPointForm.SetSize(p.width, p.height)
 		}
+		if p.cancellationForm != nil {
+			p.cancellationForm.SetSize(p.width, p.height)
+		}
 		if p.encounterDelegate != nil {
 			p.encounterDelegate.SetSize(p.width, p.height)
 		}
@@ -81,7 +85,7 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return p, nil
 	case tea.KeyMsg:
 		// Don't process page-level keys when forms are active
-		if p.isAddingNewEncounter() || p.isAdjustingHitPoints() {
+		if p.isAddingNewEncounter() || p.isAdjustingHitPoints() || p.isCancellingEncounter() {
 			break
 		}
 
@@ -99,7 +103,7 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return p, nil
 		}
 		if key.Matches(msg, p.keys.EndEncounter) && p.encounter != nil {
-			return p, tea.Sequence(append(cmds, p.endEncounter())...)
+			return p, tea.Sequence(append(cmds, p.beginCancellationForm())...)
 		}
 		if key.Matches(msg, p.keys.ToggleHelp) {
 			p.help.ShowAll = !p.help.ShowAll
@@ -115,6 +119,10 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return p, tea.Sequence(append(cmds, p.cancelHitPointForm())...)
 	case hitPointFormSubmittedMsg:
 		return p, tea.Sequence(append(cmds, p.processHitPointAdjustment(msg))...)
+	case cancellationConfirmedMsg:
+		return p, tea.Sequence(append(cmds, p.endEncounter())...)
+	case cancellationCancelledMsg:
+		return p, tea.Sequence(append(cmds, p.cancelCancellationForm())...)
 	}
 
 	if p.isAddingNewEncounter() {
@@ -133,7 +141,15 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if p.encounter != nil && p.encounterDelegate != nil && !p.isAdjustingHitPoints() {
+	if p.isCancellingEncounter() {
+		form, cmd := p.cancellationForm.Update(msg)
+		cmds = append(cmds, cmd)
+		if form, ok := form.(*cancellationForm); ok {
+			p.cancellationForm = form
+		}
+	}
+
+	if p.encounter != nil && p.encounterDelegate != nil && !p.isAdjustingHitPoints() && !p.isCancellingEncounter() {
 		cmds = append(cmds, p.encounterDelegate.Update(msg, p.encounter))
 	}
 
@@ -142,6 +158,8 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (p *encounterPage) View() string {
 	switch true {
+	case p.isCancellingEncounter():
+		return p.cancellationForm.View()
 	case p.isAdjustingHitPoints():
 		return p.hitPointForm.View()
 	case p.encounter != nil:
@@ -188,7 +206,7 @@ func (p *encounterPage) Title() string {
 func (p *encounterPage) FullHelp() [][]key.Binding {
 	// Update key states based on current state
 	p.updateKeyStates()
-	
+
 	if p.isEmptyState() {
 		// Empty state: only show new and help
 		return [][]key.Binding{{
@@ -196,7 +214,7 @@ func (p *encounterPage) FullHelp() [][]key.Binding {
 			p.keys.ToggleHelp,
 		}}
 	}
-	
+
 	// Organize keys into the requested columns:
 	// 1. List controls (up, down, prev page, next page, filter)
 	var listControls []key.Binding
@@ -209,13 +227,13 @@ func (p *encounterPage) FullHelp() [][]key.Binding {
 			p.encounterDelegate.list.KeyMap.Filter,
 		}
 	}
-	
+
 	// 2. Turn controls (prev turn, next turn)
 	turnControls := []key.Binding{
 		p.keys.PrevTurn,
 		p.keys.NextTurn,
 	}
-	
+
 	// 3. Delegate keys (damage, heal)
 	var delegateKeys []key.Binding
 	if p.encounterDelegate != nil {
@@ -224,49 +242,49 @@ func (p *encounterPage) FullHelp() [][]key.Binding {
 			p.encounterDelegate.creatureKeys.heal,
 		}
 	}
-	
+
 	// 4. End/help
 	endHelpKeys := []key.Binding{
 		p.keys.EndEncounter,
 		p.keys.ToggleHelp,
 	}
-	
+
 	return [][]key.Binding{listControls, turnControls, delegateKeys, endHelpKeys}
 }
 
 func (p *encounterPage) ShortHelp() []key.Binding {
 	// Update key states based on current state
 	p.updateKeyStates()
-	
+
 	// Return only essential keys in specified order: up, down, prev turn, next turn, damage, heal, help
 	keys := []key.Binding{}
-	
+
 	// Add new encounter key when in empty state
 	if p.isEmptyState() {
 		keys = append(keys, p.keys.NewEncounter)
 	} else {
 		// When encounter exists, show essential navigation and action keys
 		if p.encounterDelegate != nil {
-			keys = append(keys, 
-				p.encounterDelegate.list.KeyMap.CursorUp,        // up
-				p.encounterDelegate.list.KeyMap.CursorDown,      // down
+			keys = append(keys,
+				p.encounterDelegate.list.KeyMap.CursorUp,   // up
+				p.encounterDelegate.list.KeyMap.CursorDown, // down
 			)
 		}
 		keys = append(keys,
-			p.keys.PrevTurn,                                     // prev turn
-			p.keys.NextTurn,                                     // next turn
+			p.keys.PrevTurn, // prev turn
+			p.keys.NextTurn, // next turn
 		)
 		if p.encounterDelegate != nil {
 			keys = append(keys,
-				p.encounterDelegate.creatureKeys.dealDamage,     // damage
-				p.encounterDelegate.creatureKeys.heal,           // heal
+				p.encounterDelegate.creatureKeys.dealDamage, // damage
+				p.encounterDelegate.creatureKeys.heal,       // heal
 			)
 		}
 	}
-	
+
 	// Always show help
 	keys = append(keys, p.keys.ToggleHelp)
-	
+
 	return keys
 }
 
@@ -311,36 +329,40 @@ func (p *encounterPage) isAdjustingHitPoints() bool {
 	return p.hitPointForm != nil
 }
 
+func (p *encounterPage) isCancellingEncounter() bool {
+	return p.cancellationForm != nil
+}
+
 func (p *encounterPage) isEmptyState() bool {
-	return !p.isAddingNewEncounter() && !p.isAdjustingHitPoints() && p.encounter == nil
+	return !p.isAddingNewEncounter() && !p.isAdjustingHitPoints() && !p.isCancellingEncounter() && p.encounter == nil
 }
 
 func (p *encounterPage) updateKeyStates() {
 	// Only manage keys that change based on state
 	hasEncounter := p.encounter != nil
 	isEmpty := p.isEmptyState()
-	
+
 	// Check if we're at the very beginning (round 1, first turn)
 	canGoBack := hasEncounter && !(p.encounter.Round == 1 && p.encounter.GetTurnIndex() == 0)
-	
+
 	// Check if list is currently filtering
 	isFiltering := false
 	if p.encounterDelegate != nil {
 		isFiltering = p.encounterDelegate.list.FilterState() == list.Filtering
 	}
-	
+
 	// These keys are contextually enabled/disabled
 	p.keys.NewEncounter.SetEnabled(isEmpty)
-	p.keys.PrevTurn.SetEnabled(canGoBack)  // Disable when first turn of first round
+	p.keys.PrevTurn.SetEnabled(canGoBack) // Disable when first turn of first round
 	p.keys.NextTurn.SetEnabled(hasEncounter)
-	p.keys.EndEncounter.SetEnabled(hasEncounter && !isFiltering)  // Disable when filtering
+	p.keys.EndEncounter.SetEnabled(hasEncounter && !isFiltering) // Disable when filtering
 	// Help key is always enabled
 	p.keys.ToggleHelp.SetEnabled(true)
-	
+
 	// Update delegate key states if available
 	if p.encounterDelegate != nil {
 		p.encounterDelegate.updateKeyStates()
-		
+
 		// Disable creature actions when no encounter
 		if !hasEncounter {
 			p.encounterDelegate.creatureKeys.dealDamage.SetEnabled(false)
@@ -387,6 +409,10 @@ func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) te
 
 func (p *encounterPage) endEncounter() tea.Cmd {
 	p.encounter = nil
+
+	// Clean up cancellation form
+	p.cancellationForm = nil
+	p.s.UnlockTabs()
 
 	// Reset page title to default
 	p.s.UpdatePageTitle("encounter", "Encounter")
@@ -473,5 +499,17 @@ func (p *encounterPage) processHitPointAdjustment(msg hitPointFormSubmittedMsg) 
 		return p.encounterDelegate.list.NewStatusMessage(statusMessage)
 	}
 
+	return nil
+}
+
+func (p *encounterPage) beginCancellationForm() tea.Cmd {
+	p.s.LockTabs()
+	p.cancellationForm = newCancellationForm(p.s.GetContentWidth(), p.s.GetContentHeight())
+	return p.cancellationForm.Init()
+}
+
+func (p *encounterPage) cancelCancellationForm() tea.Cmd {
+	p.cancellationForm = nil
+	p.s.UnlockTabs()
 	return nil
 }
