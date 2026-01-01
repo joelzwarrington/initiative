@@ -16,6 +16,11 @@ import (
 	"github.com/joelzwarrington/initiative/internal/form"
 )
 
+type creatureChoice struct {
+	id       string
+	creature dnd.Creature
+}
+
 type encounterFormStyles struct {
 	container lipgloss.Style
 	help      lipgloss.Style
@@ -222,39 +227,47 @@ func (f *encounterForm) getSummary() string {
 	return form.GetString("summary")
 }
 
-func (f *encounterForm) getCharacters() map[string]dnd.Character {
+func (f *encounterForm) getCharacters() []creatureChoice {
 	if len(*f.forms) == 0 || f.characters == nil {
-		return map[string]dnd.Character{}
+		return []creatureChoice{}
 	}
 
 	form := (*f.forms)[0]
 	uuids, ok := form.Get("characters").([]string)
 	if !ok {
-		return map[string]dnd.Character{}
+		return []creatureChoice{}
 	}
 
-	characters := make(map[string]dnd.Character)
+	var options []creatureChoice
 	for _, uuid := range uuids {
 		if character, exists := (*f.characters)[uuid]; exists {
-			characters[uuid] = character
+			options = append(options, creatureChoice{
+				id:       uuid,
+				creature: character,
+			})
 		}
 	}
 
-	return characters
+	// Sort by name (case-insensitive)
+	sort.Slice(options, func(i, j int) bool {
+		return strings.ToLower(options[i].creature.GetName()) < strings.ToLower(options[j].creature.GetName())
+	})
+
+	return options
 }
 
-func (f *encounterForm) getMonsters() map[string]dnd.Monster {
+func (f *encounterForm) getMonsters() []creatureChoice {
 	if len(*f.forms) == 0 {
-		return map[string]dnd.Monster{}
+		return []creatureChoice{}
 	}
 
 	form := (*f.forms)[0]
 	values, ok := form.Get("monsters").([]string)
 	if !ok {
-		return map[string]dnd.Monster{}
+		return []creatureChoice{}
 	}
 
-	monsters := make(map[string]dnd.Monster)
+	var options []creatureChoice
 	for _, value := range values {
 		// value format is "sourceKey:monsterName"
 		parts := strings.Split(value, ":")
@@ -268,14 +281,22 @@ func (f *encounterForm) getMonsters() map[string]dnd.Monster {
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
 				if monster.GetName() == monsterName {
-					monsters[value] = monster
+					options = append(options, creatureChoice{
+						id:       value,
+						creature: monster,
+					})
 					break
 				}
 			}
 		}
 	}
 
-	return monsters
+	// Sort by name (case-insensitive)
+	sort.Slice(options, func(i, j int) bool {
+		return strings.ToLower(options[i].creature.GetName()) < strings.ToLower(options[j].creature.GetName())
+	})
+
+	return options
 }
 
 // getCharacterOptions outputs a list of sorted form options from a map of characters
@@ -379,9 +400,9 @@ func (f *encounterForm) nextStep() tea.Cmd {
 		var fields []huh.Field
 
 		// Add character initiative fields
-		for uuid, character := range characters {
-			key := fmt.Sprintf("initiative_%s", uuid)
-			title := fmt.Sprintf("%s's initiative", character.GetName())
+		for _, characterOption := range characters {
+			key := fmt.Sprintf("initiative_%s", characterOption.id)
+			title := fmt.Sprintf("%s's initiative", characterOption.creature.GetName())
 
 			fields = append(
 				fields,
@@ -404,20 +425,20 @@ func (f *encounterForm) nextStep() tea.Cmd {
 			groups = append(groups, huh.NewGroup(fields...))
 		}
 
-		for id, monster := range monsters {
-			name := monster.GetName()
+		for _, monsterOption := range monsters {
+			name := monsterOption.creature.GetName()
 			title := fmt.Sprintf("%s's quantity and initiative\n", name)
 
 			groups = append(
 				groups,
 				huh.NewGroup(
 					huh.NewInput().
-						Key(fmt.Sprintf("name_%s", id)).
+						Key(fmt.Sprintf("name_%s", monsterOption.id)).
 						Title("Name").
 						Description("The name can be customized to represent the monster this statblock is attached to.").
 						Value(&name),
 					huh.NewInput().
-						Key(fmt.Sprintf("quantity_%s", id)).
+						Key(fmt.Sprintf("quantity_%s", monsterOption.id)).
 						Title("Quantity").
 						Validate(func(str string) error {
 							if strings.TrimSpace(str) == "" {
@@ -430,7 +451,7 @@ func (f *encounterForm) nextStep() tea.Cmd {
 							return nil
 						}),
 					huh.NewInput().
-						Key(fmt.Sprintf("initiative_%s", id)).
+						Key(fmt.Sprintf("initiative_%s", monsterOption.id)).
 						Title("Initiative").
 						Validate(func(str string) error {
 							if strings.TrimSpace(str) == "" {
