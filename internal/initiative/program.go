@@ -36,6 +36,7 @@ func NewProgram(filepath string, sources []string) (*tea.Program, error) {
 
 	addPage(s, newEncounterPage(s, p, game.sources))
 	addPage(s, newCharacterPage(s, p))
+	addPage(s, newSourcesPage(s, game.sources))
 
 	// Store game reference for saving on exit
 	gameInstance = game
