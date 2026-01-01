@@ -1,8 +1,4 @@
-# Initiative
-
-<p>
-  <img src="banner.svg" width="640" alt="Initiative Logo">
-</p>
+# initiative
 
 [![Latest Release](https://img.shields.io/github/release/joelzwarrington/initiative.svg)](https://github.com/joelzwarrington/initiative/releases)
 [![GoDoc](https://godoc.org/github.com/joelzwarrington/initiative?status.svg)](https://godoc.org/github.com/joelzwarrington/initiative)
@@ -85,7 +81,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
 We'd love to hear from you!
 
-- **Bugs**: [Submit an issue](https://github.com/joelzwarrington/initiative/issues/new) for bugs or problems
+- **Bugs**: [Submit a bug report](https://github.com/joelzwarrington/initiative/issues/new?template=bug_report.yml) for bugs or problems
 - **Ideas**: [Share your ideas](https://github.com/joelzwarrington/initiative/discussions/new?category=ideas) for new features or improvements
 - **Questions**: [Ask questions](https://github.com/joelzwarrington/initiative/discussions/new?category=q-a) about usage or functionality
 
