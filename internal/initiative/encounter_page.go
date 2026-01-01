@@ -195,14 +195,17 @@ func (p *encounterPage) Key() string {
 }
 
 func (p *encounterPage) Title() string {
+	title := icons.encounterTab.Join("Encounter", nil)
+
 	if p.encounter != nil {
 		summary := p.encounter.Summary
 		if len(summary) > 18 {
 			summary = summary[:15] + "..."
 		}
-		return "Encounter > " + summary
+		return fmt.Sprintf("%s %s", title, summary)
 	}
-	return "Encounter"
+
+	return title
 }
 
 func (p *encounterPage) FullHelp() [][]key.Binding {
@@ -395,12 +398,7 @@ func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) te
 	p.encounterForm = nil
 	p.encounter = &submission.encounter
 
-	// Update page title with encounter summary
-	summary := p.encounter.Summary
-	if len(summary) > 18 {
-		summary = summary[:15] + "..."
-	}
-	p.s.UpdatePageTitle("encounter", "Encounter > "+summary)
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 
 	// Add round tracking widget and unlock tabs
 	p.s.AddWidget("round", fmt.Sprintf("Round: %d", p.encounter.Round))
@@ -415,9 +413,7 @@ func (p *encounterPage) endEncounter() tea.Cmd {
 	// Clean up cancellation form
 	p.cancellationForm = nil
 	p.s.UnlockTabs()
-
-	// Reset page title to default
-	p.s.UpdatePageTitle("encounter", "Encounter")
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 
 	// Clear round tracking widget
 	p.s.DeleteWidget("round")

@@ -110,7 +110,18 @@ func (p *sourcesPage) Key() string {
 }
 
 func (p *sourcesPage) Title() string {
-	return "Sources"
+	title := icons.sourcesTab.Join("Sources", nil)
+
+	if p.isViewingSource() && p.currentSource != "" {
+		if source, exists := p.sources[p.currentSource]; exists {
+			name := source.Meta.Name
+			if len(name) > 18 {
+				name = name[:15] + "..."
+			}
+			return fmt.Sprintf("%s > %s", title, name)
+		}
+	}
+	return title
 }
 
 func (p *sourcesPage) ShortHelp() []key.Binding {
@@ -160,13 +171,13 @@ func (p *sourcesPage) isViewingList() bool {
 func (p *sourcesPage) viewSource(key string) tea.Cmd {
 	p.currentSource = key
 
-	p.s.UpdatePageTitle("sources", "Sources > "+key)
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 	return nil
 }
 
 func (p *sourcesPage) backToList() tea.Cmd {
 	p.currentSource = ""
-	p.s.UpdatePageTitle("sources", "Sources")
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 	return nil
 }
 

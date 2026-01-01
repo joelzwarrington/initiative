@@ -145,7 +145,18 @@ func (p *characterPage) Key() string {
 }
 
 func (p *characterPage) Title() string {
-	return "Party"
+	title := icons.partyTab.Join("Party", nil)
+
+	if p.isViewingCharacter() && p.currentCharacter != "" {
+		if char, exists := (*p.characters)[p.currentCharacter]; exists {
+			name := char.GetName()
+			if len(name) > 18 {
+				name = name[:15] + "..."
+			}
+			return fmt.Sprintf("%s > %s", title, name)
+		}
+	}
+	return title
 }
 
 func (p *characterPage) ShortHelp() []key.Binding {
@@ -222,20 +233,13 @@ func (p *characterPage) editCharacter(uuid string) tea.Cmd {
 func (p *characterPage) viewCharacter(uuid string) tea.Cmd {
 	p.currentCharacter = uuid
 
-	var characterName string
-	if p.characters != nil {
-		if character, exists := (*p.characters)[uuid]; exists {
-			characterName = character.GetName()
-		}
-	}
-
-	p.s.UpdatePageTitle("party", "Party > "+characterName)
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 	return nil
 }
 
 func (p *characterPage) backToList() tea.Cmd {
 	p.currentCharacter = ""
-	p.s.UpdatePageTitle("party", "Party")
+	p.s.UpdatePageTitle(p.Key(), p.Title())
 	return nil
 }
 
