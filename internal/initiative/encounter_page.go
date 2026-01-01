@@ -95,11 +95,13 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, p.keys.NextTurn) && p.encounter != nil {
 			p.encounter.AdvanceTurn()
 			p.updateRoundWidget()
+			p.navigateToCurrentTurn()
 			return p, nil
 		}
 		if key.Matches(msg, p.keys.PrevTurn) && p.encounter != nil {
 			p.encounter.PreviousTurn()
 			p.updateRoundWidget()
+			p.navigateToCurrentTurn()
 			return p, nil
 		}
 		if key.Matches(msg, p.keys.EndEncounter) && p.encounter != nil {
@@ -512,4 +514,28 @@ func (p *encounterPage) cancelCancellationForm() tea.Cmd {
 	p.cancellationForm = nil
 	p.s.UnlockTabs()
 	return nil
+}
+
+func (p *encounterPage) navigateToCurrentTurn() {
+	if p.encounter == nil || p.encounterDelegate == nil {
+		return
+	}
+
+	// Calculate which item in the list corresponds to the current turn
+	currentTurnIndex := p.encounter.GetTurnIndex()
+	itemIndex := 0
+
+	// Count items up to the current turn group
+	for groupIndex, group := range p.encounter.InitiativeGroups {
+		if groupIndex == currentTurnIndex {
+			// We found the current turn group, itemIndex points to the first creature in this group
+			break
+		}
+		// Add all creatures in this group to the count
+		itemIndex += len(group.Creatures)
+	}
+
+	// Select the first creature in the current turn group
+	// This will automatically handle pagination to show the selected item
+	p.encounterDelegate.list.Select(itemIndex)
 }
