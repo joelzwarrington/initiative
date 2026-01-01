@@ -24,22 +24,22 @@ func TestEncounterDelegateRender(t *testing.T) {
 				InitiativeGroups: []dnd.InitiativeGroup{
 					{
 						Initiative: 15,
-						Creatures:  []dnd.Creature{dnd.NewCharacter("Fighter")},
+						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Fighter"); return &c }()},
 					},
 				},
 			},
-			expected: `                
-  1 creature    
-                
- > 15 • Fighter 
-                
-                
-                
-                
-                
-                
-                
-                `,
+			expected: `               
+  1 creature   
+               
+ > 15 • Fighter
+               
+               
+               
+               
+               
+               
+               
+               `,
 		},
 		{
 			name: "multiple initiative groups",
@@ -47,26 +47,26 @@ func TestEncounterDelegateRender(t *testing.T) {
 				InitiativeGroups: []dnd.InitiativeGroup{
 					{
 						Initiative: 20,
-						Creatures:  []dnd.Creature{dnd.NewCharacter("Wizard")},
+						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Wizard"); return &c }()},
 					},
 					{
 						Initiative: 15,
-						Creatures:  []dnd.Creature{dnd.NewCharacter("Fighter")},
+						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Fighter"); return &c }()},
 					},
 				},
 			},
-			expected: `                
-  2 creatures   
-                
- > 20 • Wizard  
-                
-   15 • Fighter 
-                
-                
-                
-                
-                
-                `,
+			expected: `               
+  2 creatures  
+               
+ > 20 • Wizard 
+               
+   15 • Fighter
+               
+               
+               
+               
+               
+               `,
 		},
 		{
 			name: "multiple creatures in single group",
@@ -75,24 +75,30 @@ func TestEncounterDelegateRender(t *testing.T) {
 					{
 						Initiative: 12,
 						Creatures: []dnd.Creature{
-							dnd.NewMonster("Goblin 1", dnd.StatBlock{}),
-							dnd.NewMonster("Goblin 2", dnd.StatBlock{}),
+							func() dnd.Creature {
+								m := dnd.NewMonster("Goblin 1", dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: 7}})
+								return &m
+							}(),
+							func() dnd.Creature {
+								m := dnd.NewMonster("Goblin 2", dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: 7}})
+								return &m
+							}(),
 						},
 					},
 				},
 			},
-			expected: `                                                 
-  2 creatures                                    
-                                                 
- > 12 • Goblin 1  ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)
-                                                 
-   12 • Goblin 2  ░░░░░░░░░░░░░░░░░░░░ 0/0 (Dead)
-                                                 
-                                                 
-                                                 
-                                                 
-                                                 
-                                                 `,
+			expected: `                                                   
+  2 creatures                                      
+                                                   
+ > 12 • Goblin 1 ████████████████████ 7/7 (Healthy)
+                                                   
+   12 • Goblin 2 ████████████████████ 7/7 (Healthy)
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   `,
 		},
 	}
 
@@ -137,34 +143,29 @@ func TestHitPointProcessing(t *testing.T) {
 				InitiativeGroups: []dnd.InitiativeGroup{
 					{
 						Initiative: 15,
-						Creatures:  []dnd.Creature{monster},
+						Creatures:  []dnd.Creature{&monster},
 					},
 				},
 			}
 
-			// Simulate hit point adjustment processing
+			// Simulate hit point adjustment processing using the new method
 			group := &encounter.InitiativeGroups[0]
 			creature := group.Creatures[0]
 
-			if mon, ok := creature.(dnd.Monster); ok {
-				if tt.adjustmentType == HitPointDamage {
-					mon.HitPoints -= tt.adjustment
-					if mon.HitPoints < 0 {
-						mon.HitPoints = 0
-					}
-				} else {
-					mon.HitPoints += tt.adjustment
-					if mon.HitPoints > mon.MaximumHitPoints {
-						mon.HitPoints = mon.MaximumHitPoints
-					}
-				}
-				group.Creatures[0] = mon
+			// Convert damage to negative, healing to positive (like in encounter_page.go)
+			var adjustment int
+			if tt.adjustmentType == HitPointDamage {
+				adjustment = -tt.adjustment
+			} else {
+				adjustment = tt.adjustment
 			}
 
+			// Apply adjustment using the new method
+			creature.AdjustHitPoints(adjustment)
+
 			// Check the result
-			updatedMonster := group.Creatures[0].(dnd.Monster)
-			if updatedMonster.HitPoints != tt.expectedHP {
-				t.Errorf("Expected HP %d, got %d", tt.expectedHP, updatedMonster.HitPoints)
+			if got := creature.GetHitPoints(); got != tt.expectedHP {
+				t.Errorf("Expected HP %d, got %d", tt.expectedHP, got)
 			}
 		})
 	}

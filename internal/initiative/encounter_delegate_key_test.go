@@ -41,7 +41,7 @@ func TestAdjustHitPointsMessage(t *testing.T) {
 				InitiativeGroups: []dnd.InitiativeGroup{
 					{
 						Initiative: 15,
-						Creatures:  []dnd.Creature{monster},
+						Creatures:  []dnd.Creature{&monster},
 					},
 				},
 			}

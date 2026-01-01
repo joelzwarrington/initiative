@@ -199,8 +199,8 @@ func TestCreatureInterface(t *testing.T) {
 	char := NewCharacter("Aragorn")
 	monster := NewMonster("Orc", StatBlock{HitPoints: HitPoints{Fixed: 15}})
 
-	creatures = append(creatures, char)
-	creatures = append(creatures, monster)
+	creatures = append(creatures, &char)
+	creatures = append(creatures, &monster)
 
 	expectedNames := []string{"Aragorn", "Orc"}
 
@@ -208,5 +208,311 @@ func TestCreatureInterface(t *testing.T) {
 		if creature.GetName() != expectedNames[i] {
 			t.Errorf("Creature[%d].GetName() = %v, want %v", i, creature.GetName(), expectedNames[i])
 		}
+	}
+}
+
+func TestCharacter_Health(t *testing.T) {
+	tests := []struct {
+		name    string
+		char    Character
+		wantHP  int
+		wantMax int
+	}{
+		{
+			name:    "new character with no health",
+			char:    NewCharacter("Test"),
+			wantHP:  0,
+			wantMax: 0,
+		},
+		{
+			name:    "new character with health",
+			char:    NewCharacterWithHealth("Test", 20),
+			wantHP:  20,
+			wantMax: 20,
+		},
+		{
+			name:    "character with custom health",
+			char:    NewCharacter("Test").WithHealth(15, 20),
+			wantHP:  15,
+			wantMax: 20,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.char.GetHitPoints(); got != tt.wantHP {
+				t.Errorf("Character.GetHitPoints() = %v, want %v", got, tt.wantHP)
+			}
+			if got := tt.char.GetMaximumHitPoints(); got != tt.wantMax {
+				t.Errorf("Character.GetMaximumHitPoints() = %v, want %v", got, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestCharacter_SetHitPoints(t *testing.T) {
+	tests := []struct {
+		name     string
+		char     Character
+		newHP    int
+		wantHP   int
+		wantName string
+	}{
+		{
+			name:     "set normal hit points",
+			char:     NewCharacterWithHealth("Test", 20),
+			newHP:    15,
+			wantHP:   15,
+			wantName: "Test",
+		},
+		{
+			name:     "set hit points to zero",
+			char:     NewCharacterWithHealth("Test", 20),
+			newHP:    0,
+			wantHP:   0,
+			wantName: "Test",
+		},
+		{
+			name:     "set negative hit points (should clamp to 0)",
+			char:     NewCharacterWithHealth("Test", 20),
+			newHP:    -5,
+			wantHP:   0,
+			wantName: "Test",
+		},
+		{
+			name:     "set hit points above maximum (should clamp)",
+			char:     NewCharacterWithHealth("Test", 20),
+			newHP:    25,
+			wantHP:   20,
+			wantName: "Test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			char := tt.char
+			char.SetHitPoints(tt.newHP)
+
+			if got := char.GetHitPoints(); got != tt.wantHP {
+				t.Errorf("Character.GetHitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
+			}
+			if got := char.GetName(); got != tt.wantName {
+				t.Errorf("Character.GetName() after SetHitPoints() = %v, want %v", got, tt.wantName)
+			}
+		})
+	}
+}
+
+func TestMonster_Health(t *testing.T) {
+	statBlock := StatBlock{HitPoints: HitPoints{Fixed: 15}}
+	monster := NewMonster("Orc", statBlock)
+
+	if got := monster.GetHitPoints(); got != 15 {
+		t.Errorf("Monster.GetHitPoints() = %v, want %v", got, 15)
+	}
+	if got := monster.GetMaximumHitPoints(); got != 15 {
+		t.Errorf("Monster.GetMaximumHitPoints() = %v, want %v", got, 15)
+	}
+}
+
+func TestMonster_SetHitPoints(t *testing.T) {
+	statBlock := StatBlock{HitPoints: HitPoints{Fixed: 15}}
+	baseMonster := NewMonster("Orc", statBlock)
+
+	tests := []struct {
+		name     string
+		monster  Monster
+		newHP    int
+		wantHP   int
+		wantName string
+	}{
+		{
+			name:     "set normal hit points",
+			monster:  baseMonster,
+			newHP:    10,
+			wantHP:   10,
+			wantName: "Orc",
+		},
+		{
+			name:     "set hit points to zero",
+			monster:  baseMonster,
+			newHP:    0,
+			wantHP:   0,
+			wantName: "Orc",
+		},
+		{
+			name:     "set negative hit points (should clamp to 0)",
+			monster:  baseMonster,
+			newHP:    -3,
+			wantHP:   0,
+			wantName: "Orc",
+		},
+		{
+			name:     "set hit points above maximum (should clamp)",
+			monster:  baseMonster,
+			newHP:    20,
+			wantHP:   15,
+			wantName: "Orc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mon := tt.monster
+			mon.SetHitPoints(tt.newHP)
+
+			if got := mon.GetHitPoints(); got != tt.wantHP {
+				t.Errorf("Monster.GetHitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
+			}
+			if got := mon.GetName(); got != tt.wantName {
+				t.Errorf("Monster.GetName() after SetHitPoints() = %v, want %v", got, tt.wantName)
+			}
+		})
+	}
+}
+
+func TestMonster_WithName(t *testing.T) {
+	statBlock := StatBlock{HitPoints: HitPoints{Fixed: 15}}
+	original := NewMonster("Orc", statBlock)
+
+	result := original.WithName("Elite Orc")
+
+	if got := result.GetName(); got != "Elite Orc" {
+		t.Errorf("Monster.WithName().GetName() = %v, want %v", got, "Elite Orc")
+	}
+	if got := result.GetHitPoints(); got != 15 {
+		t.Errorf("Monster.WithName().GetHitPoints() = %v, want %v", got, 15)
+	}
+	if got := result.GetMaximumHitPoints(); got != 15 {
+		t.Errorf("Monster.WithName().GetMaximumHitPoints() = %v, want %v", got, 15)
+	}
+}
+
+func TestCharacter_AdjustHitPoints(t *testing.T) {
+	tests := []struct {
+		name       string
+		char       Character
+		adjustment int
+		wantHP     int
+		wantName   string
+	}{
+		{
+			name:       "healing (positive adjustment)",
+			char:       NewCharacterWithHealth("Test", 20).WithHealth(10, 20),
+			adjustment: 5,
+			wantHP:     15,
+			wantName:   "Test",
+		},
+		{
+			name:       "damage (negative adjustment)",
+			char:       NewCharacterWithHealth("Test", 20),
+			adjustment: -8,
+			wantHP:     12,
+			wantName:   "Test",
+		},
+		{
+			name:       "healing beyond maximum (should clamp)",
+			char:       NewCharacterWithHealth("Test", 20).WithHealth(18, 20),
+			adjustment: 5,
+			wantHP:     20,
+			wantName:   "Test",
+		},
+		{
+			name:       "damage below zero (should clamp to 0)",
+			char:       NewCharacterWithHealth("Test", 20).WithHealth(5, 20),
+			adjustment: -10,
+			wantHP:     0,
+			wantName:   "Test",
+		},
+		{
+			name:       "zero adjustment (no change)",
+			char:       NewCharacterWithHealth("Test", 20).WithHealth(12, 20),
+			adjustment: 0,
+			wantHP:     12,
+			wantName:   "Test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			char := tt.char
+			actualAdjustment := char.AdjustHitPoints(tt.adjustment)
+
+			// Test that we get the actual adjustment amount
+			_ = actualAdjustment // We could test this if desired
+
+			if got := char.GetHitPoints(); got != tt.wantHP {
+				t.Errorf("Character.GetHitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
+			}
+			if got := char.GetName(); got != tt.wantName {
+				t.Errorf("Character.GetName() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
+			}
+		})
+	}
+}
+
+func TestMonster_AdjustHitPoints(t *testing.T) {
+	statBlock := StatBlock{HitPoints: HitPoints{Fixed: 20}}
+	baseMonster := NewMonster("Orc", statBlock)
+
+	tests := []struct {
+		name       string
+		monster    Monster
+		adjustment int
+		wantHP     int
+		wantName   string
+	}{
+		{
+			name:       "healing (positive adjustment)",
+			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 10, MaximumHitPoints: 20},
+			adjustment: 5,
+			wantHP:     15,
+			wantName:   "Orc",
+		},
+		{
+			name:       "damage (negative adjustment)",
+			monster:    baseMonster,
+			adjustment: -8,
+			wantHP:     12,
+			wantName:   "Orc",
+		},
+		{
+			name:       "healing beyond maximum (should clamp)",
+			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 18, MaximumHitPoints: 20},
+			adjustment: 5,
+			wantHP:     20,
+			wantName:   "Orc",
+		},
+		{
+			name:       "damage below zero (should clamp to 0)",
+			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 5, MaximumHitPoints: 20},
+			adjustment: -10,
+			wantHP:     0,
+			wantName:   "Orc",
+		},
+		{
+			name:       "zero adjustment (no change)",
+			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 12, MaximumHitPoints: 20},
+			adjustment: 0,
+			wantHP:     12,
+			wantName:   "Orc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			monster := tt.monster
+			actualAdjustment := monster.AdjustHitPoints(tt.adjustment)
+
+			// Test that we get the actual adjustment amount
+			_ = actualAdjustment // We could test this if desired
+
+			if got := monster.GetHitPoints(); got != tt.wantHP {
+				t.Errorf("Monster.GetHitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
+			}
+			if got := monster.GetName(); got != tt.wantName {
+				t.Errorf("Monster.GetName() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
+			}
+		})
 	}
 }

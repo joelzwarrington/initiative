@@ -55,23 +55,68 @@ type InitiativeGroup struct {
 
 type Creature interface {
 	GetName() string
+	GetHitPoints() int
+	GetMaximumHitPoints() int
+	SetHitPoints(hp int)
+	AdjustHitPoints(amount int) int
 }
 
 // Character represents a player character
 type Character struct {
-	Name string `yaml:"name" json:"name"`
+	Name             string `yaml:"name" json:"name"`
+	HitPoints        int    `yaml:"hit_points" json:"hit_points"`
+	MaximumHitPoints int    `yaml:"maximum_hit_points" json:"maximum_hit_points"`
 }
 
 func (c Character) GetName() string {
 	return c.Name
 }
 
+func (c Character) GetHitPoints() int {
+	return c.HitPoints
+}
+
+func (c Character) GetMaximumHitPoints() int {
+	return c.MaximumHitPoints
+}
+
+func (c *Character) SetHitPoints(hp int) {
+	if hp < 0 {
+		hp = 0
+	}
+	if hp > c.MaximumHitPoints {
+		hp = c.MaximumHitPoints
+	}
+	c.HitPoints = hp
+}
+
+func (c *Character) AdjustHitPoints(amount int) int {
+	oldHP := c.HitPoints
+	newHP := c.HitPoints + amount
+	c.SetHitPoints(newHP)
+	return c.HitPoints - oldHP
+}
+
 func NewCharacter(name string) Character {
-	return Character{Name: name}
+	return Character{Name: name, HitPoints: 0, MaximumHitPoints: 0}
+}
+
+func NewCharacterWithHealth(name string, maxHP int) Character {
+	return Character{Name: name, HitPoints: maxHP, MaximumHitPoints: maxHP}
 }
 
 func (c Character) WithName(name string) Character {
-	return Character{Name: name}
+	return Character{Name: name, HitPoints: c.HitPoints, MaximumHitPoints: c.MaximumHitPoints}
+}
+
+func (c Character) WithHealth(hp, maxHP int) Character {
+	if hp < 0 {
+		hp = 0
+	}
+	if hp > maxHP {
+		hp = maxHP
+	}
+	return Character{Name: c.Name, HitPoints: hp, MaximumHitPoints: maxHP}
 }
 
 // Monster represents a creature from the SRD
@@ -86,6 +131,31 @@ func (m Monster) GetName() string {
 	return m.Name
 }
 
+func (m Monster) GetHitPoints() int {
+	return m.HitPoints
+}
+
+func (m Monster) GetMaximumHitPoints() int {
+	return m.MaximumHitPoints
+}
+
+func (m *Monster) SetHitPoints(hp int) {
+	if hp < 0 {
+		hp = 0
+	}
+	if hp > m.MaximumHitPoints {
+		hp = m.MaximumHitPoints
+	}
+	m.HitPoints = hp
+}
+
+func (m *Monster) AdjustHitPoints(amount int) int {
+	oldHP := m.HitPoints
+	newHP := m.HitPoints + amount
+	m.SetHitPoints(newHP)
+	return m.HitPoints - oldHP
+}
+
 func NewMonster(name string, statBlock StatBlock) Monster {
 	maxHP := statBlock.HitPoints.Fixed
 	return Monster{
@@ -93,6 +163,15 @@ func NewMonster(name string, statBlock StatBlock) Monster {
 		StatBlock:        statBlock,
 		HitPoints:        maxHP,
 		MaximumHitPoints: maxHP,
+	}
+}
+
+func (m Monster) WithName(name string) Monster {
+	return Monster{
+		Name:             name,
+		StatBlock:        m.StatBlock,
+		HitPoints:        m.HitPoints,
+		MaximumHitPoints: m.MaximumHitPoints,
 	}
 }
 

@@ -243,7 +243,7 @@ func (f *encounterForm) getCharacters() []creatureChoice {
 		if character, exists := (*f.characters)[uuid]; exists {
 			options = append(options, creatureChoice{
 				id:       uuid,
-				creature: character,
+				creature: &character,
 			})
 		}
 	}
@@ -283,7 +283,7 @@ func (f *encounterForm) getMonsters() []creatureChoice {
 				if monster.GetName() == monsterName {
 					options = append(options, creatureChoice{
 						id:       value,
-						creature: monster,
+						creature: &monster,
 					})
 					break
 				}
@@ -397,16 +397,24 @@ func (f *encounterForm) nextStep() tea.Cmd {
 	switch len(*f.forms) {
 	case 1:
 		var groups []*huh.Group
-		var fields []huh.Field
 
-		// Add character initiative fields
+		// Add separate group for each character
 		for _, characterOption := range characters {
-			key := fmt.Sprintf("initiative_%s", characterOption.id)
-			title := fmt.Sprintf("%s's initiative", characterOption.creature.GetName())
+			initiativeKey := fmt.Sprintf("initiative_%s", characterOption.id)
+			hpKey := fmt.Sprintf("hp_%s", characterOption.id)
+			maxHpKey := fmt.Sprintf("maxhp_%s", characterOption.id)
+			title := fmt.Sprintf("%s's stats\n", characterOption.creature.GetName())
 
-			fields = append(
-				fields,
-				huh.NewInput().Key(key).Title(title).
+			// Default values
+			currentHP := fmt.Sprintf("%d", characterOption.creature.GetHitPoints())
+			maxHP := fmt.Sprintf("%d", characterOption.creature.GetMaximumHitPoints())
+			if characterOption.creature.GetMaximumHitPoints() == 0 {
+				currentHP = ""
+				maxHP = ""
+			}
+
+			groupFields := []huh.Field{
+				huh.NewInput().Key(initiativeKey).Title("Initiative").
 					Validate(func(str string) error {
 						if strings.TrimSpace(str) == "" {
 							return fmt.Errorf("Initiative is required")
@@ -417,12 +425,37 @@ func (f *encounterForm) nextStep() tea.Cmd {
 						}
 						return nil
 					}),
-			)
-		}
+				huh.NewInput().Key(maxHpKey).Title("Maximum Hit Points").
+					Description("Leave empty for 0 HP (no health bar)").
+					Value(&maxHP).
+					Validate(func(str string) error {
+						trimmed := strings.TrimSpace(str)
+						if trimmed == "" {
+							return nil // Allow empty for 0 HP
+						}
+						value, err := strconv.Atoi(trimmed)
+						if err != nil || value < 0 {
+							return fmt.Errorf("Maximum Hit Points must be a non-negative number")
+						}
+						return nil
+					}),
+				huh.NewInput().Key(hpKey).Title("Current Hit Points").
+					Description("Leave empty to use Maximum Hit Points").
+					Value(&currentHP).
+					Validate(func(str string) error {
+						trimmed := strings.TrimSpace(str)
+						if trimmed == "" {
+							return nil // Allow empty to use max HP
+						}
+						value, err := strconv.Atoi(trimmed)
+						if err != nil || value < 0 {
+							return fmt.Errorf("Current Hit Points must be a non-negative number")
+						}
+						return nil
+					}),
+			}
 
-		// Only create character group if there are character fields
-		if len(fields) > 0 {
-			groups = append(groups, huh.NewGroup(fields...))
+			groups = append(groups, huh.NewGroup(groupFields...).Title(title))
 		}
 
 		for _, monsterOption := range monsters {
@@ -520,12 +553,42 @@ func (f *encounterForm) submit() tea.Cmd {
 	// Process character initiatives
 	for _, uuid := range characterUUIDs {
 		initiativeKey := fmt.Sprintf("initiative_%s", uuid)
+		hpKey := fmt.Sprintf("hp_%s", uuid)
+		maxHpKey := fmt.Sprintf("maxhp_%s", uuid)
+
 		initiative := form.GetIntWithDefault(secondForm, initiativeKey, 0)
 
 		if character, exists := (*f.characters)[uuid]; exists {
+			// Get health values
+			maxHPStr := strings.TrimSpace(secondForm.GetString(maxHpKey))
+			hpStr := strings.TrimSpace(secondForm.GetString(hpKey))
+
+			var maxHP int
+			if maxHPStr != "" {
+				var err error
+				maxHP, err = strconv.Atoi(maxHPStr)
+				if err != nil || maxHP < 0 {
+					maxHP = 0
+				}
+			}
+
+			var hp int
+			if hpStr != "" {
+				var err error
+				hp, err = strconv.Atoi(hpStr)
+				if err != nil || hp < 0 {
+					hp = maxHP // Use max HP if invalid
+				}
+			} else {
+				hp = maxHP // Use max HP if empty
+			}
+
+			// Create updated character with new health
+			updatedCharacter := character.WithHealth(hp, maxHP)
+
 			group := dnd.InitiativeGroup{
 				Initiative: initiative,
-				Creatures:  []dnd.Creature{character},
+				Creatures:  []dnd.Creature{&updatedCharacter},
 			}
 			initiativeGroups = append(initiativeGroups, group)
 		}
@@ -560,7 +623,7 @@ func (f *encounterForm) submit() tea.Cmd {
 						}
 
 						newMonster := dnd.NewMonster(monsterName, monster.StatBlock)
-						creatures = append(creatures, newMonster)
+						creatures = append(creatures, &newMonster)
 					}
 
 					group := dnd.InitiativeGroup{

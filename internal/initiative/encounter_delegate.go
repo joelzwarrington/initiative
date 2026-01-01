@@ -161,18 +161,18 @@ func (d *encounterDelegate) updateKeyStates() {
 	// Filter key enabled when not currently filtering and has items
 	d.list.KeyMap.Filter.SetEnabled(hasItems && !isFiltering)
 
-	// Check if selected creature is a monster (only monsters have health)
-	selectedIsMonster := false
+	// Check if selected creature has health (max HP > 0)
+	selectedHasHealth := false
 	if hasItems && !isFiltering {
 		if selectedItem := d.list.SelectedItem(); selectedItem != nil {
 			if creatureItem, ok := selectedItem.(creatureItem); ok {
-				_, selectedIsMonster = creatureItem.creature.(dnd.Monster)
+				selectedHasHealth = creatureItem.creature.GetMaximumHitPoints() > 0
 			}
 		}
 	}
 
-	// Creature actions only when items exist, not filtering, and monster is selected
-	creatureActionsEnabled := hasItems && !isFiltering && selectedIsMonster
+	// Creature actions only when items exist, not filtering, and creature has health
+	creatureActionsEnabled := hasItems && !isFiltering && selectedHasHealth
 	d.creatureKeys.dealDamage.SetEnabled(creatureActionsEnabled)
 	d.creatureKeys.heal.SetEnabled(creatureActionsEnabled)
 }
@@ -270,15 +270,15 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 	)
 
 	health := ""
-	if monster, ok := item.creature.(dnd.Monster); ok {
-		health = " " + d.healthBar.View(monster.HitPoints, monster.MaximumHitPoints)
+	if item.creature.GetMaximumHitPoints() > 0 {
+		health = spacer + d.healthBar.View(item.creature.GetHitPoints(), item.creature.GetMaximumHitPoints())
 	}
 
 	content :=
 		lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			prefix,
-			item.creature.GetName(), spacer,
+			item.creature.GetName(),
 			health,
 		)
 

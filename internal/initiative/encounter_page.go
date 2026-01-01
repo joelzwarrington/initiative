@@ -120,7 +120,7 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case hitPointFormCancelledMsg:
 		return p, tea.Sequence(append(cmds, p.cancelHitPointForm())...)
 	case hitPointFormSubmittedMsg:
-		return p, tea.Sequence(append(cmds, p.processHitPointAdjustment(msg))...)
+		return p, tea.Sequence(append(cmds, p.adjustHitPoints(msg))...)
 	case cancellationConfirmedMsg:
 		return p, tea.Sequence(append(cmds, p.endEncounter())...)
 	case cancellationCancelledMsg:
@@ -447,7 +447,7 @@ func (p *encounterPage) cancelHitPointForm() tea.Cmd {
 	return nil
 }
 
-func (p *encounterPage) processHitPointAdjustment(msg hitPointFormSubmittedMsg) tea.Cmd {
+func (p *encounterPage) adjustHitPoints(msg hitPointFormSubmittedMsg) tea.Cmd {
 	p.hitPointForm = nil
 	p.s.UnlockTabs()
 
@@ -460,48 +460,21 @@ func (p *encounterPage) processHitPointAdjustment(msg hitPointFormSubmittedMsg) 
 		return nil
 	}
 
-	creature := group.Creatures[msg.creatureIndex]
-
-	// Only process hit point adjustments for monsters
-	if monster, ok := creature.(dnd.Monster); ok {
-		if msg.adjustmentType == HitPointDamage {
-			monster.HitPoints -= msg.adjustment
-			if monster.HitPoints < 0 {
-				monster.HitPoints = 0
-			}
-		} else {
-			monster.HitPoints += msg.adjustment
-			if monster.HitPoints > monster.MaximumHitPoints {
-				monster.HitPoints = monster.MaximumHitPoints
-			}
-		}
-		group.Creatures[msg.creatureIndex] = monster
-
-		// Create status message with bold components and consistent coloring
-		var statusMessage string
-		if msg.adjustmentType == HitPointDamage {
-			redBold := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
-			redNormal := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-			creatureName := redBold.Render(creature.GetName())
-			amount := redBold.Render(fmt.Sprintf("%d", msg.adjustment))
-			actionType := redNormal.Render("damage")
-			took := redNormal.Render(" took ")
-			statusMessage = creatureName + took + amount + redNormal.Render(" ") + actionType
-		} else {
-			greenBold := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
-			greenNormal := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-			creatureName := greenBold.Render(creature.GetName())
-			amount := greenBold.Render(fmt.Sprintf("%d", msg.adjustment))
-			actionType := greenNormal.Render("hit points")
-			healed := greenNormal.Render(" healed ")
-			statusMessage = creatureName + healed + amount + greenNormal.Render(" ") + actionType
-		}
-
-		// Return a status message command for the encounter delegate's list
-		return p.encounterDelegate.list.NewStatusMessage(statusMessage)
+	// Convert damage to negative, healing to positive
+	var adjustment int
+	if msg.adjustmentType == HitPointDamage {
+		adjustment = -msg.adjustment
+	} else {
+		adjustment = msg.adjustment
 	}
 
-	return nil
+	// Update the creature with new hit points and get actual adjustment
+	actualAdjustment := group.Creatures[msg.creatureIndex].AdjustHitPoints(adjustment)
+
+	// Return a status message command for the encounter delegate's list
+	return p.encounterDelegate.list.NewStatusMessage(
+		getHitPointAdjustmentStatusMessage(group.Creatures[msg.creatureIndex], actualAdjustment),
+	)
 }
 
 func (p *encounterPage) beginCancellationForm() tea.Cmd {
@@ -538,4 +511,21 @@ func (p *encounterPage) navigateToCurrentTurn() {
 	// Select the first creature in the current turn group
 	// This will automatically handle pagination to show the selected item
 	p.encounterDelegate.list.Select(itemIndex)
+}
+
+// getHitPointAdjustmentStatusMessage returns a styled message for hit point adjustments
+func getHitPointAdjustmentStatusMessage(creature dnd.Creature, amount int) string {
+	name := creature.GetName()
+	var messageStyle lipgloss.Style
+	var message string
+
+	if amount < 0 {
+		messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+		message = fmt.Sprintf("%s took %d damage", name, -amount)
+	} else {
+		messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+		message = fmt.Sprintf("%s healed %d hit points", name, amount)
+	}
+
+	return messageStyle.Render(message)
 }
