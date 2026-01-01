@@ -210,5 +210,3 @@ func TestCreatureInterface(t *testing.T) {
 		}
 	}
 }
-
-
