@@ -202,7 +202,7 @@ func (p *encounterPage) Title() string {
 		if len(summary) > 18 {
 			summary = summary[:15] + "..."
 		}
-		return fmt.Sprintf("%s %s", title, summary)
+		return fmt.Sprintf("%s > %s", title, summary)
 	}
 
 	return title
