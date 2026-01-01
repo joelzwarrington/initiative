@@ -13,6 +13,33 @@ A powerful CLI for running **Dungeons & Dragons** encounters. Track initiative, 
 
 **initiative** is built with [Cobra](https://github.com/spf13/cobra) and the [Charm](https://charm.land/) ecosystem: [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Bubbles](https://github.com/charmbracelet/bubbles), [Lipgloss](https://github.com/charmbracelet/lipgloss), [Huh?](https://github.com/charmbracelet/huh), and [more](#built-with).
 
+## Getting started
+
+1. Install the application using one of the below methods
+2. Run `initiative` in your terminal!
+
+_Review our [wiki](https://github.com/joelzwarrington/initiative/wiki) for additional documentation, and submit any questions to our [Q&A discussion category](https://github.com/joelzwarrington/initiative/discussions/new?category=q-a)_.
+
+### Script (recommended)
+
+The installation script will use the built artifacts from the releases based on your detected operating system and architecture.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/joelzwarrington/initiative/main/scripts/install.sh | bash
+```
+
+### Artifacts
+
+Download the artifact from [releases](https://github.com/joelzwarrington/initiative/releases) for your specific operating system and architecture.
+
+### Go
+
+The binaries can be built from source using the `go install` utility.
+
+```bash
+go install github.com/joelzwarrington/initiative@latest
+```
+
 ## Encounters
 
 <img src="examples/encounters.gif" width="640" alt="Setting up an encounter">
