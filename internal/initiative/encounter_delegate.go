@@ -3,6 +3,7 @@ package initiative
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -205,7 +206,7 @@ type creatureItemDelegate struct {
 }
 
 func (d creatureItemDelegate) Height() int {
-	return 1
+	return 2
 }
 
 func (d creatureItemDelegate) Spacing() int {
@@ -271,15 +272,22 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 
 	health := ""
 	if item.creature.GetMaximumHitPoints() > 0 {
-		health = spacer + d.healthBar.View(item.creature.GetHitPoints(), item.creature.GetMaximumHitPoints())
+		health = d.healthBar.View(item.creature.GetHitPoints(), item.creature.GetMaximumHitPoints())
 	}
 
 	content :=
-		lipgloss.JoinHorizontal(
+		lipgloss.JoinVertical(
 			lipgloss.Left,
-			prefix,
-			item.creature.GetName(),
-			health,
+			lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				prefix,
+				item.creature.GetName(),
+			),
+			lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				strings.Repeat(spacer, lipgloss.Width(prefix)),
+				health,
+			),
 		)
 
 	fmt.Fprint(w, content)

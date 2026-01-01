@@ -60,8 +60,8 @@ func TestEncounterDelegateRender(t *testing.T) {
                
  > 20 • Wizard 
                
-   15 • Fighter
                
+   15 • Fighter
                
                
                
@@ -87,18 +87,47 @@ func TestEncounterDelegateRender(t *testing.T) {
 					},
 				},
 			},
-			expected: `                                                   
-  2 creatures                                      
-                                                   
- > 12 • Goblin 1 ████████████████████ 7/7 (Healthy)
-                                                   
-   12 • Goblin 2 ████████████████████ 7/7 (Healthy)
-                                                   
-                                                   
-                                                   
-                                                   
-                                                   
-                                                   `,
+			expected: `                                          
+  2 creatures                             
+                                          
+ > 12 • Goblin 1                          
+        ████████████████████ 7/7 (Healthy)
+                                          
+   12 • Goblin 2                          
+        ████████████████████ 7/7 (Healthy)
+                                          
+                                          
+                                          
+                                          `,
+		},
+		{
+			name: "character with health bar",
+			encounter: &dnd.Encounter{
+				InitiativeGroups: []dnd.InitiativeGroup{
+					{
+						Initiative: 18,
+						Creatures: []dnd.Creature{
+							func() dnd.Creature {
+								c := dnd.NewCharacterWithHealth("Paladin", 25)
+								c.AdjustHitPoints(-5)
+								return &c
+							}(),
+						},
+					},
+				},
+			},
+			expected: `                                         
+  1 creature                             
+                                         
+ > 18 • Paladin                          
+        ████████████████░░░░ 20/25 (Hurt)
+                                         
+                                         
+                                         
+                                         
+                                         
+                                         
+                                         `,
 		},
 	}
 
