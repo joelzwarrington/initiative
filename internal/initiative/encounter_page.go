@@ -195,7 +195,7 @@ func (p *encounterPage) Key() string {
 }
 
 func (p *encounterPage) Title() string {
-	title := icons.encounterTab.Join("Encounter", nil)
+	title := icons.EncounterTab.Join("Encounter", nil)
 
 	if p.encounter != nil {
 		summary := p.encounter.Summary

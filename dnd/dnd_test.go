@@ -211,6 +211,55 @@ func TestCreatureInterface(t *testing.T) {
 	}
 }
 
+func TestCreature_ArmorClass(t *testing.T) {
+	tests := []struct {
+		name     string
+		creature Creature
+		wantAC   int
+	}{
+		{
+			name:     "character has no AC (returns 0)",
+			creature: func() Creature { c := NewCharacter("Fighter"); return &c }(),
+			wantAC:   0,
+		},
+		{
+			name:     "character with health still has no AC",
+			creature: func() Creature { c := NewCharacterWithHealth("Rogue", 25); return &c }(),
+			wantAC:   0,
+		},
+		{
+			name: "monster with AC",
+			creature: func() Creature {
+				m := NewMonster("Orc", StatBlock{
+					ArmorClass: ArmorClass{Value: 13},
+					HitPoints:  HitPoints{Fixed: 15},
+				})
+				return &m
+			}(),
+			wantAC: 13,
+		},
+		{
+			name: "monster with high AC",
+			creature: func() Creature {
+				m := NewMonster("Dragon", StatBlock{
+					ArmorClass: ArmorClass{Value: 18},
+					HitPoints:  HitPoints{Fixed: 200},
+				})
+				return &m
+			}(),
+			wantAC: 18,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.creature.GetArmorClass(); got != tt.wantAC {
+				t.Errorf("GetArmorClass() = %v, want %v", got, tt.wantAC)
+			}
+		})
+	}
+}
+
 func TestCharacter_Health(t *testing.T) {
 	tests := []struct {
 		name    string

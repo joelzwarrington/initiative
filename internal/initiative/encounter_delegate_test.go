@@ -129,6 +129,37 @@ func TestEncounterDelegateRender(t *testing.T) {
                                          
                                          `,
 		},
+		{
+			name: "monster with armor class",
+			encounter: &dnd.Encounter{
+				InitiativeGroups: []dnd.InitiativeGroup{
+					{
+						Initiative: 14,
+						Creatures: []dnd.Creature{
+							func() dnd.Creature {
+								m := dnd.NewMonster("Orc", dnd.StatBlock{
+									ArmorClass: dnd.ArmorClass{Value: 13},
+									HitPoints:  dnd.HitPoints{Fixed: 15},
+								})
+								return &m
+							}(),
+						},
+					},
+				},
+			},
+			expected: `                                            
+  1 creature                                
+                                            
+ > 14 • Orc • 󰒙 13                          
+        ████████████████████ 15/15 (Healthy)
+                                            
+                                            
+                                            
+                                            
+                                            
+                                            
+                                            `,
+		},
 	}
 
 	for _, tt := range tests {

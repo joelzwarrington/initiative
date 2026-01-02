@@ -8,15 +8,20 @@ type icon struct {
 }
 
 type iconMap struct {
-	encounterTab icon
-	partyTab     icon
-	sourcesTab   icon
+	// tabs
+	EncounterTab icon
+	PartyTab     icon
+	SourcesTab   icon
+
+	ArmorClass icon
 }
 
 var icons = iconMap{
-	encounterTab: icon{icon: "󰓥", fallback: ""},
-	partyTab:     icon{icon: "", fallback: ""},
-	sourcesTab:   icon{icon: "󰧮", fallback: ""},
+	EncounterTab: icon{icon: "󰓥", fallback: ""},
+	PartyTab:     icon{icon: "", fallback: ""},
+	SourcesTab:   icon{icon: "󰧮", fallback: ""},
+
+	ArmorClass: icon{icon: "󰒙", fallback: ""},
 }
 
 func (i icon) Render(fallback *string) string {

@@ -257,6 +257,7 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 	}
 
 	spacer := " "
+	seperator := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}).Render(" • ")
 
 	selection := " "
 	if m.Index() == index {
@@ -270,6 +271,11 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 		spacer, selection, spacer, initiative, spacer,
 	)
 
+	ac := ""
+	if item.creature.GetArmorClass() > 0 {
+		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.GetArmorClass()), nil)
+	}
+
 	health := ""
 	if item.creature.GetMaximumHitPoints() > 0 {
 		health = d.healthBar.View(item.creature.GetHitPoints(), item.creature.GetMaximumHitPoints())
@@ -282,6 +288,7 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 				lipgloss.Left,
 				prefix,
 				item.creature.GetName(),
+				ac,
 			),
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,

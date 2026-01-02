@@ -57,6 +57,7 @@ type Creature interface {
 	GetName() string
 	GetHitPoints() int
 	GetMaximumHitPoints() int
+	GetArmorClass() int
 	SetHitPoints(hp int)
 	AdjustHitPoints(amount int) int
 }
@@ -78,6 +79,10 @@ func (c Character) GetHitPoints() int {
 
 func (c Character) GetMaximumHitPoints() int {
 	return c.MaximumHitPoints
+}
+
+func (c Character) GetArmorClass() int {
+	return 0 // TODO: Implement character AC system
 }
 
 func (c *Character) SetHitPoints(hp int) {
@@ -137,6 +142,10 @@ func (m Monster) GetHitPoints() int {
 
 func (m Monster) GetMaximumHitPoints() int {
 	return m.MaximumHitPoints
+}
+
+func (m Monster) GetArmorClass() int {
+	return m.StatBlock.ArmorClass.Value
 }
 
 func (m *Monster) SetHitPoints(hp int) {

@@ -145,7 +145,7 @@ func (p *characterPage) Key() string {
 }
 
 func (p *characterPage) Title() string {
-	title := icons.partyTab.Join("Party", nil)
+	title := icons.PartyTab.Join("Party", nil)
 
 	if p.isViewingCharacter() && p.currentCharacter != "" {
 		if char, exists := (*p.characters)[p.currentCharacter]; exists {

@@ -110,7 +110,7 @@ func (p *sourcesPage) Key() string {
 }
 
 func (p *sourcesPage) Title() string {
-	title := icons.sourcesTab.Join("Sources", nil)
+	title := icons.SourcesTab.Join("Sources", nil)
 
 	if p.isViewingSource() && p.currentSource != "" {
 		if source, exists := p.sources[p.currentSource]; exists {
