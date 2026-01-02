@@ -13,39 +13,27 @@ func TestEncounter_AdvanceTurn(t *testing.T) {
 	}{
 		{
 			name: "advance turn in middle of round",
-			encounter: Encounter{
-				Round:     1,
-				turnIndex: 0,
-				InitiativeGroups: []InitiativeGroup{
-					{Initiative: 15},
-					{Initiative: 10},
-					{Initiative: 5},
-				},
-			},
+			encounter: NewEncounter("", 1, 0, []InitiativeGroup{
+				{Initiative: 15},
+				{Initiative: 10},
+				{Initiative: 5},
+			}),
 			wantRound: 1,
 			wantTurn:  1,
 		},
 		{
 			name: "advance to next round",
-			encounter: Encounter{
-				Round:     1,
-				turnIndex: 2,
-				InitiativeGroups: []InitiativeGroup{
-					{Initiative: 15},
-					{Initiative: 10},
-					{Initiative: 5},
-				},
-			},
+			encounter: NewEncounter("", 1, 2, []InitiativeGroup{
+				{Initiative: 15},
+				{Initiative: 10},
+				{Initiative: 5},
+			}),
 			wantRound: 2,
 			wantTurn:  0,
 		},
 		{
-			name: "empty initiative groups",
-			encounter: Encounter{
-				Round:            1,
-				turnIndex:        0,
-				InitiativeGroups: []InitiativeGroup{},
-			},
+			name:      "empty initiative groups",
+			encounter: NewEncounter("", 1, 0, []InitiativeGroup{}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
@@ -55,11 +43,11 @@ func TestEncounter_AdvanceTurn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := tt.encounter
 			e.AdvanceTurn()
-			if e.Round != tt.wantRound {
-				t.Errorf("AdvanceTurn() round = %v, want %v", e.Round, tt.wantRound)
+			if e.Round() != tt.wantRound {
+				t.Errorf("AdvanceTurn() round = %v, want %v", e.Round(), tt.wantRound)
 			}
-			if e.GetTurnIndex() != tt.wantTurn {
-				t.Errorf("AdvanceTurn() turnIndex = %v, want %v", e.GetTurnIndex(), tt.wantTurn)
+			if e.TurnIndex() != tt.wantTurn {
+				t.Errorf("AdvanceTurn() turnIndex = %v, want %v", e.TurnIndex(), tt.wantTurn)
 			}
 		})
 	}
@@ -74,53 +62,37 @@ func TestEncounter_PreviousTurn(t *testing.T) {
 	}{
 		{
 			name: "previous turn in middle of round",
-			encounter: Encounter{
-				Round:     1,
-				turnIndex: 1,
-				InitiativeGroups: []InitiativeGroup{
-					{Initiative: 15},
-					{Initiative: 10},
-					{Initiative: 5},
-				},
-			},
+			encounter: NewEncounter("", 1, 1, []InitiativeGroup{
+				{Initiative: 15},
+				{Initiative: 10},
+				{Initiative: 5},
+			}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
 		{
 			name: "previous turn to previous round",
-			encounter: Encounter{
-				Round:     2,
-				turnIndex: 0,
-				InitiativeGroups: []InitiativeGroup{
-					{Initiative: 15},
-					{Initiative: 10},
-					{Initiative: 5},
-				},
-			},
+			encounter: NewEncounter("", 2, 0, []InitiativeGroup{
+				{Initiative: 15},
+				{Initiative: 10},
+				{Initiative: 5},
+			}),
 			wantRound: 1,
 			wantTurn:  2,
 		},
 		{
 			name: "cannot go before round 1, turn 0",
-			encounter: Encounter{
-				Round:     1,
-				turnIndex: 0,
-				InitiativeGroups: []InitiativeGroup{
-					{Initiative: 15},
-					{Initiative: 10},
-					{Initiative: 5},
-				},
-			},
+			encounter: NewEncounter("", 1, 0, []InitiativeGroup{
+				{Initiative: 15},
+				{Initiative: 10},
+				{Initiative: 5},
+			}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
 		{
-			name: "empty initiative groups",
-			encounter: Encounter{
-				Round:            1,
-				turnIndex:        0,
-				InitiativeGroups: []InitiativeGroup{},
-			},
+			name:      "empty initiative groups",
+			encounter: NewEncounter("", 1, 0, []InitiativeGroup{}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
@@ -130,20 +102,20 @@ func TestEncounter_PreviousTurn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := tt.encounter
 			e.PreviousTurn()
-			if e.Round != tt.wantRound {
-				t.Errorf("PreviousTurn() round = %v, want %v", e.Round, tt.wantRound)
+			if e.Round() != tt.wantRound {
+				t.Errorf("PreviousTurn() round = %v, want %v", e.Round(), tt.wantRound)
 			}
-			if e.GetTurnIndex() != tt.wantTurn {
-				t.Errorf("PreviousTurn() turnIndex = %v, want %v", e.GetTurnIndex(), tt.wantTurn)
+			if e.TurnIndex() != tt.wantTurn {
+				t.Errorf("PreviousTurn() turnIndex = %v, want %v", e.TurnIndex(), tt.wantTurn)
 			}
 		})
 	}
 }
 
-func TestEncounter_GetTurnIndex(t *testing.T) {
-	e := Encounter{turnIndex: 3}
-	if got := e.GetTurnIndex(); got != 3 {
-		t.Errorf("GetTurnIndex() = %v, want %v", got, 3)
+func TestEncounter_TurnIndex(t *testing.T) {
+	e := NewEncounter("", 1, 3, []InitiativeGroup{})
+	if got := e.TurnIndex(); got != 3 {
+		t.Errorf("TurnIndex() = %v, want %v", got, 3)
 	}
 }
 
@@ -151,23 +123,20 @@ func TestNewCharacter(t *testing.T) {
 	name := "Frodo"
 	char := NewCharacter(name)
 
-	if char.Name != name {
-		t.Errorf("NewCharacter() Name = %v, want %v", char.Name, name)
-	}
-	if char.GetName() != name {
-		t.Errorf("NewCharacter().GetName() = %v, want %v", char.GetName(), name)
+	if char.Name() != name {
+		t.Errorf("NewCharacter().Name() = %v, want %v", char.Name(), name)
 	}
 }
 
 func TestCharacter_WithName(t *testing.T) {
-	char := Character{Name: "Frodo"}
+	char := NewCharacter("Frodo")
 	newChar := char.WithName("Gandalf")
 
-	if newChar.Name != "Gandalf" {
-		t.Errorf("WithName() Name = %v, want %v", newChar.Name, "Gandalf")
+	if newChar.Name() != "Gandalf" {
+		t.Errorf("WithName().Name() = %v, want %v", newChar.Name(), "Gandalf")
 	}
-	if char.Name != "Frodo" {
-		t.Errorf("WithName() should not modify original, got %v", char.Name)
+	if char.Name() != "Frodo" {
+		t.Errorf("WithName() should not modify original, got %v", char.Name())
 	}
 }
 
@@ -179,17 +148,14 @@ func TestNewMonster(t *testing.T) {
 
 	monster := NewMonster("Goblin", statBlock)
 
-	if monster.Name != "Goblin" {
-		t.Errorf("NewMonster() Name = %v, want %v", monster.Name, "Goblin")
+	if monster.Name() != "Goblin" {
+		t.Errorf("NewMonster().Name() = %v, want %v", monster.Name(), "Goblin")
 	}
-	if monster.HitPoints != 25 {
-		t.Errorf("NewMonster() HitPoints = %v, want %v", monster.HitPoints, 25)
+	if monster.HitPoints() != 25 {
+		t.Errorf("NewMonster().HitPoints() = %v, want %v", monster.HitPoints(), 25)
 	}
-	if monster.MaximumHitPoints != 25 {
-		t.Errorf("NewMonster() MaximumHitPoints = %v, want %v", monster.MaximumHitPoints, 25)
-	}
-	if monster.GetName() != "Goblin" {
-		t.Errorf("NewMonster().GetName() = %v, want %v", monster.GetName(), "Goblin")
+	if monster.MaximumHitPoints() != 25 {
+		t.Errorf("NewMonster().MaximumHitPoints() = %v, want %v", monster.MaximumHitPoints(), 25)
 	}
 }
 
@@ -205,8 +171,8 @@ func TestCreatureInterface(t *testing.T) {
 	expectedNames := []string{"Aragorn", "Orc"}
 
 	for i, creature := range creatures {
-		if creature.GetName() != expectedNames[i] {
-			t.Errorf("Creature[%d].GetName() = %v, want %v", i, creature.GetName(), expectedNames[i])
+		if creature.Name() != expectedNames[i] {
+			t.Errorf("Creature[%d].Name() = %v, want %v", i, creature.Name(), expectedNames[i])
 		}
 	}
 }
@@ -253,8 +219,8 @@ func TestCreature_ArmorClass(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.creature.GetArmorClass(); got != tt.wantAC {
-				t.Errorf("GetArmorClass() = %v, want %v", got, tt.wantAC)
+			if got := tt.creature.ArmorClass(); got != tt.wantAC {
+				t.Errorf("ArmorClass() = %v, want %v", got, tt.wantAC)
 			}
 		})
 	}
@@ -289,11 +255,11 @@ func TestCharacter_Health(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.char.GetHitPoints(); got != tt.wantHP {
-				t.Errorf("Character.GetHitPoints() = %v, want %v", got, tt.wantHP)
+			if got := tt.char.HitPoints(); got != tt.wantHP {
+				t.Errorf("Character.HitPoints() = %v, want %v", got, tt.wantHP)
 			}
-			if got := tt.char.GetMaximumHitPoints(); got != tt.wantMax {
-				t.Errorf("Character.GetMaximumHitPoints() = %v, want %v", got, tt.wantMax)
+			if got := tt.char.MaximumHitPoints(); got != tt.wantMax {
+				t.Errorf("Character.MaximumHitPoints() = %v, want %v", got, tt.wantMax)
 			}
 		})
 	}
@@ -342,11 +308,11 @@ func TestCharacter_SetHitPoints(t *testing.T) {
 			char := tt.char
 			char.SetHitPoints(tt.newHP)
 
-			if got := char.GetHitPoints(); got != tt.wantHP {
-				t.Errorf("Character.GetHitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
+			if got := char.HitPoints(); got != tt.wantHP {
+				t.Errorf("Character.HitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
 			}
-			if got := char.GetName(); got != tt.wantName {
-				t.Errorf("Character.GetName() after SetHitPoints() = %v, want %v", got, tt.wantName)
+			if got := char.Name(); got != tt.wantName {
+				t.Errorf("Character.Name() after SetHitPoints() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}
@@ -356,11 +322,11 @@ func TestMonster_Health(t *testing.T) {
 	statBlock := StatBlock{HitPoints: HitPoints{Fixed: 15}}
 	monster := NewMonster("Orc", statBlock)
 
-	if got := monster.GetHitPoints(); got != 15 {
-		t.Errorf("Monster.GetHitPoints() = %v, want %v", got, 15)
+	if got := monster.HitPoints(); got != 15 {
+		t.Errorf("Monster.HitPoints() = %v, want %v", got, 15)
 	}
-	if got := monster.GetMaximumHitPoints(); got != 15 {
-		t.Errorf("Monster.GetMaximumHitPoints() = %v, want %v", got, 15)
+	if got := monster.MaximumHitPoints(); got != 15 {
+		t.Errorf("Monster.MaximumHitPoints() = %v, want %v", got, 15)
 	}
 }
 
@@ -410,11 +376,11 @@ func TestMonster_SetHitPoints(t *testing.T) {
 			mon := tt.monster
 			mon.SetHitPoints(tt.newHP)
 
-			if got := mon.GetHitPoints(); got != tt.wantHP {
-				t.Errorf("Monster.GetHitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
+			if got := mon.HitPoints(); got != tt.wantHP {
+				t.Errorf("Monster.HitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
 			}
-			if got := mon.GetName(); got != tt.wantName {
-				t.Errorf("Monster.GetName() after SetHitPoints() = %v, want %v", got, tt.wantName)
+			if got := mon.Name(); got != tt.wantName {
+				t.Errorf("Monster.Name() after SetHitPoints() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}
@@ -426,14 +392,14 @@ func TestMonster_WithName(t *testing.T) {
 
 	result := original.WithName("Elite Orc")
 
-	if got := result.GetName(); got != "Elite Orc" {
-		t.Errorf("Monster.WithName().GetName() = %v, want %v", got, "Elite Orc")
+	if got := result.Name(); got != "Elite Orc" {
+		t.Errorf("Monster.WithName().Name() = %v, want %v", got, "Elite Orc")
 	}
-	if got := result.GetHitPoints(); got != 15 {
-		t.Errorf("Monster.WithName().GetHitPoints() = %v, want %v", got, 15)
+	if got := result.HitPoints(); got != 15 {
+		t.Errorf("Monster.WithName().HitPoints() = %v, want %v", got, 15)
 	}
-	if got := result.GetMaximumHitPoints(); got != 15 {
-		t.Errorf("Monster.WithName().GetMaximumHitPoints() = %v, want %v", got, 15)
+	if got := result.MaximumHitPoints(); got != 15 {
+		t.Errorf("Monster.WithName().MaximumHitPoints() = %v, want %v", got, 15)
 	}
 }
 
@@ -490,11 +456,11 @@ func TestCharacter_AdjustHitPoints(t *testing.T) {
 			// Test that we get the actual adjustment amount
 			_ = actualAdjustment // We could test this if desired
 
-			if got := char.GetHitPoints(); got != tt.wantHP {
-				t.Errorf("Character.GetHitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
+			if got := char.HitPoints(); got != tt.wantHP {
+				t.Errorf("Character.HitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
 			}
-			if got := char.GetName(); got != tt.wantName {
-				t.Errorf("Character.GetName() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
+			if got := char.Name(); got != tt.wantName {
+				t.Errorf("Character.Name() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}
@@ -513,9 +479,9 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 	}{
 		{
 			name:       "healing (positive adjustment)",
-			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 10, MaximumHitPoints: 20},
+			monster:    NewMonster("Orc", statBlock).WithName("Orc"),
 			adjustment: 5,
-			wantHP:     15,
+			wantHP:     20, // Clamped to maximum
 			wantName:   "Orc",
 		},
 		{
@@ -526,22 +492,34 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 			wantName:   "Orc",
 		},
 		{
-			name:       "healing beyond maximum (should clamp)",
-			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 18, MaximumHitPoints: 20},
+			name: "healing beyond maximum (should clamp)",
+			monster: func() Monster {
+				m := NewMonster("Orc", statBlock)
+				m.SetHitPoints(18) // Set to below max first
+				return m
+			}(),
 			adjustment: 5,
 			wantHP:     20,
 			wantName:   "Orc",
 		},
 		{
-			name:       "damage below zero (should clamp to 0)",
-			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 5, MaximumHitPoints: 20},
+			name: "damage below zero (should clamp to 0)",
+			monster: func() Monster {
+				m := NewMonster("Orc", statBlock)
+				m.SetHitPoints(5) // Set to low health first
+				return m
+			}(),
 			adjustment: -10,
 			wantHP:     0,
 			wantName:   "Orc",
 		},
 		{
-			name:       "zero adjustment (no change)",
-			monster:    Monster{Name: "Orc", StatBlock: statBlock, HitPoints: 12, MaximumHitPoints: 20},
+			name: "zero adjustment (no change)",
+			monster: func() Monster {
+				m := NewMonster("Orc", statBlock)
+				m.SetHitPoints(12) // Set to specific value first
+				return m
+			}(),
 			adjustment: 0,
 			wantHP:     12,
 			wantName:   "Orc",
@@ -556,11 +534,11 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 			// Test that we get the actual adjustment amount
 			_ = actualAdjustment // We could test this if desired
 
-			if got := monster.GetHitPoints(); got != tt.wantHP {
-				t.Errorf("Monster.GetHitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
+			if got := monster.HitPoints(); got != tt.wantHP {
+				t.Errorf("Monster.HitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
 			}
-			if got := monster.GetName(); got != tt.wantName {
-				t.Errorf("Monster.GetName() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
+			if got := monster.Name(); got != tt.wantName {
+				t.Errorf("Monster.Name() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}

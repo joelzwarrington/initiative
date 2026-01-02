@@ -250,7 +250,7 @@ func (f *encounterForm) getCharacters() []creatureChoice {
 
 	// Sort by name (case-insensitive)
 	sort.Slice(options, func(i, j int) bool {
-		return strings.ToLower(options[i].creature.GetName()) < strings.ToLower(options[j].creature.GetName())
+		return strings.ToLower(options[i].creature.Name()) < strings.ToLower(options[j].creature.Name())
 	})
 
 	return options
@@ -280,7 +280,7 @@ func (f *encounterForm) getMonsters() []creatureChoice {
 
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
-				if monster.GetName() == monsterName {
+				if monster.Name() == monsterName {
 					options = append(options, creatureChoice{
 						id:       value,
 						creature: &monster,
@@ -293,7 +293,7 @@ func (f *encounterForm) getMonsters() []creatureChoice {
 
 	// Sort by name (case-insensitive)
 	sort.Slice(options, func(i, j int) bool {
-		return strings.ToLower(options[i].creature.GetName()) < strings.ToLower(options[j].creature.GetName())
+		return strings.ToLower(options[i].creature.Name()) < strings.ToLower(options[j].creature.Name())
 	})
 
 	return options
@@ -314,11 +314,11 @@ func getCharacterOptions(characters *map[string]dnd.Character) []huh.Option[stri
 		}
 
 		sort.Slice(entries, func(i, j int) bool {
-			return strings.ToLower(entries[i].character.GetName()) < strings.ToLower(entries[j].character.GetName())
+			return strings.ToLower(entries[i].character.Name()) < strings.ToLower(entries[j].character.Name())
 		})
 
 		for _, entry := range entries {
-			options = append(options, huh.NewOption(entry.character.GetName(), entry.uuid).Selected(true))
+			options = append(options, huh.NewOption(entry.character.Name(), entry.uuid).Selected(true))
 		}
 	}
 	return options
@@ -328,8 +328,8 @@ func getMonsterOptions(sources map[string]*dnd.Source) []huh.Option[string] {
 	var options []huh.Option[string]
 	for sourceKey, source := range sources {
 		for _, monster := range source.Monsters {
-			value := sourceKey + ":" + monster.GetName()
-			options = append(options, huh.NewOption(monster.GetName(), value))
+			value := sourceKey + ":" + monster.Name()
+			options = append(options, huh.NewOption(monster.Name(), value))
 		}
 	}
 	return options
@@ -403,12 +403,12 @@ func (f *encounterForm) nextStep() tea.Cmd {
 			initiativeKey := fmt.Sprintf("initiative_%s", characterOption.id)
 			hpKey := fmt.Sprintf("hp_%s", characterOption.id)
 			maxHpKey := fmt.Sprintf("maxhp_%s", characterOption.id)
-			title := fmt.Sprintf("%s's stats\n", characterOption.creature.GetName())
+			title := fmt.Sprintf("%s's stats\n", characterOption.creature.Name())
 
 			// Default values
-			currentHP := fmt.Sprintf("%d", characterOption.creature.GetHitPoints())
-			maxHP := fmt.Sprintf("%d", characterOption.creature.GetMaximumHitPoints())
-			if characterOption.creature.GetMaximumHitPoints() == 0 {
+			currentHP := fmt.Sprintf("%d", characterOption.creature.HitPoints())
+			maxHP := fmt.Sprintf("%d", characterOption.creature.MaximumHitPoints())
+			if characterOption.creature.MaximumHitPoints() == 0 {
 				currentHP = ""
 				maxHP = ""
 			}
@@ -459,7 +459,7 @@ func (f *encounterForm) nextStep() tea.Cmd {
 		}
 
 		for _, monsterOption := range monsters {
-			name := monsterOption.creature.GetName()
+			name := monsterOption.creature.Name()
 			title := fmt.Sprintf("%s's quantity and initiative\n", name)
 
 			groups = append(
@@ -613,16 +613,16 @@ func (f *encounterForm) submit() tea.Cmd {
 		// Find the monster in sources
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
-				if monster.GetName() == monsterName {
+				if monster.Name() == monsterName {
 					// Create multiple monsters for this group
 					var creatures []dnd.Creature
 					for i := 0; i < quantity; i++ {
 						monsterName := name
 						if monsterName == "" {
-							monsterName = monster.GetName()
+							monsterName = monster.Name()
 						}
 
-						newMonster := dnd.NewMonster(monsterName, monster.StatBlock)
+						newMonster := dnd.NewMonster(monsterName, monster.StatBlock())
 						creatures = append(creatures, &newMonster)
 					}
 
@@ -643,13 +643,9 @@ func (f *encounterForm) submit() tea.Cmd {
 	})
 
 	return func() tea.Msg {
+		encounter := dnd.NewEncounter(summary, 1, 0, initiativeGroups).WithStartedAt(time.Now())
 		return encounterFormSubmittedMsg{
-			encounter: dnd.Encounter{
-				Summary:          summary,
-				StartedAt:        time.Now(),
-				Round:            1,
-				InitiativeGroups: initiativeGroups,
-			},
+			encounter: encounter,
 		}
 	}
 }

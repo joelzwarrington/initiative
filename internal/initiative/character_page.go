@@ -149,7 +149,7 @@ func (p *characterPage) Title() string {
 
 	if p.isViewingCharacter() && p.currentCharacter != "" {
 		if char, exists := (*p.characters)[p.currentCharacter]; exists {
-			name := char.GetName()
+			name := char.Name()
 			if len(name) > 18 {
 				name = name[:15] + "..."
 			}
@@ -298,7 +298,7 @@ func (p *characterPage) renderCharacterDetail() string {
 	var characterName string
 	if p.characters != nil {
 		if character, exists := (*p.characters)[p.currentCharacter]; exists {
-			characterName = character.GetName()
+			characterName = character.Name()
 		}
 	}
 

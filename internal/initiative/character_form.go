@@ -40,10 +40,10 @@ func newCharacterForm(uuid string, existingCharacter *dnd.Character, width int, 
 	var maxHP string
 
 	if uuid != "" && existingCharacter != nil {
-		name = existingCharacter.GetName()
+		name = existingCharacter.Name()
 		title = "Edit " + name + "\n"
-		if existingCharacter.GetMaximumHitPoints() > 0 {
-			maxHP = fmt.Sprintf("%d", existingCharacter.GetMaximumHitPoints())
+		if existingCharacter.MaximumHitPoints() > 0 {
+			maxHP = fmt.Sprintf("%d", existingCharacter.MaximumHitPoints())
 		}
 	}
 

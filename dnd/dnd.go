@@ -1,119 +1,211 @@
 // Package dnd provides types and data structures to represent Dungeons & Dragons 5e game elements.
 package dnd
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
-// Core game types
+// Encounter represents a combat session with multiple participants
 type Encounter struct {
-	Summary string
+	summary string
 
-	StartedAt time.Time
-	EndedAt   time.Time
+	startedAt time.Time
+	endedAt   time.Time
 
-	Round            int
+	round            int
 	turnIndex        int
-	InitiativeGroups []InitiativeGroup
+	initiativeGroups []InitiativeGroup
 }
 
-func (e *Encounter) GetTurnIndex() int {
+// Summary returns the encounter's summary
+func (e *Encounter) Summary() string {
+	return e.summary
+}
+
+// StartedAt returns when the encounter started
+func (e *Encounter) StartedAt() time.Time {
+	return e.startedAt
+}
+
+// EndedAt returns when the encounter ended
+func (e *Encounter) EndedAt() time.Time {
+	return e.endedAt
+}
+
+// Round returns the current round number
+func (e *Encounter) Round() int {
+	return e.round
+}
+
+// TurnIndex returns the current turn index
+func (e *Encounter) TurnIndex() int {
 	return e.turnIndex
 }
 
+// InitiativeGroups returns the initiative groups
+func (e *Encounter) InitiativeGroups() []InitiativeGroup {
+	return e.initiativeGroups
+}
+
+// NewEncounter creates a new encounter with the given parameters
+func NewEncounter(summary string, round int, turnIndex int, groups []InitiativeGroup) Encounter {
+	return Encounter{
+		summary:          summary,
+		round:            round,
+		turnIndex:        turnIndex,
+		initiativeGroups: groups,
+	}
+}
+
+// WithInitiativeGroups returns a copy of the encounter with different initiative groups
+func (e Encounter) WithInitiativeGroups(groups []InitiativeGroup) Encounter {
+	return Encounter{
+		summary:          e.summary,
+		startedAt:        e.startedAt,
+		endedAt:          e.endedAt,
+		round:            e.round,
+		turnIndex:        e.turnIndex,
+		initiativeGroups: groups,
+	}
+}
+
+// WithStartedAt returns a copy of the encounter with a different start time
+func (e Encounter) WithStartedAt(startTime time.Time) Encounter {
+	return Encounter{
+		summary:          e.summary,
+		startedAt:        startTime,
+		endedAt:          e.endedAt,
+		round:            e.round,
+		turnIndex:        e.turnIndex,
+		initiativeGroups: e.initiativeGroups,
+	}
+}
+
+// UpdateCreature updates a creature in the encounter and returns the actual adjustment made
+func (e *Encounter) UpdateCreature(groupIndex, creatureIndex int, adjustment int) int {
+	if groupIndex >= len(e.initiativeGroups) || creatureIndex >= len(e.initiativeGroups[groupIndex].Creatures) {
+		return 0
+	}
+	return e.initiativeGroups[groupIndex].Creatures[creatureIndex].AdjustHitPoints(adjustment)
+}
+
+// AdvanceTurn moves to the next creature's turn, advancing round if necessary
 func (e *Encounter) AdvanceTurn() {
-	if len(e.InitiativeGroups) == 0 {
+	if len(e.initiativeGroups) == 0 {
 		return
 	}
 
 	e.turnIndex++
-	if e.turnIndex >= len(e.InitiativeGroups) {
+	if e.turnIndex >= len(e.initiativeGroups) {
 		e.turnIndex = 0
-		e.Round++
+		e.round++
 	}
 }
 
+// PreviousTurn moves to the previous creature's turn, going back a round if necessary
 func (e *Encounter) PreviousTurn() {
-	if len(e.InitiativeGroups) == 0 {
+	if len(e.initiativeGroups) == 0 {
 		return
 	}
 
 	// Don't allow going back if we're at round 1, turn 0
-	if e.Round == 1 && e.turnIndex == 0 {
+	if e.round == 1 && e.turnIndex == 0 {
 		return
 	}
 
 	e.turnIndex--
 	if e.turnIndex < 0 {
-		e.turnIndex = len(e.InitiativeGroups) - 1
-		e.Round--
+		e.turnIndex = len(e.initiativeGroups) - 1
+		e.round--
 	}
 }
 
+// InitiativeGroup represents creatures acting on the same initiative count
 type InitiativeGroup struct {
 	Initiative int
 	Creatures  []Creature
 }
 
+// Creature represents any entity with stats that can participate in combat
 type Creature interface {
-	GetName() string
-	GetHitPoints() int
-	GetMaximumHitPoints() int
-	GetArmorClass() int
+	Name() string
+	HitPoints() int
+	MaximumHitPoints() int
+	ArmorClass() int
 	SetHitPoints(hp int)
 	AdjustHitPoints(amount int) int
 }
 
-// Character represents a player character
-type Character struct {
+// character is used to serialize and deserialize Character details
+type character struct {
 	Name             string `yaml:"name" json:"name"`
 	HitPoints        int    `yaml:"hit_points" json:"hit_points"`
 	MaximumHitPoints int    `yaml:"maximum_hit_points" json:"maximum_hit_points"`
 }
 
-func (c Character) GetName() string {
-	return c.Name
+// Character represents a player character
+type Character struct {
+	name             string
+	hitPoints        int
+	maximumHitPoints int
 }
 
-func (c Character) GetHitPoints() int {
-	return c.HitPoints
+// Name returns the character's name
+func (c Character) Name() string {
+	return c.name
 }
 
-func (c Character) GetMaximumHitPoints() int {
-	return c.MaximumHitPoints
+// HitPoints returns the character's current hit points
+func (c Character) HitPoints() int {
+	return c.hitPoints
 }
 
-func (c Character) GetArmorClass() int {
+// MaximumHitPoints returns the character's maximum hit points
+func (c Character) MaximumHitPoints() int {
+	return c.maximumHitPoints
+}
+
+// ArmorClass returns the character's armor class
+func (c Character) ArmorClass() int {
 	return 0 // TODO: Implement character AC system
 }
 
+// SetHitPoints sets the character's current hit points, clamping to valid range
 func (c *Character) SetHitPoints(hp int) {
 	if hp < 0 {
 		hp = 0
 	}
-	if hp > c.MaximumHitPoints {
-		hp = c.MaximumHitPoints
+	if hp > c.maximumHitPoints {
+		hp = c.maximumHitPoints
 	}
-	c.HitPoints = hp
+	c.hitPoints = hp
 }
 
+// AdjustHitPoints modifies hit points by the given amount and returns actual change
 func (c *Character) AdjustHitPoints(amount int) int {
-	oldHP := c.HitPoints
-	newHP := c.HitPoints + amount
+	oldHP := c.hitPoints
+	newHP := c.hitPoints + amount
 	c.SetHitPoints(newHP)
-	return c.HitPoints - oldHP
+	return c.hitPoints - oldHP
 }
 
+// NewCharacter creates a character with the given name and zero hit points
 func NewCharacter(name string) Character {
-	return Character{Name: name, HitPoints: 0, MaximumHitPoints: 0}
+	return Character{name: name, hitPoints: 0, maximumHitPoints: 0}
 }
 
+// NewCharacterWithHealth creates a character with the given name and hit points
 func NewCharacterWithHealth(name string, maxHP int) Character {
-	return Character{Name: name, HitPoints: maxHP, MaximumHitPoints: maxHP}
+	return Character{name: name, hitPoints: maxHP, maximumHitPoints: maxHP}
 }
 
+// WithName returns a copy of the character with a different name
 func (c Character) WithName(name string) Character {
-	return Character{Name: name, HitPoints: c.HitPoints, MaximumHitPoints: c.MaximumHitPoints}
+	return Character{name: name, hitPoints: c.hitPoints, maximumHitPoints: c.maximumHitPoints}
 }
 
+// WithHealth returns a copy of the character with different hit points
 func (c Character) WithHealth(hp, maxHP int) Character {
 	if hp < 0 {
 		hp = 0
@@ -121,90 +213,209 @@ func (c Character) WithHealth(hp, maxHP int) Character {
 	if hp > maxHP {
 		hp = maxHP
 	}
-	return Character{Name: c.Name, HitPoints: hp, MaximumHitPoints: maxHP}
+	return Character{name: c.name, hitPoints: hp, maximumHitPoints: maxHP}
+}
+
+// MarshalYAML implements the yaml.Marshaler interface
+func (c Character) MarshalYAML() (any, error) {
+	return character{
+		Name:             c.name,
+		HitPoints:        c.hitPoints,
+		MaximumHitPoints: c.maximumHitPoints,
+	}, nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (c *Character) UnmarshalYAML(unmarshal func(any) error) error {
+	var data character
+	if err := unmarshal(&data); err != nil {
+		return err
+	}
+	*c = Character{
+		name:             data.Name,
+		hitPoints:        data.HitPoints,
+		maximumHitPoints: data.MaximumHitPoints,
+	}
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (c Character) MarshalJSON() ([]byte, error) {
+	data := character{
+		Name:             c.name,
+		HitPoints:        c.hitPoints,
+		MaximumHitPoints: c.maximumHitPoints,
+	}
+	return json.Marshal(data)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (c *Character) UnmarshalJSON(b []byte) error {
+	var data character
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+	*c = Character{
+		name:             data.Name,
+		hitPoints:        data.HitPoints,
+		maximumHitPoints: data.MaximumHitPoints,
+	}
+	return nil
+}
+
+// monster is used to serialize and deserialize Monster details
+type monster struct {
+	Name      string    `yaml:"name" json:"name"`
+	StatBlock StatBlock `yaml:"stat_block" json:"stat_block"`
 }
 
 // Monster represents a creature from the SRD
 type Monster struct {
-	Name             string    `yaml:"name" json:"name"`
-	StatBlock        StatBlock `yaml:"stat_block" json:"stat_block"`
-	HitPoints        int       `yaml:"-" json:"-"`
-	MaximumHitPoints int       `yaml:"-" json:"-"`
+	name             string
+	statBlock        StatBlock
+	hitPoints        int
+	maximumHitPoints int
 }
 
-func (m Monster) GetName() string {
-	return m.Name
+// Name returns the monster's name
+func (m Monster) Name() string {
+	return m.name
 }
 
-func (m Monster) GetHitPoints() int {
-	return m.HitPoints
+// HitPoints returns the monster's current hit points
+func (m Monster) HitPoints() int {
+	return m.hitPoints
 }
 
-func (m Monster) GetMaximumHitPoints() int {
-	return m.MaximumHitPoints
+// MaximumHitPoints returns the monster's maximum hit points
+func (m Monster) MaximumHitPoints() int {
+	return m.maximumHitPoints
 }
 
-func (m Monster) GetArmorClass() int {
-	return m.StatBlock.ArmorClass.Value
+// ArmorClass returns the monster's armor class
+func (m Monster) ArmorClass() int {
+	return m.statBlock.ArmorClass.Value
 }
 
+// StatBlock returns the monster's stat block
+func (m Monster) StatBlock() StatBlock {
+	return m.statBlock
+}
+
+// SetHitPoints sets the monster's current hit points, clamping to valid range
 func (m *Monster) SetHitPoints(hp int) {
 	if hp < 0 {
 		hp = 0
 	}
-	if hp > m.MaximumHitPoints {
-		hp = m.MaximumHitPoints
+	if hp > m.maximumHitPoints {
+		hp = m.maximumHitPoints
 	}
-	m.HitPoints = hp
+	m.hitPoints = hp
 }
 
+// AdjustHitPoints modifies hit points by the given amount and returns actual change
 func (m *Monster) AdjustHitPoints(amount int) int {
-	oldHP := m.HitPoints
-	newHP := m.HitPoints + amount
+	oldHP := m.hitPoints
+	newHP := m.hitPoints + amount
 	m.SetHitPoints(newHP)
-	return m.HitPoints - oldHP
+	return m.hitPoints - oldHP
 }
 
+// NewMonster creates a monster with the given name and stat block at full health
 func NewMonster(name string, statBlock StatBlock) Monster {
 	maxHP := statBlock.HitPoints.Fixed
 	return Monster{
-		Name:             name,
-		StatBlock:        statBlock,
-		HitPoints:        maxHP,
-		MaximumHitPoints: maxHP,
+		name:             name,
+		statBlock:        statBlock,
+		hitPoints:        maxHP,
+		maximumHitPoints: maxHP,
 	}
 }
 
+// MarshalYAML implements the yaml.Marshaler interface
+func (m Monster) MarshalYAML() (any, error) {
+	return monster{
+		Name:      m.name,
+		StatBlock: m.statBlock,
+	}, nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (m *Monster) UnmarshalYAML(unmarshal func(any) error) error {
+	var data monster
+	if err := unmarshal(&data); err != nil {
+		return err
+	}
+	maxHP := data.StatBlock.HitPoints.Fixed
+	*m = Monster{
+		name:             data.Name,
+		statBlock:        data.StatBlock,
+		hitPoints:        maxHP,
+		maximumHitPoints: maxHP,
+	}
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m Monster) MarshalJSON() ([]byte, error) {
+	data := monster{
+		Name:      m.name,
+		StatBlock: m.statBlock,
+	}
+	return json.Marshal(data)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *Monster) UnmarshalJSON(b []byte) error {
+	var data monster
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+	maxHP := data.StatBlock.HitPoints.Fixed
+	*m = Monster{
+		name:             data.Name,
+		statBlock:        data.StatBlock,
+		hitPoints:        maxHP,
+		maximumHitPoints: maxHP,
+	}
+	return nil
+}
+
+// WithName returns a copy of the monster with a different name
 func (m Monster) WithName(name string) Monster {
 	return Monster{
-		Name:             name,
-		StatBlock:        m.StatBlock,
-		HitPoints:        m.HitPoints,
-		MaximumHitPoints: m.MaximumHitPoints,
+		name:             name,
+		statBlock:        m.statBlock,
+		hitPoints:        m.hitPoints,
+		maximumHitPoints: m.maximumHitPoints,
 	}
 }
 
-// SRD data types
+// Ability represents a D&D ability score with its modifier
 type Ability struct {
 	Score    int `yaml:"score" json:"score"`
 	Modifier int `yaml:"modifier" json:"modifier"`
 }
 
+// Challenge represents a monster's challenge rating and XP value
 type Challenge struct {
 	Rating           int `yaml:"rating" json:"rating"`
 	ExperiencePoints int `yaml:"experience_points" json:"experience_points"`
 }
 
+// ArmorClass represents a creature's AC value and type
 type ArmorClass struct {
 	Value int    `yaml:"value" json:"value"`
 	Type  string `yaml:"type" json:"type"`
 }
 
+// HitPoints represents both fixed HP and the dice roll used to generate it
 type HitPoints struct {
 	Fixed int    `yaml:"fixed" json:"fixed"`
 	Roll  string `yaml:"roll" json:"roll"`
 }
 
+// StatBlock contains all mechanical information for a D&D monster
 type StatBlock struct {
 	Meta string `yaml:"meta" json:"meta"`
 
@@ -230,12 +441,14 @@ type StatBlock struct {
 	LegendaryActions string `yaml:"legendary_actions,omitempty" json:"legendary_actions,omitempty"`
 }
 
+// SourceMeta contains metadata about a monster source book
 type SourceMeta struct {
 	Name    string `yaml:"name" json:"name"`
 	Key     string `yaml:"key" json:"key"`
 	Version string `yaml:"version" json:"version"`
 }
 
+// Source represents a collection of monsters from a specific sourcebook
 type Source struct {
 	Meta     SourceMeta `yaml:"meta" json:"meta"`
 	Monsters []Monster  `yaml:"monsters" json:"monsters"`

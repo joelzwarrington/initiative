@@ -212,9 +212,9 @@ func TestGameRoundTrip(t *testing.T) {
 					t.Errorf("Character %s not found in loaded game", uuid)
 					continue
 				}
-				if loadedChar.Name != originalChar.Name {
+				if loadedChar.Name() != originalChar.Name() {
 					t.Errorf("Character name mismatch for %s: expected %s, got %s",
-						uuid, originalChar.Name, loadedChar.Name)
+						uuid, originalChar.Name(), loadedChar.Name())
 				}
 			}
 		})

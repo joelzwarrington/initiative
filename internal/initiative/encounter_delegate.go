@@ -72,8 +72,8 @@ func (d *encounterDelegate) Render(w io.Writer, encounter *dnd.Encounter) {
 	}
 
 	items := []list.Item{}
-	for groupIndex, group := range encounter.InitiativeGroups {
-		isCurrentTurnGroup := groupIndex == encounter.GetTurnIndex()
+	for groupIndex, group := range encounter.InitiativeGroups() {
+		isCurrentTurnGroup := groupIndex == encounter.TurnIndex()
 
 		for creatureIndex, creature := range group.Creatures {
 			items = append(items, creatureItem{
@@ -167,7 +167,7 @@ func (d *encounterDelegate) updateKeyStates() {
 	if hasItems && !isFiltering {
 		if selectedItem := d.list.SelectedItem(); selectedItem != nil {
 			if creatureItem, ok := selectedItem.(creatureItem); ok {
-				selectedHasHealth = creatureItem.creature.GetMaximumHitPoints() > 0
+				selectedHasHealth = creatureItem.creature.MaximumHitPoints() > 0
 			}
 		}
 	}
@@ -189,7 +189,7 @@ type creatureItem struct {
 }
 
 func (c creatureItem) FilterValue() string {
-	return c.creature.GetName()
+	return c.creature.Name()
 }
 
 // Messages
@@ -272,13 +272,13 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 	)
 
 	ac := ""
-	if item.creature.GetArmorClass() > 0 {
-		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.GetArmorClass()), nil)
+	if item.creature.ArmorClass() > 0 {
+		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.ArmorClass()), nil)
 	}
 
 	health := ""
-	if item.creature.GetMaximumHitPoints() > 0 {
-		health = d.healthBar.View(item.creature.GetHitPoints(), item.creature.GetMaximumHitPoints())
+	if item.creature.MaximumHitPoints() > 0 {
+		health = d.healthBar.View(item.creature.HitPoints(), item.creature.MaximumHitPoints())
 	}
 
 	content :=
@@ -287,7 +287,7 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,
 				prefix,
-				item.creature.GetName(),
+				item.creature.Name(),
 				ac,
 			),
 			lipgloss.JoinHorizontal(

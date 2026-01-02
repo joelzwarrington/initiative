@@ -90,7 +90,7 @@ func (c *characterList) toItems() []list.Item {
 	sort.Slice(items, func(i, j int) bool {
 		charI := items[i].(characterItem)
 		charJ := items[j].(characterItem)
-		return strings.ToLower(charI.GetName()) < strings.ToLower(charJ.GetName())
+		return strings.ToLower(charI.Name()) < strings.ToLower(charJ.Name())
 	})
 
 	return items
@@ -112,7 +112,7 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case deleteCharacterMsg:
 		if c.characters != nil {
 			if character, exists := (*c.characters)[msg.uuid]; exists {
-				leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.GetName() + " has left the party!")
+				leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.Name() + " has left the party!")
 				cmds = append(cmds, c.list.NewStatusMessage(leaveMessage))
 			}
 			delete(*c.characters, msg.uuid)
@@ -163,7 +163,7 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			c.list.Select(newIndex)
 		}
 
-		joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(msg.character.GetName() + " has joined the party!")
+		joinMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(msg.character.Name() + " has joined the party!")
 		cmds = append(cmds, c.list.NewStatusMessage(joinMessage))
 
 		return c, tea.Batch(cmds...)
@@ -257,7 +257,7 @@ type characterItem struct {
 	dnd.Character
 }
 
-func (c characterItem) FilterValue() string { return c.GetName() }
+func (c characterItem) FilterValue() string { return c.Name() }
 
 // List delegate for characters
 type characterItemDelegate struct {
@@ -311,7 +311,7 @@ func (c characterItemDelegate) Render(w io.Writer, m list.Model, index int, list
 		return
 	}
 
-	str := fmt.Sprintf("%d. %s", index+1, i.GetName())
+	str := fmt.Sprintf("%d. %s", index+1, i.Name())
 
 	fn := lipgloss.NewStyle().PaddingLeft(4).Render
 	if index == m.Index() {

@@ -198,7 +198,7 @@ func (p *encounterPage) Title() string {
 	title := icons.EncounterTab.Join("Encounter", nil)
 
 	if p.encounter != nil {
-		summary := p.encounter.Summary
+		summary := p.encounter.Summary()
 		if len(summary) > 18 {
 			summary = summary[:15] + "..."
 		}
@@ -348,7 +348,7 @@ func (p *encounterPage) updateKeyStates() {
 	isEmpty := p.isEmptyState()
 
 	// Check if we're at the very beginning (round 1, first turn)
-	canGoBack := hasEncounter && !(p.encounter.Round == 1 && p.encounter.GetTurnIndex() == 0)
+	canGoBack := hasEncounter && !(p.encounter.Round() == 1 && p.encounter.TurnIndex() == 0)
 
 	// Check if list is currently filtering
 	isFiltering := false
@@ -390,7 +390,7 @@ func (p *encounterPage) cancelNewEncounterForm() tea.Cmd {
 
 func (p *encounterPage) updateRoundWidget() {
 	if p.encounter != nil {
-		p.s.UpdateWidgetValue("round", fmt.Sprintf("Round: %d", p.encounter.Round))
+		p.s.UpdateWidgetValue("round", fmt.Sprintf("Round: %d", p.encounter.Round()))
 	}
 }
 
@@ -401,7 +401,7 @@ func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) te
 	p.s.UpdatePageTitle(p.Key(), p.Title())
 
 	// Add round tracking widget and unlock tabs
-	p.s.AddWidget("round", fmt.Sprintf("Round: %d", p.encounter.Round))
+	p.s.AddWidget("round", fmt.Sprintf("Round: %d", p.encounter.Round()))
 	p.s.UnlockTabs()
 
 	return nil
@@ -422,18 +422,18 @@ func (p *encounterPage) endEncounter() tea.Cmd {
 }
 
 func (p *encounterPage) beginHitPointForm(msg adjustHitPointsMsg) tea.Cmd {
-	if p.encounter == nil || len(p.encounter.InitiativeGroups) <= msg.groupIndex {
+	if p.encounter == nil || len(p.encounter.InitiativeGroups()) <= msg.groupIndex {
 		return nil
 	}
 
-	group := p.encounter.InitiativeGroups[msg.groupIndex]
+	group := p.encounter.InitiativeGroups()[msg.groupIndex]
 	if len(group.Creatures) <= msg.creatureIndex {
 		return nil
 	}
 
 	creature := group.Creatures[msg.creatureIndex]
 	p.s.LockTabs()
-	p.hitPointForm = newHitPointForm(msg.groupIndex, msg.creatureIndex, creature.GetName(), p.s.GetContentWidth(), p.s.GetContentHeight(), msg.isDamage)
+	p.hitPointForm = newHitPointForm(msg.groupIndex, msg.creatureIndex, creature.Name(), p.s.GetContentWidth(), p.s.GetContentHeight(), msg.isDamage)
 	return p.hitPointForm.Init()
 }
 
@@ -447,12 +447,12 @@ func (p *encounterPage) adjustHitPoints(msg hitPointFormSubmittedMsg) tea.Cmd {
 	p.hitPointForm = nil
 	p.s.UnlockTabs()
 
-	if p.encounter == nil || len(p.encounter.InitiativeGroups) <= msg.groupIndex {
+	if p.encounter == nil || len(p.encounter.InitiativeGroups()) <= msg.groupIndex {
 		return nil
 	}
 
-	group := &p.encounter.InitiativeGroups[msg.groupIndex]
-	if len(group.Creatures) <= msg.creatureIndex {
+	groups := p.encounter.InitiativeGroups()
+	if len(groups[msg.groupIndex].Creatures) <= msg.creatureIndex {
 		return nil
 	}
 
@@ -465,11 +465,11 @@ func (p *encounterPage) adjustHitPoints(msg hitPointFormSubmittedMsg) tea.Cmd {
 	}
 
 	// Update the creature with new hit points and get actual adjustment
-	actualAdjustment := group.Creatures[msg.creatureIndex].AdjustHitPoints(adjustment)
+	actualAdjustment := p.encounter.UpdateCreature(msg.groupIndex, msg.creatureIndex, adjustment)
 
 	// Return a status message command for the encounter delegate's list
 	return p.encounterDelegate.list.NewStatusMessage(
-		getHitPointAdjustmentStatusMessage(group.Creatures[msg.creatureIndex], actualAdjustment),
+		getHitPointAdjustmentStatusMessage(groups[msg.groupIndex].Creatures[msg.creatureIndex], actualAdjustment),
 	)
 }
 
@@ -491,11 +491,11 @@ func (p *encounterPage) navigateToCurrentTurn() {
 	}
 
 	// Calculate which item in the list corresponds to the current turn
-	currentTurnIndex := p.encounter.GetTurnIndex()
+	currentTurnIndex := p.encounter.TurnIndex()
 	itemIndex := 0
 
 	// Count items up to the current turn group
-	for groupIndex, group := range p.encounter.InitiativeGroups {
+	for groupIndex, group := range p.encounter.InitiativeGroups() {
 		if groupIndex == currentTurnIndex {
 			// We found the current turn group, itemIndex points to the first creature in this group
 			break
@@ -511,7 +511,7 @@ func (p *encounterPage) navigateToCurrentTurn() {
 
 // getHitPointAdjustmentStatusMessage returns a styled message for hit point adjustments
 func getHitPointAdjustmentStatusMessage(creature dnd.Creature, amount int) string {
-	name := creature.GetName()
+	name := creature.Name()
 	var messageStyle lipgloss.Style
 	var message string
 

@@ -37,18 +37,16 @@ func TestAdjustHitPointsMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test setup
 			monster := dnd.NewMonster("Test Monster", dnd.StatBlock{})
-			encounter := &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
-					{
-						Initiative: 15,
-						Creatures:  []dnd.Creature{&monster},
-					},
+			encounter := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
+				{
+					Initiative: 15,
+					Creatures:  []dnd.Creature{&monster},
 				},
-			}
+			})
 
 			delegate := newEncounterDelegate(80, 24)
 			var buf strings.Builder
-			delegate.Render(&buf, encounter) // Render to populate list
+			delegate.Render(&buf, &encounter) // Render to populate list
 
 			// Get the first item and simulate selection
 			items := delegate.list.Items()

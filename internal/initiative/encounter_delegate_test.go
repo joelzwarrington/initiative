@@ -20,14 +20,15 @@ func TestEncounterDelegateRender(t *testing.T) {
 		},
 		{
 			name: "single character",
-			encounter: &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
+			encounter: func() *dnd.Encounter {
+				e := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
 					{
 						Initiative: 15,
 						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Fighter"); return &c }()},
 					},
-				},
-			},
+				})
+				return &e
+			}(),
 			expected: `               
   1 creature   
                
@@ -43,8 +44,8 @@ func TestEncounterDelegateRender(t *testing.T) {
 		},
 		{
 			name: "multiple initiative groups",
-			encounter: &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
+			encounter: func() *dnd.Encounter {
+				e := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
 					{
 						Initiative: 20,
 						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Wizard"); return &c }()},
@@ -53,8 +54,9 @@ func TestEncounterDelegateRender(t *testing.T) {
 						Initiative: 15,
 						Creatures:  []dnd.Creature{func() dnd.Creature { c := dnd.NewCharacter("Fighter"); return &c }()},
 					},
-				},
-			},
+				})
+				return &e
+			}(),
 			expected: `               
   2 creatures  
                
@@ -70,8 +72,8 @@ func TestEncounterDelegateRender(t *testing.T) {
 		},
 		{
 			name: "multiple creatures in single group",
-			encounter: &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
+			encounter: func() *dnd.Encounter {
+				e := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
 					{
 						Initiative: 12,
 						Creatures: []dnd.Creature{
@@ -85,8 +87,9 @@ func TestEncounterDelegateRender(t *testing.T) {
 							}(),
 						},
 					},
-				},
-			},
+				})
+				return &e
+			}(),
 			expected: `                                          
   2 creatures                             
                                           
@@ -102,8 +105,8 @@ func TestEncounterDelegateRender(t *testing.T) {
 		},
 		{
 			name: "character with health bar",
-			encounter: &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
+			encounter: func() *dnd.Encounter {
+				e := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
 					{
 						Initiative: 18,
 						Creatures: []dnd.Creature{
@@ -114,8 +117,9 @@ func TestEncounterDelegateRender(t *testing.T) {
 							}(),
 						},
 					},
-				},
-			},
+				})
+				return &e
+			}(),
 			expected: `                                         
   1 creature                             
                                          
@@ -131,8 +135,8 @@ func TestEncounterDelegateRender(t *testing.T) {
 		},
 		{
 			name: "monster with armor class",
-			encounter: &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
+			encounter: func() *dnd.Encounter {
+				e := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
 					{
 						Initiative: 14,
 						Creatures: []dnd.Creature{
@@ -145,8 +149,9 @@ func TestEncounterDelegateRender(t *testing.T) {
 							}(),
 						},
 					},
-				},
-			},
+				})
+				return &e
+			}(),
 			expected: `                                            
   1 creature                                
                                             
@@ -197,20 +202,18 @@ func TestHitPointProcessing(t *testing.T) {
 			// Create a monster with initial hit points
 			statBlock := dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: tt.maxHP}}
 			monster := dnd.NewMonster("Test Monster", statBlock)
-			monster.HitPoints = tt.initialHP
+			monster.SetHitPoints(tt.initialHP)
 
-			encounter := &dnd.Encounter{
-				InitiativeGroups: []dnd.InitiativeGroup{
-					{
-						Initiative: 15,
-						Creatures:  []dnd.Creature{&monster},
-					},
+			encounter := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
+				{
+					Initiative: 15,
+					Creatures:  []dnd.Creature{&monster},
 				},
-			}
+			})
 
 			// Simulate hit point adjustment processing using the new method
-			group := &encounter.InitiativeGroups[0]
-			creature := group.Creatures[0]
+			groups := encounter.InitiativeGroups()
+			creature := groups[0].Creatures[0]
 
 			// Convert damage to negative, healing to positive (like in encounter_page.go)
 			var adjustment int
@@ -224,7 +227,7 @@ func TestHitPointProcessing(t *testing.T) {
 			creature.AdjustHitPoints(adjustment)
 
 			// Check the result
-			if got := creature.GetHitPoints(); got != tt.expectedHP {
+			if got := creature.HitPoints(); got != tt.expectedHP {
 				t.Errorf("Expected HP %d, got %d", tt.expectedHP, got)
 			}
 		})

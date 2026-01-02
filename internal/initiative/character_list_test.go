@@ -84,7 +84,7 @@ func TestCharacterListUpdate_AddedMessage(t *testing.T) {
 	cl = updatedModel.(*characterList)
 
 	// Verify the character was added to the underlying map
-	if (*cl.characters)["new"].GetName() != "Alice" {
+	if (*cl.characters)["new"].Name() != "Alice" {
 		t.Error("character should be added to the characters map")
 	}
 
@@ -123,7 +123,7 @@ func TestCharacterListUpdate_UpdatedMessage(t *testing.T) {
 	cl = updatedModel.(*characterList)
 
 	// Verify the character was updated in the underlying map
-	if (*cl.characters)["char1"].GetName() != "Alice" {
+	if (*cl.characters)["char1"].Name() != "Alice" {
 		t.Error("character should be updated in the characters map")
 	}
 
