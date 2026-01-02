@@ -9,13 +9,6 @@ type Character struct {
 	maxHP int
 }
 
-// character is used to serialize and deserialize Character details
-type character struct {
-	Name             string `yaml:"name" json:"name"`
-	HitPoints        int    `yaml:"hit_points" json:"hit_points"`
-	MaximumHitPoints int    `yaml:"maximum_hit_points" json:"maximum_hit_points"`
-}
-
 // NewCharacter creates a character with the given name
 func NewCharacter(name string) Character {
 	return Character{name: name}
@@ -74,6 +67,15 @@ func (c *Character) AdjustHitPoints(amount int) int {
 	newHP := c.hp + amount
 	c.SetHitPoints(newHP)
 	return c.hp - oldHP
+}
+
+// --- serialization ---
+
+// character is used to serialize and deserialize Character details
+type character struct {
+	Name             string `yaml:"name" json:"name"`
+	HitPoints        int    `yaml:"hit_points" json:"hit_points"`
+	MaximumHitPoints int    `yaml:"maximum_hit_points" json:"maximum_hit_points"`
 }
 
 // MarshalYAML implements the yaml.Marshaler interface
