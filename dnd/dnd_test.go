@@ -190,7 +190,7 @@ func TestCreature_ArmorClass(t *testing.T) {
 		},
 		{
 			name:     "character with health still has no AC",
-			creature: func() Creature { c := NewCharacterWithHealth("Rogue", 25); return &c }(),
+			creature: func() Creature { c := NewCharacter("Rogue").WithHealth(15, 25); return &c }(),
 			wantAC:   0,
 		},
 		{
@@ -241,14 +241,8 @@ func TestCharacter_Health(t *testing.T) {
 		},
 		{
 			name:    "new character with health",
-			char:    NewCharacterWithHealth("Test", 20),
+			char:    NewCharacter("Test").WithHealth(20, 20),
 			wantHP:  20,
-			wantMax: 20,
-		},
-		{
-			name:    "character with custom health",
-			char:    NewCharacter("Test").WithHealth(15, 20),
-			wantHP:  15,
 			wantMax: 20,
 		},
 	}
@@ -275,28 +269,28 @@ func TestCharacter_SetHitPoints(t *testing.T) {
 	}{
 		{
 			name:     "set normal hit points",
-			char:     NewCharacterWithHealth("Test", 20),
+			char:     NewCharacter("Test").WithHealth(20, 20),
 			newHP:    15,
 			wantHP:   15,
 			wantName: "Test",
 		},
 		{
 			name:     "set hit points to zero",
-			char:     NewCharacterWithHealth("Test", 20),
+			char:     NewCharacter("Test").WithHealth(20, 20),
 			newHP:    0,
 			wantHP:   0,
 			wantName: "Test",
 		},
 		{
 			name:     "set negative hit points (should clamp to 0)",
-			char:     NewCharacterWithHealth("Test", 20),
+			char:     NewCharacter("Test").WithHealth(20, 20),
 			newHP:    -5,
 			wantHP:   0,
 			wantName: "Test",
 		},
 		{
 			name:     "set hit points above maximum (should clamp)",
-			char:     NewCharacterWithHealth("Test", 20),
+			char:     NewCharacter("Test").WithHealth(20, 20),
 			newHP:    25,
 			wantHP:   20,
 			wantName: "Test",
@@ -413,35 +407,35 @@ func TestCharacter_AdjustHitPoints(t *testing.T) {
 	}{
 		{
 			name:       "healing (positive adjustment)",
-			char:       NewCharacterWithHealth("Test", 20).WithHealth(10, 20),
+			char:       NewCharacter("Test").WithHealth(10, 20),
 			adjustment: 5,
 			wantHP:     15,
 			wantName:   "Test",
 		},
 		{
 			name:       "damage (negative adjustment)",
-			char:       NewCharacterWithHealth("Test", 20),
+			char:       NewCharacter("Test").WithHealth(20, 20),
 			adjustment: -8,
 			wantHP:     12,
 			wantName:   "Test",
 		},
 		{
 			name:       "healing beyond maximum (should clamp)",
-			char:       NewCharacterWithHealth("Test", 20).WithHealth(18, 20),
+			char:       NewCharacter("Test").WithHealth(18, 20),
 			adjustment: 5,
 			wantHP:     20,
 			wantName:   "Test",
 		},
 		{
 			name:       "damage below zero (should clamp to 0)",
-			char:       NewCharacterWithHealth("Test", 20).WithHealth(5, 20),
+			char:       NewCharacter("Test").WithHealth(5, 20),
 			adjustment: -10,
 			wantHP:     0,
 			wantName:   "Test",
 		},
 		{
 			name:       "zero adjustment (no change)",
-			char:       NewCharacterWithHealth("Test", 20).WithHealth(12, 20),
+			char:       NewCharacter("Test").WithHealth(12, 20),
 			adjustment: 0,
 			wantHP:     12,
 			wantName:   "Test",

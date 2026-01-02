@@ -111,7 +111,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 						Initiative: 18,
 						Creatures: []dnd.Creature{
 							func() dnd.Creature {
-								c := dnd.NewCharacterWithHealth("Paladin", 25)
+								c := dnd.NewCharacter("Paladin").WithHealth(25, 25)
 								c.AdjustHitPoints(-5)
 								return &c
 							}(),

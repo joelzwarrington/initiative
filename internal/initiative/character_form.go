@@ -158,7 +158,7 @@ func (f *characterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		var character dnd.Character
 		if maxHP > 0 {
-			character = dnd.NewCharacterWithHealth(name, maxHP)
+			character = dnd.NewCharacter(name).WithHealth(maxHP, maxHP)
 		} else {
 			character = dnd.NewCharacter(name)
 		}
