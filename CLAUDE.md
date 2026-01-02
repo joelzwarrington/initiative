@@ -146,6 +146,7 @@ var Theme = struct {
 
 ## Key Domain Concepts
 
+- **Source**: A source represents game materials which provide rules, lore and content (such as monster)
 - **Encounter**: A combat session with multiple participants, at least 1 character and any number of monsters
 - **Player characters**: Player characters are played by human players and will generally have more complex backstory and a full character sheet instead of a simple statblock
 - **Non-playable character**: Peristent characters in a campaign that fill the supporting cast role in the story—such as a friendly shopkeeper, a quest-giving king, or a rival adventurer

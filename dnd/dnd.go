@@ -185,16 +185,3 @@ type StatBlock struct {
 	Actions          string `yaml:"actions,omitempty" json:"actions,omitempty"`
 	LegendaryActions string `yaml:"legendary_actions,omitempty" json:"legendary_actions,omitempty"`
 }
-
-// SourceMeta contains metadata about a monster source book
-type SourceMeta struct {
-	Name    string `yaml:"name" json:"name"`
-	Key     string `yaml:"key" json:"key"`
-	Version string `yaml:"version" json:"version"`
-}
-
-// Source represents a collection of monsters from a specific sourcebook
-type Source struct {
-	Meta     SourceMeta `yaml:"meta" json:"meta"`
-	Monsters []Monster  `yaml:"monsters" json:"monsters"`
-}

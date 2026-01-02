@@ -12,6 +12,19 @@ import (
 //go:embed *.yaml
 var Sources embed.FS
 
+// Source represents game materials which provide rules, lore and content (such as monster)
+type Source struct {
+	Meta     SourceMeta `yaml:"meta" json:"meta"`
+	Monsters []Monster  `yaml:"monsters" json:"monsters"`
+}
+
+// SourceMeta contains metadata about a source
+type SourceMeta struct {
+	Name    string `yaml:"name" json:"name"`
+	Key     string `yaml:"key" json:"key"`
+	Version string `yaml:"version" json:"version"`
+}
+
 // LoadSourceFromFS loads a source from the embedded filesystem
 func LoadSourceFromFS(path string) (*Source, error) {
 	data, err := Sources.ReadFile(path)
