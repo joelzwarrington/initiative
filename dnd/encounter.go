@@ -88,7 +88,7 @@ func (e *Encounter) UpdateCreature(groupIndex, creatureIndex int, adjustment int
 	if creatureIndex >= len(creatures) {
 		return 0
 	}
-	return (*creatures[creatureIndex]).AdjustHitPoints(adjustment)
+	return (*creatures[creatureIndex]).AdjustHP(adjustment)
 }
 
 // AdvanceTurn moves to the next creature's turn, advancing round if necessary

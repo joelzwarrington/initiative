@@ -408,9 +408,9 @@ func (f *encounterForm) nextStep() tea.Cmd {
 			title := fmt.Sprintf("%s's stats\n", characterOption.creature.Name())
 
 			// Default values
-			currentHP := fmt.Sprintf("%d", characterOption.creature.HitPoints())
-			maxHP := fmt.Sprintf("%d", characterOption.creature.MaximumHitPoints())
-			if characterOption.creature.MaximumHitPoints() == 0 {
+			currentHP := fmt.Sprintf("%d", characterOption.creature.HP())
+			maxHP := fmt.Sprintf("%d", characterOption.creature.MaxHP())
+			if characterOption.creature.MaxHP() == 0 {
 				currentHP = ""
 				maxHP = ""
 			}

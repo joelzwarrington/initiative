@@ -46,17 +46,17 @@ func TestCharacter_Health(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.char.HitPoints(); got != tt.wantHP {
-				t.Errorf("Character.HitPoints() = %v, want %v", got, tt.wantHP)
+			if got := tt.char.HP(); got != tt.wantHP {
+				t.Errorf("Character.HP() = %v, want %v", got, tt.wantHP)
 			}
-			if got := tt.char.MaximumHitPoints(); got != tt.wantMax {
-				t.Errorf("Character.MaximumHitPoints() = %v, want %v", got, tt.wantMax)
+			if got := tt.char.MaxHP(); got != tt.wantMax {
+				t.Errorf("Character.MaxHP() = %v, want %v", got, tt.wantMax)
 			}
 		})
 	}
 }
 
-func TestCharacter_SetHitPoints(t *testing.T) {
+func TestCharacter_SetHP(t *testing.T) {
 	tests := []struct {
 		name     string
 		char     *Character
@@ -97,19 +97,19 @@ func TestCharacter_SetHitPoints(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			char := tt.char
-			char.SetHitPoints(tt.newHP)
+			char.SetHP(tt.newHP)
 
-			if got := char.HitPoints(); got != tt.wantHP {
-				t.Errorf("Character.HitPoints() after SetHitPoints(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
+			if got := char.HP(); got != tt.wantHP {
+				t.Errorf("Character.HP() after SetHP(%v) = %v, want %v", tt.newHP, got, tt.wantHP)
 			}
 			if got := char.Name(); got != tt.wantName {
-				t.Errorf("Character.Name() after SetHitPoints() = %v, want %v", got, tt.wantName)
+				t.Errorf("Character.Name() after SetHP() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}
 }
 
-func TestCharacter_AdjustHitPoints(t *testing.T) {
+func TestCharacter_AdjustHP(t *testing.T) {
 	tests := []struct {
 		name       string
 		char       *Character
@@ -157,16 +157,16 @@ func TestCharacter_AdjustHitPoints(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			char := tt.char
-			actualAdjustment := char.AdjustHitPoints(tt.adjustment)
+			actualAdjustment := char.AdjustHP(tt.adjustment)
 
 			// Test that we get the actual adjustment amount
 			_ = actualAdjustment // We could test this if desired
 
-			if got := char.HitPoints(); got != tt.wantHP {
-				t.Errorf("Character.HitPoints() after AdjustHitPoints(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
+			if got := char.HP(); got != tt.wantHP {
+				t.Errorf("Character.HP() after AdjustHP(%v) = %v, want %v", tt.adjustment, got, tt.wantHP)
 			}
 			if got := char.Name(); got != tt.wantName {
-				t.Errorf("Character.Name() after AdjustHitPoints() = %v, want %v", got, tt.wantName)
+				t.Errorf("Character.Name() after AdjustHP() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}

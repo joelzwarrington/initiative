@@ -36,18 +36,18 @@ func (m *Monster) Name() string {
 	return m.name
 }
 
-// HitPoints returns the monster's current hit points
-func (m *Monster) HitPoints() int {
+// HP returns the monster's current hit points
+func (m *Monster) HP() int {
 	return m.hp
 }
 
-// MaximumHitPoints returns the monster's maximum hit points
-func (m *Monster) MaximumHitPoints() int {
+// MaxHP returns the monster's maximum hit points
+func (m *Monster) MaxHP() int {
 	return m.maxHP
 }
 
-// ArmorClass returns the monster's armor class
-func (m *Monster) ArmorClass() int {
+// AC returns the monster's armor class
+func (m *Monster) AC() int {
 	return m.statBlock.ArmorClass.Value
 }
 
@@ -56,8 +56,8 @@ func (m *Monster) StatBlock() StatBlock {
 	return m.statBlock
 }
 
-// SetHitPoints sets the monster's current hit points, clamping to valid range
-func (m *Monster) SetHitPoints(hp int) {
+// SetHP sets the monster's current hit points, clamping to valid range
+func (m *Monster) SetHP(hp int) {
 	if hp < 0 {
 		hp = 0
 	}
@@ -67,11 +67,11 @@ func (m *Monster) SetHitPoints(hp int) {
 	m.hp = hp
 }
 
-// AdjustHitPoints modifies hit points by the given amount and returns actual change
-func (m *Monster) AdjustHitPoints(amount int) int {
+// AdjustHP modifies hit points by the given amount and returns actual change
+func (m *Monster) AdjustHP(amount int) int {
 	oldHP := m.hp
 	newHP := m.hp + amount
-	m.SetHitPoints(newHP)
+	m.SetHP(newHP)
 	return m.hp - oldHP
 }
 

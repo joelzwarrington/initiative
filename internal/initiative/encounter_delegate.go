@@ -167,7 +167,7 @@ func (d *encounterDelegate) updateKeyStates() {
 	if hasItems && !isFiltering {
 		if selectedItem := d.list.SelectedItem(); selectedItem != nil {
 			if creatureItem, ok := selectedItem.(creatureItem); ok {
-				selectedHasHealth = creatureItem.creature.MaximumHitPoints() > 0
+				selectedHasHealth = creatureItem.creature.MaxHP() > 0
 			}
 		}
 	}
@@ -272,13 +272,13 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 	)
 
 	ac := ""
-	if item.creature.ArmorClass() > 0 {
-		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.ArmorClass()), nil)
+	if item.creature.AC() > 0 {
+		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.AC()), nil)
 	}
 
 	health := ""
-	if item.creature.MaximumHitPoints() > 0 {
-		health = d.healthBar.View(item.creature.HitPoints(), item.creature.MaximumHitPoints())
+	if item.creature.MaxHP() > 0 {
+		health = d.healthBar.View(item.creature.HP(), item.creature.MaxHP())
 	}
 
 	content :=

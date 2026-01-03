@@ -95,7 +95,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 			name: "character with health bar",
 			encounter: func() *dnd.Encounter {
 				paladin := dnd.NewCharacter("Paladin").WithHealth(25, 25)
-				paladin.AdjustHitPoints(-5)
+				paladin.AdjustHP(-5)
 				var creature dnd.Creature = paladin
 				return dnd.NewEncounter("", time.Time{}, []*dnd.InitiativeGroup{
 					dnd.NewInitiativeGroup(18, []*dnd.Creature{&creature}),
@@ -176,7 +176,7 @@ func TestHitPointProcessing(t *testing.T) {
 			// Create a monster with initial hit points
 			statBlock := dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: tt.maxHP}}
 			monster := dnd.NewMonster("Test Monster", statBlock)
-			monster.SetHitPoints(tt.initialHP)
+			monster.SetHP(tt.initialHP)
 
 			var monsterPtr dnd.Creature = monster
 			encounter := dnd.NewEncounter("", time.Time{}, []*dnd.InitiativeGroup{
@@ -196,10 +196,10 @@ func TestHitPointProcessing(t *testing.T) {
 			}
 
 			// Apply adjustment using the new method
-			(*creature).AdjustHitPoints(adjustment)
+			(*creature).AdjustHP(adjustment)
 
 			// Check the result
-			if got := (*creature).HitPoints(); got != tt.expectedHP {
+			if got := (*creature).HP(); got != tt.expectedHP {
 				t.Errorf("Expected HP %d, got %d", tt.expectedHP, got)
 			}
 		})

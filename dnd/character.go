@@ -35,23 +35,23 @@ func (c *Character) Name() string {
 	return c.name
 }
 
-// HitPoints returns the character's current hit points
-func (c *Character) HitPoints() int {
+// HP returns the character's current hit points
+func (c *Character) HP() int {
 	return c.hp
 }
 
-// MaximumHitPoints returns the character's maximum hit points
-func (c *Character) MaximumHitPoints() int {
+// MaxHP returns the character's maximum hit points
+func (c *Character) MaxHP() int {
 	return c.maxHP
 }
 
-// ArmorClass returns the character's armor class
-func (c *Character) ArmorClass() int {
+// AC returns the character's armor class
+func (c *Character) AC() int {
 	return 0 // TODO: Implement character AC system
 }
 
-// SetHitPoints sets the character's current hit points, clamping to valid range
-func (c *Character) SetHitPoints(hp int) {
+// SetHP sets the character's current hit points, clamping to valid range
+func (c *Character) SetHP(hp int) {
 	if hp < 0 {
 		hp = 0
 	}
@@ -61,11 +61,11 @@ func (c *Character) SetHitPoints(hp int) {
 	c.hp = hp
 }
 
-// AdjustHitPoints modifies hit points by the given amount and returns actual change
-func (c *Character) AdjustHitPoints(amount int) int {
+// AdjustHP modifies hit points by the given amount and returns actual change
+func (c *Character) AdjustHP(amount int) int {
 	oldHP := c.hp
 	newHP := c.hp + amount
-	c.SetHitPoints(newHP)
+	c.SetHP(newHP)
 	return c.hp - oldHP
 }
 

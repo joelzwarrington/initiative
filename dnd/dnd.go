@@ -4,11 +4,14 @@ package dnd
 // Creature represents any entity with stats that can participate in combat
 type Creature interface {
 	Name() string
-	HitPoints() int
-	MaximumHitPoints() int
-	ArmorClass() int
-	SetHitPoints(hp int)
-	AdjustHitPoints(amount int) int
+
+	HP() int
+	MaxHP() int
+
+	AC() int
+
+	SetHP(hp int)
+	AdjustHP(amount int) int
 }
 
 // Ability represents a D&D ability score with its modifier

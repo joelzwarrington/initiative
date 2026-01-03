@@ -56,7 +56,7 @@ func TestCreature_ArmorClass(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.creature.ArmorClass(); got != tt.wantAC {
+			if got := tt.creature.AC(); got != tt.wantAC {
 				t.Errorf("ArmorClass() = %v, want %v", got, tt.wantAC)
 			}
 		})
