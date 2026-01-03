@@ -3,6 +3,7 @@ package initiative
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,16 +38,14 @@ func TestAdjustHitPointsMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test setup
 			monster := dnd.NewMonster("Test Monster", dnd.StatBlock{})
-			encounter := dnd.NewEncounter("", 1, 0, []dnd.InitiativeGroup{
-				{
-					Initiative: 15,
-					Creatures:  []dnd.Creature{&monster},
-				},
+			var monsterPtr dnd.Creature = monster
+			encounter := dnd.NewEncounter("", time.Time{}, []*dnd.InitiativeGroup{
+				dnd.NewInitiativeGroup(15, []*dnd.Creature{&monsterPtr}),
 			})
 
 			delegate := newEncounterDelegate(80, 24)
 			var buf strings.Builder
-			delegate.Render(&buf, &encounter) // Render to populate list
+			delegate.Render(&buf, encounter) // Render to populate list
 
 			// Get the first item and simulate selection
 			items := delegate.list.Items()

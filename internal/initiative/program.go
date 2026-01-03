@@ -11,7 +11,7 @@ import (
 	"github.com/termkit/skeleton"
 )
 
-var gameInstance *Game
+var gameInstance *game
 
 func NewProgram(filepath string, sources []string) (*tea.Program, error) {
 	game, err := LoadGame(filepath, sources)
@@ -19,7 +19,7 @@ func NewProgram(filepath string, sources []string) (*tea.Program, error) {
 		return nil, err
 	}
 
-	p := &game.Characters
+	p := game.Characters
 
 	s := skeleton.NewSkeleton()
 

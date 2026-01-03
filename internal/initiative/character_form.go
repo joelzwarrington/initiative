@@ -21,7 +21,7 @@ type characterFormStyles struct {
 type characterFormCancelledMsg struct{}
 type characterFormSubmittedMsg struct {
 	uuid      string
-	character dnd.Character
+	character *dnd.Character
 }
 
 type characterForm struct {
@@ -156,7 +156,7 @@ func (f *characterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		var character dnd.Character
+		var character *dnd.Character
 		if maxHP > 0 {
 			character = dnd.NewCharacter(name).WithHealth(maxHP, maxHP)
 		} else {

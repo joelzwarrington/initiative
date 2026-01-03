@@ -10,12 +10,12 @@ import (
 func TestGetCharacterOptions(t *testing.T) {
 	tests := []struct {
 		name       string
-		characters *map[string]dnd.Character
+		characters map[string]*dnd.Character
 		expected   []string // expected character names in sorted order
 	}{
 		{
 			name: "sorts characters by name case-insensitively",
-			characters: &map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"uuid-1": dnd.NewCharacter("Zara"),
 				"uuid-2": dnd.NewCharacter("alice"),
 				"uuid-3": dnd.NewCharacter("Bob"),
@@ -25,7 +25,7 @@ func TestGetCharacterOptions(t *testing.T) {
 		},
 		{
 			name: "handles single character",
-			characters: &map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"solo": dnd.NewCharacter("Hero"),
 			},
 			expected: []string{"Hero"},
@@ -37,7 +37,7 @@ func TestGetCharacterOptions(t *testing.T) {
 		},
 		{
 			name:       "handles empty characters map",
-			characters: &map[string]dnd.Character{},
+			characters: map[string]*dnd.Character{},
 			expected:   []string{},
 		},
 	}
@@ -60,7 +60,7 @@ func TestGetCharacterOptions(t *testing.T) {
 }
 
 func TestEncounterFormFilteringKeyBind(t *testing.T) {
-	characters := &map[string]dnd.Character{
+	characters := map[string]*dnd.Character{
 		"1": dnd.NewCharacter("Alice"),
 		"2": dnd.NewCharacter("Bob"),
 	}

@@ -75,13 +75,13 @@ func (d *encounterDelegate) Render(w io.Writer, encounter *dnd.Encounter) {
 	for groupIndex, group := range encounter.InitiativeGroups() {
 		isCurrentTurnGroup := groupIndex == encounter.TurnIndex()
 
-		for creatureIndex, creature := range group.Creatures {
+		for creatureIndex, creature := range group.Creatures() {
 			items = append(items, creatureItem{
-				creature:      creature,
-				initiative:    group.Initiative,
+				creature:      *creature,
+				initiative:    group.Initiative(),
 				groupIndex:    groupIndex,
 				creatureIndex: creatureIndex,
-				totalInGroup:  len(group.Creatures),
+				totalInGroup:  len(group.Creatures()),
 				isCurrentTurn: isCurrentTurnGroup,
 			})
 		}

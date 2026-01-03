@@ -19,7 +19,7 @@ type characterPage struct {
 	height int
 	keys   CharacterPageKeyMap
 
-	characters *map[string]dnd.Character
+	characters map[string]*dnd.Character
 
 	// Current view state
 	currentCharacter string // UUID of character being viewed
@@ -31,7 +31,7 @@ type characterPage struct {
 	help          help.Model
 }
 
-func newCharacterPage(s *skeleton.Skeleton, characters *map[string]dnd.Character) *characterPage {
+func newCharacterPage(s *skeleton.Skeleton, characters map[string]*dnd.Character) *characterPage {
 	keys := defaultCharacterPageKeyMap()
 
 	page := &characterPage{
@@ -148,7 +148,7 @@ func (p *characterPage) Title() string {
 	title := icons.PartyTab.Join("Party", nil)
 
 	if p.isViewingCharacter() && p.currentCharacter != "" {
-		if char, exists := (*p.characters)[p.currentCharacter]; exists {
+		if char, exists := p.characters[p.currentCharacter]; exists {
 			name := char.Name()
 			if len(name) > 18 {
 				name = name[:15] + "..."
@@ -207,7 +207,7 @@ func (p *characterPage) isViewingList() bool {
 }
 
 func (p *characterPage) hasCharacters() bool {
-	return p.characters != nil && len(*p.characters) > 0
+	return p.characters != nil && len(p.characters) > 0
 }
 
 // Navigation methods
@@ -220,8 +220,8 @@ func (p *characterPage) beginNewCharacterForm() tea.Cmd {
 func (p *characterPage) editCharacter(uuid string) tea.Cmd {
 	var character *dnd.Character
 	if p.characters != nil {
-		if c, exists := (*p.characters)[uuid]; exists {
-			character = &c
+		if c, exists := p.characters[uuid]; exists {
+			character = c
 		}
 	}
 
@@ -297,7 +297,7 @@ func (p *characterPage) renderEmptyState() string {
 func (p *characterPage) renderCharacterDetail() string {
 	var characterName string
 	if p.characters != nil {
-		if character, exists := (*p.characters)[p.currentCharacter]; exists {
+		if character, exists := p.characters[p.currentCharacter]; exists {
 			characterName = character.Name()
 		}
 	}

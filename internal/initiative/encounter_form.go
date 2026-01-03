@@ -65,7 +65,7 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 
 type encounterFormCancelledMsg struct{}
 type encounterFormSubmittedMsg struct {
-	encounter dnd.Encounter
+	encounter *dnd.Encounter
 }
 type encounterFormPreviousStepMsg struct{}
 type encounterFormNextStepMsg struct{}
@@ -75,7 +75,7 @@ type encounterForm struct {
 	styles encounterFormStyles
 	keys   *huh.KeyMap
 
-	characters *map[string]dnd.Character
+	characters map[string]*dnd.Character
 	sources    map[string]*dnd.Source
 
 	width  int
@@ -83,7 +83,7 @@ type encounterForm struct {
 	help   help.Model
 }
 
-func newEncounterForm(c *map[string]dnd.Character, s map[string]*dnd.Source, width int, height int) *encounterForm {
+func newEncounterForm(c map[string]*dnd.Character, s map[string]*dnd.Source, width int, height int) *encounterForm {
 	// Create shared keymap
 	keyMap := huh.NewDefaultKeyMap()
 	keyMap.Quit = key.NewBinding(
@@ -240,10 +240,10 @@ func (f *encounterForm) getCharacters() []creatureChoice {
 
 	var options []creatureChoice
 	for _, uuid := range uuids {
-		if character, exists := (*f.characters)[uuid]; exists {
+		if character, exists := f.characters[uuid]; exists {
 			options = append(options, creatureChoice{
 				id:       uuid,
-				creature: &character,
+				creature: character,
 			})
 		}
 	}
@@ -281,9 +281,11 @@ func (f *encounterForm) getMonsters() []creatureChoice {
 		if source, exists := f.sources[sourceKey]; exists {
 			for _, monster := range source.Monsters {
 				if monster.Name() == monsterName {
+					// Create a copy to avoid loop variable issues
+					m := monster
 					options = append(options, creatureChoice{
 						id:       value,
-						creature: &monster,
+						creature: &m,
 					})
 					break
 				}
@@ -300,16 +302,16 @@ func (f *encounterForm) getMonsters() []creatureChoice {
 }
 
 // getCharacterOptions outputs a list of sorted form options from a map of characters
-func getCharacterOptions(characters *map[string]dnd.Character) []huh.Option[string] {
+func getCharacterOptions(characters map[string]*dnd.Character) []huh.Option[string] {
 	var options []huh.Option[string]
 	if characters != nil {
 		type entry struct {
 			uuid      string
-			character dnd.Character
+			character *dnd.Character
 		}
 
 		var entries []entry
-		for uuid, character := range *characters {
+		for uuid, character := range characters {
 			entries = append(entries, entry{uuid: uuid, character: character})
 		}
 
@@ -548,7 +550,7 @@ func (f *encounterForm) submit() tea.Cmd {
 	characterUUIDs, _ := firstForm.Get("characters").([]string)
 	monsterValues, _ := firstForm.Get("monsters").([]string)
 
-	var initiativeGroups []dnd.InitiativeGroup
+	var initiativeGroups []*dnd.InitiativeGroup
 
 	// Process character initiatives
 	for _, uuid := range characterUUIDs {
@@ -558,7 +560,7 @@ func (f *encounterForm) submit() tea.Cmd {
 
 		initiative := form.GetIntWithDefault(secondForm, initiativeKey, 0)
 
-		if character, exists := (*f.characters)[uuid]; exists {
+		if character, exists := f.characters[uuid]; exists {
 			// Get health values
 			maxHPStr := strings.TrimSpace(secondForm.GetString(maxHpKey))
 			hpStr := strings.TrimSpace(secondForm.GetString(hpKey))
@@ -586,10 +588,8 @@ func (f *encounterForm) submit() tea.Cmd {
 			// Create updated character with new health
 			updatedCharacter := character.WithHealth(hp, maxHP)
 
-			group := dnd.InitiativeGroup{
-				Initiative: initiative,
-				Creatures:  []dnd.Creature{&updatedCharacter},
-			}
+			var creature dnd.Creature = updatedCharacter
+			group := dnd.NewInitiativeGroup(initiative, []*dnd.Creature{&creature})
 			initiativeGroups = append(initiativeGroups, group)
 		}
 	}
@@ -615,7 +615,7 @@ func (f *encounterForm) submit() tea.Cmd {
 			for _, monster := range source.Monsters {
 				if monster.Name() == monsterName {
 					// Create multiple monsters for this group
-					var creatures []dnd.Creature
+					var creatures []*dnd.Creature
 					for i := 0; i < quantity; i++ {
 						monsterName := name
 						if monsterName == "" {
@@ -623,13 +623,11 @@ func (f *encounterForm) submit() tea.Cmd {
 						}
 
 						newMonster := dnd.NewMonster(monsterName, monster.StatBlock())
-						creatures = append(creatures, &newMonster)
+						var creature dnd.Creature = newMonster
+						creatures = append(creatures, &creature)
 					}
 
-					group := dnd.InitiativeGroup{
-						Initiative: initiative,
-						Creatures:  creatures,
-					}
+					group := dnd.NewInitiativeGroup(initiative, creatures)
 					initiativeGroups = append(initiativeGroups, group)
 					break
 				}
@@ -639,11 +637,11 @@ func (f *encounterForm) submit() tea.Cmd {
 
 	// Sort initiative groups by initiative value in descending order (highest first)
 	sort.Slice(initiativeGroups, func(i, j int) bool {
-		return initiativeGroups[i].Initiative > initiativeGroups[j].Initiative
+		return initiativeGroups[i].Initiative() > initiativeGroups[j].Initiative()
 	})
 
 	return func() tea.Msg {
-		encounter := dnd.NewEncounter(summary, 1, 0, initiativeGroups).WithStartedAt(time.Now())
+		encounter := dnd.NewEncounter(summary, time.Now(), initiativeGroups)
 		return encounterFormSubmittedMsg{
 			encounter: encounter,
 		}

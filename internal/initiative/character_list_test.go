@@ -10,12 +10,12 @@ import (
 func TestCharacterListView(t *testing.T) {
 	tests := []struct {
 		name       string
-		characters map[string]dnd.Character
+		characters map[string]*dnd.Character
 		expected   string
 	}{
 		{
 			name: "displays sorted character names",
-			characters: map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"1": dnd.NewCharacter("Zara"),
 				"2": dnd.NewCharacter("alice"),
 				"3": dnd.NewCharacter("Bob"),
@@ -31,7 +31,7 @@ func TestCharacterListView(t *testing.T) {
 		},
 		{
 			name: "handles single character",
-			characters: map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"solo": dnd.NewCharacter("Hero"),
 			},
 			expected: `             
@@ -45,7 +45,7 @@ func TestCharacterListView(t *testing.T) {
 		},
 		{
 			name:       "empty list shows no items",
-			characters: map[string]dnd.Character{},
+			characters: map[string]*dnd.Character{},
 			expected: `               
   No characters
                
@@ -59,7 +59,7 @@ No characters.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cl := newCharacterList(&tt.characters, 15, 8)
+			cl := newCharacterList(tt.characters, 15, 8)
 			view := cl.View()
 
 			if view != tt.expected {
@@ -70,11 +70,11 @@ No characters.
 }
 
 func TestCharacterListUpdate_AddedMessage(t *testing.T) {
-	characters := map[string]dnd.Character{
+	characters := map[string]*dnd.Character{
 		"existing": dnd.NewCharacter("Bob"),
 	}
 
-	cl := newCharacterList(&characters, 80, 12)
+	cl := newCharacterList(characters, 80, 12)
 
 	// Add a new character
 	newChar := dnd.NewCharacter("Alice")
@@ -84,7 +84,7 @@ func TestCharacterListUpdate_AddedMessage(t *testing.T) {
 	cl = updatedModel.(*characterList)
 
 	// Verify the character was added to the underlying map
-	if (*cl.characters)["new"].Name() != "Alice" {
+	if cl.characters["new"].Name() != "Alice" {
 		t.Error("character should be added to the characters map")
 	}
 
@@ -108,12 +108,12 @@ func TestCharacterListUpdate_AddedMessage(t *testing.T) {
 }
 
 func TestCharacterListUpdate_UpdatedMessage(t *testing.T) {
-	characters := map[string]dnd.Character{
+	characters := map[string]*dnd.Character{
 		"char1": dnd.NewCharacter("Bob"),
 		"char2": dnd.NewCharacter("Charlie"),
 	}
 
-	cl := newCharacterList(&characters, 80, 12)
+	cl := newCharacterList(characters, 80, 12)
 
 	// Update character name to change sort order
 	updatedChar := dnd.NewCharacter("Alice") // This should move to the front
@@ -123,7 +123,7 @@ func TestCharacterListUpdate_UpdatedMessage(t *testing.T) {
 	cl = updatedModel.(*characterList)
 
 	// Verify the character was updated in the underlying map
-	if (*cl.characters)["char1"].Name() != "Alice" {
+	if cl.characters["char1"].Name() != "Alice" {
 		t.Error("character should be updated in the characters map")
 	}
 
@@ -138,13 +138,13 @@ func TestCharacterListUpdate_UpdatedMessage(t *testing.T) {
 }
 
 func TestCharacterListUpdate_DeletedMessage(t *testing.T) {
-	characters := map[string]dnd.Character{
+	characters := map[string]*dnd.Character{
 		"char1": dnd.NewCharacter("Alice"),
 		"char2": dnd.NewCharacter("Bob"),
 		"char3": dnd.NewCharacter("Charlie"),
 	}
 
-	cl := newCharacterList(&characters, 80, 12)
+	cl := newCharacterList(characters, 80, 12)
 
 	// Delete middle character
 	msg := deleteCharacterMsg{uuid: "char2"}
@@ -153,7 +153,7 @@ func TestCharacterListUpdate_DeletedMessage(t *testing.T) {
 	cl = updatedModel.(*characterList)
 
 	// Verify the character was removed from the underlying map
-	if _, exists := (*cl.characters)["char2"]; exists {
+	if _, exists := cl.characters["char2"]; exists {
 		t.Error("character should be removed from the characters map")
 	}
 

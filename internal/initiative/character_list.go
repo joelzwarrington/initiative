@@ -16,13 +16,13 @@ import (
 
 type characterList struct {
 	list       list.Model
-	characters *map[string]dnd.Character
+	characters map[string]*dnd.Character
 
 	width  int
 	height int
 }
 
-func newCharacterList(characters *map[string]dnd.Character, width int, height int) *characterList {
+func newCharacterList(characters map[string]*dnd.Character, width int, height int) *characterList {
 	cl := &characterList{
 		characters: characters,
 		width:      width,
@@ -81,7 +81,7 @@ func (c *characterList) toItems() []list.Item {
 	items := []list.Item{}
 
 	if c.characters != nil {
-		for uuid, character := range *c.characters {
+		for uuid, character := range c.characters {
 			items = append(items, characterItem{uuid: uuid, Character: character})
 		}
 	}
@@ -111,11 +111,11 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case deleteCharacterMsg:
 		if c.characters != nil {
-			if character, exists := (*c.characters)[msg.uuid]; exists {
+			if character, exists := c.characters[msg.uuid]; exists {
 				leaveMessage := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(character.Name() + " has left the party!")
 				cmds = append(cmds, c.list.NewStatusMessage(leaveMessage))
 			}
-			delete(*c.characters, msg.uuid)
+			delete(c.characters, msg.uuid)
 		}
 
 		// Rebuild sorted items and maintain selection
@@ -133,7 +133,7 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case characterUpdatedMsg:
 		if c.characters != nil {
-			(*c.characters)[msg.uuid] = msg.character
+			c.characters[msg.uuid] = msg.character
 
 			items := c.toItems()
 			c.list.SetItems(items)
@@ -148,11 +148,10 @@ func (c *characterList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case characterAddedMsg:
 		if c.characters == nil {
-			newCharacters := make(map[string]dnd.Character)
-			c.characters = &newCharacters
+			c.characters = make(map[string]*dnd.Character)
 		}
 
-		(*c.characters)[msg.uuid] = msg.character
+		c.characters[msg.uuid] = msg.character
 
 		// Rebuild sorted items and move selection to new character
 		items := c.toItems()
@@ -243,18 +242,18 @@ type deleteCharacterMsg struct {
 
 type characterUpdatedMsg struct {
 	uuid      string
-	character dnd.Character
+	character *dnd.Character
 }
 
 type characterAddedMsg struct {
 	uuid      string
-	character dnd.Character
+	character *dnd.Character
 }
 
 // List item for characters
 type characterItem struct {
 	uuid string
-	dnd.Character
+	*dnd.Character
 }
 
 func (c characterItem) FilterValue() string { return c.Name() }

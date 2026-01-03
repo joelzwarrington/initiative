@@ -20,7 +20,7 @@ type encounterPage struct {
 	height int
 	keys   EncounterPageKeyMap
 
-	characters *map[string]dnd.Character
+	characters map[string]*dnd.Character
 	sources    map[string]*dnd.Source
 
 	encounter *dnd.Encounter
@@ -33,7 +33,7 @@ type encounterPage struct {
 	help              help.Model
 }
 
-func newEncounterPage(s *skeleton.Skeleton, characters *map[string]dnd.Character, sources map[string]*dnd.Source) *encounterPage {
+func newEncounterPage(s *skeleton.Skeleton, characters map[string]*dnd.Character, sources map[string]*dnd.Source) *encounterPage {
 	keys := defaultEncounterPageKeyMap()
 
 	page := &encounterPage{
@@ -396,7 +396,7 @@ func (p *encounterPage) updateRoundWidget() {
 
 func (p *encounterPage) addNewEncounter(submission encounterFormSubmittedMsg) tea.Cmd {
 	p.encounterForm = nil
-	p.encounter = &submission.encounter
+	p.encounter = submission.encounter
 
 	p.s.UpdatePageTitle(p.Key(), p.Title())
 
@@ -427,13 +427,13 @@ func (p *encounterPage) beginHitPointForm(msg adjustHitPointsMsg) tea.Cmd {
 	}
 
 	group := p.encounter.InitiativeGroups()[msg.groupIndex]
-	if len(group.Creatures) <= msg.creatureIndex {
+	if len(group.Creatures()) <= msg.creatureIndex {
 		return nil
 	}
 
-	creature := group.Creatures[msg.creatureIndex]
+	creature := group.Creatures()[msg.creatureIndex]
 	p.s.LockTabs()
-	p.hitPointForm = newHitPointForm(msg.groupIndex, msg.creatureIndex, creature.Name(), p.s.GetContentWidth(), p.s.GetContentHeight(), msg.isDamage)
+	p.hitPointForm = newHitPointForm(msg.groupIndex, msg.creatureIndex, (*creature).Name(), p.s.GetContentWidth(), p.s.GetContentHeight(), msg.isDamage)
 	return p.hitPointForm.Init()
 }
 
@@ -452,7 +452,7 @@ func (p *encounterPage) adjustHitPoints(msg hitPointFormSubmittedMsg) tea.Cmd {
 	}
 
 	groups := p.encounter.InitiativeGroups()
-	if len(groups[msg.groupIndex].Creatures) <= msg.creatureIndex {
+	if len(groups[msg.groupIndex].Creatures()) <= msg.creatureIndex {
 		return nil
 	}
 
@@ -469,7 +469,7 @@ func (p *encounterPage) adjustHitPoints(msg hitPointFormSubmittedMsg) tea.Cmd {
 
 	// Return a status message command for the encounter delegate's list
 	return p.encounterDelegate.list.NewStatusMessage(
-		getHitPointAdjustmentStatusMessage(groups[msg.groupIndex].Creatures[msg.creatureIndex], actualAdjustment),
+		getHitPointAdjustmentStatusMessage(*groups[msg.groupIndex].Creatures()[msg.creatureIndex], actualAdjustment),
 	)
 }
 
@@ -501,7 +501,7 @@ func (p *encounterPage) navigateToCurrentTurn() {
 			break
 		}
 		// Add all creatures in this group to the count
-		itemIndex += len(group.Creatures)
+		itemIndex += len(group.Creatures())
 	}
 
 	// Select the first creature in the current turn group

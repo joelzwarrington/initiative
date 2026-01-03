@@ -98,17 +98,17 @@ func TestLoadGame(t *testing.T) {
 func TestGameSave(t *testing.T) {
 	tests := []struct {
 		name       string
-		characters map[string]dnd.Character
+		characters map[string]*dnd.Character
 		wantErr    bool
 	}{
 		{
 			name:       "save empty game",
-			characters: map[string]dnd.Character{},
+			characters: map[string]*dnd.Character{},
 			wantErr:    false,
 		},
 		{
 			name: "save game with characters",
-			characters: map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"char1": dnd.NewCharacter("Fighter"),
 				"char2": dnd.NewCharacter("Wizard"),
 			},
@@ -121,7 +121,7 @@ func TestGameSave(t *testing.T) {
 			tmpDir := t.TempDir()
 			filepath := filepath.Join(tmpDir, "test_game.yaml")
 
-			game := &Game{
+			game := &game{
 				filepath:   filepath,
 				Characters: tt.characters,
 				sources:    make(map[string]*dnd.Source),
@@ -149,9 +149,9 @@ func TestGameSave(t *testing.T) {
 }
 
 func TestGameSaveInvalidPath(t *testing.T) {
-	game := &Game{
+	game := &game{
 		filepath:   "/invalid/path/that/does/not/exist/game.yaml",
-		Characters: make(map[string]dnd.Character),
+		Characters: make(map[string]*dnd.Character),
 		sources:    make(map[string]*dnd.Source),
 	}
 
@@ -164,15 +164,15 @@ func TestGameSaveInvalidPath(t *testing.T) {
 func TestGameRoundTrip(t *testing.T) {
 	tests := []struct {
 		name       string
-		characters map[string]dnd.Character
+		characters map[string]*dnd.Character
 	}{
 		{
 			name:       "round trip empty game",
-			characters: map[string]dnd.Character{},
+			characters: map[string]*dnd.Character{},
 		},
 		{
 			name: "round trip with characters",
-			characters: map[string]dnd.Character{
+			characters: map[string]*dnd.Character{
 				"fighter1": dnd.NewCharacter("Aragorn"),
 				"wizard1":  dnd.NewCharacter("Gandalf"),
 				"rogue1":   dnd.NewCharacter("Legolas"),
@@ -185,7 +185,7 @@ func TestGameRoundTrip(t *testing.T) {
 			tmpDir := t.TempDir()
 			filepath := filepath.Join(tmpDir, "roundtrip_game.yaml")
 
-			originalGame := &Game{
+			originalGame := &game{
 				filepath:   filepath,
 				Characters: tt.characters,
 				sources:    make(map[string]*dnd.Source),

@@ -10,43 +10,43 @@ type Character struct {
 }
 
 // NewCharacter creates a character with the given name
-func NewCharacter(name string) Character {
-	return Character{name: name}
+func NewCharacter(name string) *Character {
+	return &Character{name: name}
 }
 
 // WithName returns a copy of the character with a different name
-func (c Character) WithName(name string) Character {
-	return Character{name: name, hp: c.hp, maxHP: c.maxHP}
+func (c *Character) WithName(name string) *Character {
+	return &Character{name: name, hp: c.hp, maxHP: c.maxHP}
 }
 
 // WithHealth returns a copy of the character with different hit points
-func (c Character) WithHealth(hp, maxHP int) Character {
+func (c *Character) WithHealth(hp, maxHP int) *Character {
 	if hp < 0 {
 		hp = 0
 	}
 	if hp > maxHP {
 		hp = maxHP
 	}
-	return Character{name: c.name, hp: hp, maxHP: maxHP}
+	return &Character{name: c.name, hp: hp, maxHP: maxHP}
 }
 
 // Name returns the character's name
-func (c Character) Name() string {
+func (c *Character) Name() string {
 	return c.name
 }
 
 // HitPoints returns the character's current hit points
-func (c Character) HitPoints() int {
+func (c *Character) HitPoints() int {
 	return c.hp
 }
 
 // MaximumHitPoints returns the character's maximum hit points
-func (c Character) MaximumHitPoints() int {
+func (c *Character) MaximumHitPoints() int {
 	return c.maxHP
 }
 
 // ArmorClass returns the character's armor class
-func (c Character) ArmorClass() int {
+func (c *Character) ArmorClass() int {
 	return 0 // TODO: Implement character AC system
 }
 
@@ -79,7 +79,7 @@ type character struct {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface
-func (c Character) MarshalYAML() (any, error) {
+func (c *Character) MarshalYAML() (any, error) {
 	return character{
 		Name:             c.name,
 		HitPoints:        c.hp,
@@ -102,7 +102,7 @@ func (c *Character) UnmarshalYAML(unmarshal func(any) error) error {
 }
 
 // MarshalJSON implements the json.Marshaler interface
-func (c Character) MarshalJSON() ([]byte, error) {
+func (c *Character) MarshalJSON() ([]byte, error) {
 	data := character{
 		Name:             c.name,
 		HitPoints:        c.hp,

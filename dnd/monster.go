@@ -11,9 +11,9 @@ type Monster struct {
 }
 
 // NewMonster creates a monster with the given name and stat block at full health
-func NewMonster(name string, statBlock StatBlock) Monster {
+func NewMonster(name string, statBlock StatBlock) *Monster {
 	maxHP := statBlock.HitPoints.Fixed
-	return Monster{
+	return &Monster{
 		name:      name,
 		statBlock: statBlock,
 		hp:        maxHP,
@@ -22,8 +22,8 @@ func NewMonster(name string, statBlock StatBlock) Monster {
 }
 
 // WithName returns a copy of the monster with a different name
-func (m Monster) WithName(name string) Monster {
-	return Monster{
+func (m *Monster) WithName(name string) *Monster {
+	return &Monster{
 		name:      name,
 		statBlock: m.statBlock,
 		hp:        m.hp,
@@ -32,27 +32,27 @@ func (m Monster) WithName(name string) Monster {
 }
 
 // Name returns the monster's name
-func (m Monster) Name() string {
+func (m *Monster) Name() string {
 	return m.name
 }
 
 // HitPoints returns the monster's current hit points
-func (m Monster) HitPoints() int {
+func (m *Monster) HitPoints() int {
 	return m.hp
 }
 
 // MaximumHitPoints returns the monster's maximum hit points
-func (m Monster) MaximumHitPoints() int {
+func (m *Monster) MaximumHitPoints() int {
 	return m.maxHP
 }
 
 // ArmorClass returns the monster's armor class
-func (m Monster) ArmorClass() int {
+func (m *Monster) ArmorClass() int {
 	return m.statBlock.ArmorClass.Value
 }
 
 // StatBlock returns the monster's stat block
-func (m Monster) StatBlock() StatBlock {
+func (m *Monster) StatBlock() StatBlock {
 	return m.statBlock
 }
 
@@ -84,7 +84,7 @@ type monster struct {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface
-func (m Monster) MarshalYAML() (any, error) {
+func (m *Monster) MarshalYAML() (any, error) {
 	return monster{
 		Name:      m.name,
 		StatBlock: m.statBlock,
@@ -108,7 +108,7 @@ func (m *Monster) UnmarshalYAML(unmarshal func(any) error) error {
 }
 
 // MarshalJSON implements the json.Marshaler interface
-func (m Monster) MarshalJSON() ([]byte, error) {
+func (m *Monster) MarshalJSON() ([]byte, error) {
 	data := monster{
 		Name:      m.name,
 		StatBlock: m.statBlock,

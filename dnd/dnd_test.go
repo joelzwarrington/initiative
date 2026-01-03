@@ -2,38 +2,64 @@ package dnd
 
 import (
 	"testing"
+	"time"
 )
+
+// createTestEncounter creates a basic encounter with 3 initiative groups for testing
+func createTestEncounter() *Encounter {
+	return NewEncounter("", time.Time{}, []*InitiativeGroup{
+		NewInitiativeGroup(15, []*Creature{}),
+		NewInitiativeGroup(10, []*Creature{}),
+		NewInitiativeGroup(5, []*Creature{}),
+	})
+}
+
+// createEncounterAtLastTurn creates an encounter already at the last turn of round 1
+func createEncounterAtLastTurn() *Encounter {
+	e := createTestEncounter()
+	e.AdvanceTurn() // turnIndex: 1
+	e.AdvanceTurn() // turnIndex: 2
+	return e
+}
+
+// createEncounterAtTurn1 creates an encounter at turnIndex: 1
+func createEncounterAtTurn1() *Encounter {
+	e := createTestEncounter()
+	e.AdvanceTurn() // turnIndex: 1
+	return e
+}
+
+// createEncounterAtRound2 creates an encounter at round 2, turnIndex: 0
+func createEncounterAtRound2() *Encounter {
+	e := createTestEncounter()
+	e.AdvanceTurn() // turnIndex: 1
+	e.AdvanceTurn() // turnIndex: 2
+	e.AdvanceTurn() // round: 2, turnIndex: 0
+	return e
+}
 
 func TestEncounter_AdvanceTurn(t *testing.T) {
 	tests := []struct {
 		name      string
-		encounter Encounter
+		encounter *Encounter
 		wantRound int
 		wantTurn  int
 	}{
 		{
-			name: "advance turn in middle of round",
-			encounter: NewEncounter("", 1, 0, []InitiativeGroup{
-				{Initiative: 15},
-				{Initiative: 10},
-				{Initiative: 5},
-			}),
+			name:      "advance turn in middle of round",
+			encounter: createTestEncounter(),
 			wantRound: 1,
 			wantTurn:  1,
 		},
 		{
-			name: "advance to next round",
-			encounter: NewEncounter("", 1, 2, []InitiativeGroup{
-				{Initiative: 15},
-				{Initiative: 10},
-				{Initiative: 5},
-			}),
+			name:      "advance to next round",
+			encounter: createEncounterAtLastTurn(),
 			wantRound: 2,
 			wantTurn:  0,
 		},
 		{
 			name:      "empty initiative groups",
-			encounter: NewEncounter("", 1, 0, []InitiativeGroup{}),
+			encounter: NewEncounter("", time.Time{}, []*InitiativeGroup{}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
@@ -56,43 +82,31 @@ func TestEncounter_AdvanceTurn(t *testing.T) {
 func TestEncounter_PreviousTurn(t *testing.T) {
 	tests := []struct {
 		name      string
-		encounter Encounter
+		encounter *Encounter
 		wantRound int
 		wantTurn  int
 	}{
 		{
-			name: "previous turn in middle of round",
-			encounter: NewEncounter("", 1, 1, []InitiativeGroup{
-				{Initiative: 15},
-				{Initiative: 10},
-				{Initiative: 5},
-			}),
+			name:      "previous turn in middle of round",
+			encounter: createEncounterAtTurn1(),
 			wantRound: 1,
 			wantTurn:  0,
 		},
 		{
-			name: "previous turn to previous round",
-			encounter: NewEncounter("", 2, 0, []InitiativeGroup{
-				{Initiative: 15},
-				{Initiative: 10},
-				{Initiative: 5},
-			}),
+			name:      "previous turn to previous round",
+			encounter: createEncounterAtRound2(),
 			wantRound: 1,
 			wantTurn:  2,
 		},
 		{
-			name: "cannot go before round 1, turn 0",
-			encounter: NewEncounter("", 1, 0, []InitiativeGroup{
-				{Initiative: 15},
-				{Initiative: 10},
-				{Initiative: 5},
-			}),
+			name:      "cannot go before round 1, turn 0",
+			encounter: createTestEncounter(),
 			wantRound: 1,
 			wantTurn:  0,
 		},
 		{
 			name:      "empty initiative groups",
-			encounter: NewEncounter("", 1, 0, []InitiativeGroup{}),
+			encounter: NewEncounter("", time.Time{}, []*InitiativeGroup{}),
 			wantRound: 1,
 			wantTurn:  0,
 		},
@@ -113,9 +127,9 @@ func TestEncounter_PreviousTurn(t *testing.T) {
 }
 
 func TestEncounter_TurnIndex(t *testing.T) {
-	e := NewEncounter("", 1, 3, []InitiativeGroup{})
-	if got := e.TurnIndex(); got != 3 {
-		t.Errorf("TurnIndex() = %v, want %v", got, 3)
+	e := NewEncounter("", time.Time{}, []*InitiativeGroup{})
+	if got := e.TurnIndex(); got != 0 {
+		t.Errorf("TurnIndex() = %v, want %v", got, 0)
 	}
 }
 
@@ -165,8 +179,8 @@ func TestCreatureInterface(t *testing.T) {
 	char := NewCharacter("Aragorn")
 	monster := NewMonster("Orc", StatBlock{HitPoints: HitPoints{Fixed: 15}})
 
-	creatures = append(creatures, &char)
-	creatures = append(creatures, &monster)
+	creatures = append(creatures, char)
+	creatures = append(creatures, monster)
 
 	expectedNames := []string{"Aragorn", "Orc"}
 
@@ -185,34 +199,28 @@ func TestCreature_ArmorClass(t *testing.T) {
 	}{
 		{
 			name:     "character has no AC (returns 0)",
-			creature: func() Creature { c := NewCharacter("Fighter"); return &c }(),
+			creature: NewCharacter("Fighter"),
 			wantAC:   0,
 		},
 		{
 			name:     "character with health still has no AC",
-			creature: func() Creature { c := NewCharacter("Rogue").WithHealth(15, 25); return &c }(),
+			creature: NewCharacter("Rogue").WithHealth(15, 25),
 			wantAC:   0,
 		},
 		{
 			name: "monster with AC",
-			creature: func() Creature {
-				m := NewMonster("Orc", StatBlock{
-					ArmorClass: ArmorClass{Value: 13},
-					HitPoints:  HitPoints{Fixed: 15},
-				})
-				return &m
-			}(),
+			creature: NewMonster("Orc", StatBlock{
+				ArmorClass: ArmorClass{Value: 13},
+				HitPoints:  HitPoints{Fixed: 15},
+			}),
 			wantAC: 13,
 		},
 		{
 			name: "monster with high AC",
-			creature: func() Creature {
-				m := NewMonster("Dragon", StatBlock{
-					ArmorClass: ArmorClass{Value: 18},
-					HitPoints:  HitPoints{Fixed: 200},
-				})
-				return &m
-			}(),
+			creature: NewMonster("Dragon", StatBlock{
+				ArmorClass: ArmorClass{Value: 18},
+				HitPoints:  HitPoints{Fixed: 200},
+			}),
 			wantAC: 18,
 		},
 	}
@@ -229,7 +237,7 @@ func TestCreature_ArmorClass(t *testing.T) {
 func TestCharacter_Health(t *testing.T) {
 	tests := []struct {
 		name    string
-		char    Character
+		char    *Character
 		wantHP  int
 		wantMax int
 	}{
@@ -262,7 +270,7 @@ func TestCharacter_Health(t *testing.T) {
 func TestCharacter_SetHitPoints(t *testing.T) {
 	tests := []struct {
 		name     string
-		char     Character
+		char     *Character
 		newHP    int
 		wantHP   int
 		wantName string
@@ -330,7 +338,7 @@ func TestMonster_SetHitPoints(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		monster  Monster
+		monster  *Monster
 		newHP    int
 		wantHP   int
 		wantName string
@@ -400,7 +408,7 @@ func TestMonster_WithName(t *testing.T) {
 func TestCharacter_AdjustHitPoints(t *testing.T) {
 	tests := []struct {
 		name       string
-		char       Character
+		char       *Character
 		adjustment int
 		wantHP     int
 		wantName   string
@@ -466,7 +474,7 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		monster    Monster
+		monster    *Monster
 		adjustment int
 		wantHP     int
 		wantName   string
@@ -487,7 +495,7 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 		},
 		{
 			name: "healing beyond maximum (should clamp)",
-			monster: func() Monster {
+			monster: func() *Monster {
 				m := NewMonster("Orc", statBlock)
 				m.SetHitPoints(18) // Set to below max first
 				return m
@@ -498,7 +506,7 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 		},
 		{
 			name: "damage below zero (should clamp to 0)",
-			monster: func() Monster {
+			monster: func() *Monster {
 				m := NewMonster("Orc", statBlock)
 				m.SetHitPoints(5) // Set to low health first
 				return m
@@ -509,7 +517,7 @@ func TestMonster_AdjustHitPoints(t *testing.T) {
 		},
 		{
 			name: "zero adjustment (no change)",
-			monster: func() Monster {
+			monster: func() *Monster {
 				m := NewMonster("Orc", statBlock)
 				m.SetHitPoints(12) // Set to specific value first
 				return m
