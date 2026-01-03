@@ -1,23 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "go test:*",
-      "go fmt:*",
-      "go vet:*",
-      "go mod tidy",
-      "go build:*",
-      "git status",
-      "git diff",
-      "git log"
-    ],
-    "ask": [
-      "git push:*",
-      "rm:*",
-      "sudo:*"
-    ],
-    "deny": [
-      "rm -rf /*",
-      "sudo rm:*"
+      "Bash(go test:*)",
+      "Bash(go fmt:*)",
+      "Bash(go vet:*)",
+      "Bash(go mod tidy)",
+      "Bash(go build:*)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log)"
     ]
   }
 }
