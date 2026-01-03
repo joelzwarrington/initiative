@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "go test:*",
+      "go fmt:*",
+      "go vet:*",
+      "go mod tidy",
+      "go build:*",
+      "git status",
+      "git diff",
+      "git log"
+    ],
+    "ask": [
+      "git push:*",
+      "rm:*",
+      "sudo:*"
+    ],
+    "deny": [
+      "rm -rf /*",
+      "sudo rm:*"
+    ]
+  }
+}

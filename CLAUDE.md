@@ -162,7 +162,7 @@ var Theme = struct {
 
 ### Formatting
 
-- Always run `go fmt ./...` after writing code
+- Run `go fmt ./...` before task completion or after significant code changes, not after every small edit
 
 ### Development Commands
 
