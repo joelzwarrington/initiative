@@ -12,6 +12,15 @@ type Creature interface {
 
 	SetHP(hp int)
 	AdjustHP(amount int) int
+
+	Speed() string
+
+	STR() Ability
+	DEX() Ability
+	CON() Ability
+	INT() Ability
+	WIS() Ability
+	CHA() Ability
 }
 
 // Ability represents a D&D ability score with its modifier

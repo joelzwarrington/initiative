@@ -4,9 +4,19 @@ import "encoding/json"
 
 // Character represents a player character (PC) or non-player character (NPC)
 type Character struct {
-	name  string
+	name string
+
 	hp    int
 	maxHP int
+
+	speed string
+
+	str Ability
+	dex Ability
+	con Ability
+	int Ability
+	wis Ability
+	cha Ability
 }
 
 // NewCharacter creates a character with the given name
@@ -67,6 +77,41 @@ func (c *Character) AdjustHP(amount int) int {
 	newHP := c.hp + amount
 	c.SetHP(newHP)
 	return c.hp - oldHP
+}
+
+// Speed returns the character's speed
+func (c *Character) Speed() string {
+	return c.speed
+}
+
+// STR returns the character's Strength ability
+func (c *Character) STR() Ability {
+	return c.str
+}
+
+// DEX returns the character's Dexterity ability
+func (c *Character) DEX() Ability {
+	return c.dex
+}
+
+// CON returns the character's Constitution ability
+func (c *Character) CON() Ability {
+	return c.con
+}
+
+// INT returns the character's Intelligence ability
+func (c *Character) INT() Ability {
+	return c.int
+}
+
+// WIS returns the character's Wisdom ability
+func (c *Character) WIS() Ability {
+	return c.wis
+}
+
+// CHA returns the character's Charisma ability
+func (c *Character) CHA() Ability {
+	return c.cha
 }
 
 // --- serialization ---

@@ -75,6 +75,41 @@ func (m *Monster) AdjustHP(amount int) int {
 	return m.hp - oldHP
 }
 
+// Speed returns the monster's speed
+func (m *Monster) Speed() string {
+	return m.statBlock.Speed
+}
+
+// STR returns the monster's Strength ability
+func (m *Monster) STR() Ability {
+	return m.statBlock.STR
+}
+
+// DEX returns the monster's Dexterity ability
+func (m *Monster) DEX() Ability {
+	return m.statBlock.DEX
+}
+
+// CON returns the monster's Constitution ability
+func (m *Monster) CON() Ability {
+	return m.statBlock.CON
+}
+
+// INT returns the monster's Intelligence ability
+func (m *Monster) INT() Ability {
+	return m.statBlock.INT
+}
+
+// WIS returns the monster's Wisdom ability
+func (m *Monster) WIS() Ability {
+	return m.statBlock.WIS
+}
+
+// CHA returns the monster's Charisma ability
+func (m *Monster) CHA() Ability {
+	return m.statBlock.CHA
+}
+
 // --- serialization ---
 
 // monster is used to serialize and deserialize Monster details
