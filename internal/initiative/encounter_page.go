@@ -52,6 +52,7 @@ func newEncounterPage(s *skeleton.Skeleton, characters map[string]*dnd.Character
 
 	page.encounterDelegate = newEncounterDelegate(s.GetContentWidth(), s.GetContentHeight())
 	page.help = help.New()
+	page.help.Styles = currentTheme.help
 
 	return page
 }
@@ -161,8 +162,7 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (p *encounterPage) View() string {
 	// Calculate help view for all cases
 	p.help.Width = p.s.GetContentWidth()
-	helpStyle := lipgloss.NewStyle().Padding(0, 1)
-	helpView := helpStyle.Render(p.help.View(p))
+	helpView := p.help.View(p)
 
 	var content string
 	switch true {
@@ -193,7 +193,7 @@ func (p *encounterPage) View() string {
 		content = "No view"
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
+	return currentTheme.container.Render(lipgloss.JoinVertical(lipgloss.Left, content, helpView))
 }
 
 func (p *encounterPage) Key() string {

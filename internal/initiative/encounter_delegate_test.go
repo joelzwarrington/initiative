@@ -28,18 +28,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 					dnd.NewInitiativeGroup(15, []*dnd.Creature{&creature}),
 				})
 			}(),
-			expected: `               
-  1 creature   
-               
- > 15 • Fighter
-               
-               
-               
-               
-               
-               
-               
-               `,
+			expected: "               \n               \n1 creature     \n > 15 • Fighter\n               \n               \n               \n               \n               \n               \n               \n               ",
 		},
 		{
 			name: "multiple initiative groups",
@@ -54,18 +43,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 				})
 				return e
 			}(),
-			expected: `               
-  2 creatures  
-               
- > 20 • Wizard 
-               
-               
-   15 • Fighter
-               
-               
-               
-               
-               `,
+			expected: "               \n               \n2 creatures    \n > 20 • Wizard \n               \n               \n   15 • Fighter\n               \n               \n               \n               \n               ",
 		},
 		{
 			name: "multiple creatures in single group",
@@ -78,18 +56,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 					dnd.NewInitiativeGroup(12, []*dnd.Creature{&creature1, &creature2}),
 				})
 			}(),
-			expected: `                                          
-  2 creatures                             
-                                          
- > 12 • Goblin 1                          
-        ████████████████████ 7/7 (Healthy)
-                                          
-   12 • Goblin 2                          
-        ████████████████████ 7/7 (Healthy)
-                                          
-                                          
-                                          
-                                          `,
+			expected: "                                          \n                                          \n2 creatures                               \n > 12 • Goblin 1                          \n        ████████████████████ 7/7 (Healthy)\n                                          \n   12 • Goblin 2                          \n        ████████████████████ 7/7 (Healthy)\n                                          \n                                          \n                                          \n                                          ",
 		},
 		{
 			name: "character with health bar",
@@ -101,18 +68,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 					dnd.NewInitiativeGroup(18, []*dnd.Creature{&creature}),
 				})
 			}(),
-			expected: `                                         
-  1 creature                             
-                                         
- > 18 • Paladin                          
-        ████████████████░░░░ 20/25 (Hurt)
-                                         
-                                         
-                                         
-                                         
-                                         
-                                         
-                                         `,
+			expected: "                                         \n                                         \n1 creature                               \n > 18 • Paladin                          \n        ████████████████░░░░ 20/25 (Hurt)\n                                         \n                                         \n                                         \n                                         \n                                         \n                                         \n                                         ",
 		},
 		{
 			name: "monster with armor class",
@@ -126,18 +82,7 @@ func TestEncounterDelegateRender(t *testing.T) {
 					dnd.NewInitiativeGroup(14, []*dnd.Creature{&creature}),
 				})
 			}(),
-			expected: `                                            
-  1 creature                                
-                                            
- > 14 • Orc • 󰒙 13                          
-        ████████████████████ 15/15 (Healthy)
-                                            
-                                            
-                                            
-                                            
-                                            
-                                            
-                                            `,
+			expected: "                                            \n                                            \n1 creature                                  \n > 14 • Orc • \U000f0499 13                          \n        ████████████████████ 15/15 (Healthy)\n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            ",
 		},
 	}
 

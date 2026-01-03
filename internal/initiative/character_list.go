@@ -42,18 +42,13 @@ func newCharacterList(characters map[string]*dnd.Character, width int, height in
 	delegate.keys.delete.SetEnabled(hasItems)
 
 	l := list.New(items, delegate, width, height)
+	l.Title = "Characters"
 	l.SetStatusBarItemName("character", "characters")
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(true)
 	l.SetShowHelp(false)
 	l.DisableQuitKeybindings()
 	l.StatusMessageLifetime = time.Duration(1500) * time.Millisecond
 	l.StatusMessageLocation = list.InStatusBar
-
-	// Hide the "No items" message
-	styles := l.Styles
-	styles.NoItems = styles.NoItems.Width(0).Height(0)
-	l.Styles = styles
+	l.Styles = currentTheme.list
 
 	// Set up key map
 	keyMap := list.DefaultKeyMap()

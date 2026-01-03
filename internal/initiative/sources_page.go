@@ -41,6 +41,7 @@ func newSourcesPage(s *skeleton.Skeleton, sources map[string]*dnd.Source) *sourc
 
 	page.sourcesList = newSourcesList(sources, s.GetContentWidth(), s.GetContentHeight())
 	page.help = help.New()
+	page.help.Styles = currentTheme.help
 
 	return page
 }
@@ -95,8 +96,7 @@ func (p *sourcesPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (p *sourcesPage) View() string {
 	// Calculate help view for all cases
 	p.help.Width = p.s.GetContentWidth()
-	helpStyle := lipgloss.NewStyle().Padding(0, 1)
-	helpView := helpStyle.Render(p.help.View(p))
+	helpView := p.help.View(p)
 
 	var content string
 	switch {
@@ -110,7 +110,7 @@ func (p *sourcesPage) View() string {
 		content = "No view"
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
+	return currentTheme.container.Render(lipgloss.JoinVertical(lipgloss.Left, content, helpView))
 }
 
 func (p *sourcesPage) Key() string {
@@ -193,8 +193,7 @@ func (p *sourcesPage) backToList() tea.Cmd {
 func (p *sourcesPage) renderSourcesListContent() string {
 	// Calculate available height for list (subtract help height)
 	p.help.Width = p.s.GetContentWidth()
-	helpStyle := lipgloss.NewStyle().Padding(0, 1)
-	helpView := helpStyle.Render(p.help.View(p))
+	helpView := p.help.View(p)
 	helpHeight := lipgloss.Height(helpView)
 
 	listHeight := p.s.GetContentHeight() - helpHeight
@@ -211,8 +210,7 @@ func (p *sourcesPage) renderSourceDetailContent() string {
 
 	// Calculate available height for content
 	p.help.Width = p.s.GetContentWidth()
-	helpStyle := lipgloss.NewStyle().Padding(0, 1)
-	helpView := helpStyle.Render(p.help.View(p))
+	helpView := p.help.View(p)
 	helpHeight := lipgloss.Height(helpView)
 	availHeight := p.s.GetContentHeight() - helpHeight
 

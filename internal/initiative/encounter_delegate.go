@@ -29,12 +29,12 @@ func newEncounterDelegate(width, height int) *encounterDelegate {
 
 	initiativeList := list.New([]list.Item{}, delegate, width, height)
 	initiativeList.SetStatusBarItemName("creature", "creatures")
-	initiativeList.SetShowTitle(false)
-	initiativeList.SetShowStatusBar(true)
+	initiativeList.Title = "Encounter"
 	initiativeList.SetShowHelp(false)
 	initiativeList.DisableQuitKeybindings()
 	initiativeList.StatusMessageLifetime = time.Duration(3000) * time.Millisecond
 	initiativeList.StatusMessageLocation = list.InStatusBar
+	initiativeList.Styles = currentTheme.list
 
 	// Customize keymap to avoid conflicts with our creature actions
 	keyMap := list.DefaultKeyMap()
@@ -70,6 +70,7 @@ func (d *encounterDelegate) Render(w io.Writer, encounter *dnd.Encounter) {
 	if encounter == nil {
 		return
 	}
+	d.list.Title = encounter.Summary()
 
 	items := []list.Item{}
 	for groupIndex, group := range encounter.InitiativeGroups() {

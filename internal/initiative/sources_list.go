@@ -40,18 +40,12 @@ func newSourcesList(sources map[string]*dnd.Source, width int, height int) *sour
 	delegate.keys.view.SetEnabled(hasItems)
 
 	l := list.New(items, delegate, width, height)
+	l.Title = "Sources"
 	l.SetStatusBarItemName("source", "sources")
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(true)
 	l.SetShowHelp(false)
 	l.DisableQuitKeybindings()
 	l.StatusMessageLifetime = time.Duration(1500) * time.Millisecond
-	l.StatusMessageLocation = list.InStatusBar
-
-	// Hide the "No items" message
-	styles := l.Styles
-	styles.NoItems = styles.NoItems.Width(0).Height(0)
-	l.Styles = styles
+	l.Styles = currentTheme.list
 
 	// Set up key map
 	keyMap := list.DefaultKeyMap()

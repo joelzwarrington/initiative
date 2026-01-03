@@ -50,8 +50,7 @@ func (e *EmptyState) SetShowFullHelp(v bool) {
 func (e *EmptyState) View() string {
 	// Create message with top-left positioning and padding
 	messageStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("240")).
-		Padding(1, 2, 0, 2) // 1 top, 2 left/right, 0 bottom
+		Foreground(lipgloss.Color("240"))
 
 	message := messageStyle.Render(e.message)
 

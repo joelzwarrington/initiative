@@ -20,40 +20,19 @@ func TestCharacterListView(t *testing.T) {
 				"2": dnd.NewCharacter("alice"),
 				"3": dnd.NewCharacter("Bob"),
 			},
-			expected: `              
-  3 characters
-              
-  > 1. alice  
-    2. Bob    
-    3. Zara   
-              
-              `,
+			expected: "Characters  \n            \n3 characters\n  > 1. alice\n    2. Bob  \n    3. Zara \n            \n            ",
 		},
 		{
 			name: "handles single character",
 			characters: map[string]*dnd.Character{
 				"solo": dnd.NewCharacter("Hero"),
 			},
-			expected: `             
-  1 character
-             
-  > 1. Hero  
-             
-             
-             
-             `,
+			expected: "Characters \n           \n1 character\n  > 1. Hero\n           \n           \n           \n           ",
 		},
 		{
 			name:       "empty list shows no items",
 			characters: map[string]*dnd.Character{},
-			expected: `               
-  No characters
-               
-No characters. 
-               
-               
-               
-               `,
+			expected:   "Characters    \n              \nNo characters \nNo characters.\n              \n              \n              \n              ",
 		},
 	}
 
