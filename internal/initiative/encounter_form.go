@@ -63,6 +63,11 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 	return formKeys
 }
 
+// HelpKeys returns the key bindings for use by the parent page
+func (f *encounterForm) HelpKeys() []key.Binding {
+	return f.getHelpKeys()
+}
+
 type encounterFormCancelledMsg struct{}
 type encounterFormSubmittedMsg struct {
 	encounter *dnd.Encounter
@@ -198,16 +203,8 @@ func (f *encounterForm) View() string {
 		return ""
 	}
 
-	// Render form content
-	formView := f.styles.container.Render(form.View())
-
-	// Render custom help
-	f.help.Width = f.width - f.styles.help.GetHorizontalPadding()
-	helpKeys := f.getHelpKeys()
-	helpView := f.styles.help.Render(f.help.ShortHelpView(helpKeys))
-
-	// Join form and help vertically
-	return lipgloss.JoinVertical(lipgloss.Left, formView, helpView)
+	// Render form content only - no help component
+	return f.styles.container.Render(form.View())
 }
 
 func (f *encounterForm) getCurrentForm() *huh.Form {

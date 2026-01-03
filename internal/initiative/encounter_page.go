@@ -159,35 +159,41 @@ func (p *encounterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *encounterPage) View() string {
+	// Calculate help view for all cases
+	p.help.Width = p.s.GetContentWidth()
+	helpStyle := lipgloss.NewStyle().Padding(0, 1)
+	helpView := helpStyle.Render(p.help.View(p))
+
+	var content string
 	switch true {
 	case p.isCancellingEncounter():
-		return p.cancellationForm.View()
+		content = p.cancellationForm.View()
 	case p.isAdjustingHitPoints():
-		return p.hitPointForm.View()
+		content = p.hitPointForm.View()
 	case p.encounter != nil:
 		// Calculate available height for list (subtract help height)
-		p.help.Width = p.s.GetContentWidth()
-		helpStyle := lipgloss.NewStyle().Padding(0, 1)
-		helpView := helpStyle.Render(p.help.View(p))
 		helpHeight := lipgloss.Height(helpView)
-
 		listHeight := p.s.GetContentHeight() - helpHeight
 
 		p.encounterDelegate.SetSize(p.s.GetContentWidth(), listHeight)
 
 		var buf strings.Builder
 		p.encounterDelegate.Render(&buf, p.encounter)
-		listView := buf.String()
-
-		return lipgloss.JoinVertical(lipgloss.Left, listView, helpView)
+		content = buf.String()
 	case p.isAddingNewEncounter():
-		return p.encounterForm.View()
+		content = p.encounterForm.View()
 	case p.isEmptyState():
-		return p.emptyState.View()
+		// Calculate available height for empty state (subtract help height)
+		helpHeight := lipgloss.Height(helpView)
+		emptyStateHeight := p.s.GetContentHeight() - helpHeight
+		p.emptyState.SetSize(p.s.GetContentWidth(), emptyStateHeight)
+		content = p.emptyState.View()
 	default:
 		// This shouldn't be possible, but we return to satisfy the types.
-		return "No view"
+		content = "No view"
 	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
 }
 
 func (p *encounterPage) Key() string {
@@ -211,6 +217,23 @@ func (p *encounterPage) Title() string {
 func (p *encounterPage) FullHelp() [][]key.Binding {
 	// Update key states based on current state
 	p.updateKeyStates()
+
+	// Handle form states first
+	if p.isAddingNewEncounter() && p.encounterForm != nil {
+		formKeys := p.encounterForm.HelpKeys()
+		// Group form keys by type if needed, or return as single group
+		return [][]key.Binding{formKeys}
+	}
+
+	if p.isAdjustingHitPoints() && p.hitPointForm != nil {
+		formKeys := p.hitPointForm.HelpKeys()
+		return [][]key.Binding{formKeys}
+	}
+
+	if p.isCancellingEncounter() && p.cancellationForm != nil {
+		formKeys := p.cancellationForm.HelpKeys()
+		return [][]key.Binding{formKeys}
+	}
 
 	if p.isEmptyState() {
 		// Empty state: only show new and help
@@ -260,6 +283,24 @@ func (p *encounterPage) FullHelp() [][]key.Binding {
 func (p *encounterPage) ShortHelp() []key.Binding {
 	// Update key states based on current state
 	p.updateKeyStates()
+
+	// Handle form states first - show essential form keys
+	if p.isAddingNewEncounter() && p.encounterForm != nil {
+		formKeys := p.encounterForm.HelpKeys()
+		// Return a subset of essential form keys, or first few
+		if len(formKeys) > 4 {
+			return formKeys[:4]
+		}
+		return formKeys
+	}
+
+	if p.isAdjustingHitPoints() && p.hitPointForm != nil {
+		return p.hitPointForm.HelpKeys()
+	}
+
+	if p.isCancellingEncounter() && p.cancellationForm != nil {
+		return p.cancellationForm.HelpKeys()
+	}
 
 	// Return only essential keys in specified order: up, down, prev turn, next turn, damage, heal, help
 	keys := []key.Binding{}

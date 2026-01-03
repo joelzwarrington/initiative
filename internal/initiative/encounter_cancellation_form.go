@@ -1,6 +1,7 @@
 package initiative
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
@@ -62,6 +63,14 @@ func (f *cancellationForm) SetSize(width, height int) {
 	f.width = width
 	f.height = height
 	f.form = f.form.WithWidth(width).WithHeight(height)
+}
+
+// HelpKeys returns the key bindings for use by the parent page
+func (f *cancellationForm) HelpKeys() []key.Binding {
+	if f.form == nil {
+		return []key.Binding{}
+	}
+	return f.form.KeyBinds()
 }
 
 // Messages

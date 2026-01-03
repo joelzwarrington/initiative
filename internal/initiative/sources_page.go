@@ -93,16 +93,24 @@ func (p *sourcesPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *sourcesPage) View() string {
+	// Calculate help view for all cases
+	p.help.Width = p.s.GetContentWidth()
+	helpStyle := lipgloss.NewStyle().Padding(0, 1)
+	helpView := helpStyle.Render(p.help.View(p))
+
+	var content string
 	switch {
 	case p.isViewingSource():
-		return p.renderSourceDetail()
+		content = p.renderSourceDetailContent()
 
 	case p.isViewingList():
-		return p.renderSourcesList()
+		content = p.renderSourcesListContent()
 
 	default:
-		return "No view"
+		content = "No view"
 	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
 }
 
 func (p *sourcesPage) Key() string {
@@ -182,7 +190,7 @@ func (p *sourcesPage) backToList() tea.Cmd {
 }
 
 // Render methods
-func (p *sourcesPage) renderSourcesList() string {
+func (p *sourcesPage) renderSourcesListContent() string {
 	// Calculate available height for list (subtract help height)
 	p.help.Width = p.s.GetContentWidth()
 	helpStyle := lipgloss.NewStyle().Padding(0, 1)
@@ -192,11 +200,10 @@ func (p *sourcesPage) renderSourcesList() string {
 	listHeight := p.s.GetContentHeight() - helpHeight
 	p.sourcesList.SetSize(p.s.GetContentWidth(), listHeight)
 
-	listView := p.sourcesList.View()
-	return lipgloss.JoinVertical(lipgloss.Left, listView, helpView)
+	return p.sourcesList.View()
 }
 
-func (p *sourcesPage) renderSourceDetail() string {
+func (p *sourcesPage) renderSourceDetailContent() string {
 	var sourceName string
 	if source, exists := p.sources[p.currentSource]; exists {
 		sourceName = source.Meta.Name
@@ -211,15 +218,13 @@ func (p *sourcesPage) renderSourceDetail() string {
 
 	// Create main content area
 	content := fmt.Sprintf("Viewing source: %s", sourceName)
-	contentArea := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Height(availHeight).
 		Width(p.s.GetContentWidth()).
 		AlignHorizontal(lipgloss.Left).
 		AlignVertical(lipgloss.Top).
 		Padding(1, 2, 0, 2).
 		Render(content)
-
-	return lipgloss.JoinVertical(lipgloss.Left, contentArea, helpView)
 }
 
 // Key mappings

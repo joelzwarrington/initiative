@@ -125,6 +125,11 @@ func (f *characterForm) getHelpKeys() []key.Binding {
 	return allKeys
 }
 
+// HelpKeys returns the key bindings for use by the parent page
+func (f *characterForm) HelpKeys() []key.Binding {
+	return f.getHelpKeys()
+}
+
 func (f *characterForm) Init() tea.Cmd {
 	return f.form.Init()
 }
@@ -179,16 +184,8 @@ func (f *characterForm) View() string {
 		return ""
 	}
 
-	// Render form content
-	formView := f.styles.container.Render(f.form.View())
-
-	// Render custom help
-	f.help.Width = f.width - f.styles.help.GetHorizontalPadding()
-	helpKeys := f.getHelpKeys()
-	helpView := f.styles.help.Render(f.help.ShortHelpView(helpKeys))
-
-	// Join form and help vertically
-	return lipgloss.JoinVertical(lipgloss.Left, formView, helpView)
+	// Render form content only - no help component
+	return f.styles.container.Render(f.form.View())
 }
 
 func (f *characterForm) SetSize(width int, height int) {

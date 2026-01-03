@@ -122,22 +122,35 @@ func (p *characterPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *characterPage) View() string {
+	// Calculate help view for all cases
+	p.help.Width = p.s.GetContentWidth()
+	helpStyle := lipgloss.NewStyle().Padding(0, 1)
+	helpView := helpStyle.Render(p.help.View(p))
+
+	var content string
 	switch {
 	case p.isAddingOrEditingCharacter():
-		return p.characterForm.View()
+		content = p.characterForm.View()
 
 	case p.isViewingCharacter():
-		return p.renderCharacterDetail()
+		content = p.renderCharacterDetailContent()
 
 	case p.isViewingList():
 		if p.hasCharacters() {
-			return p.renderCharacterList()
+			content = p.renderCharacterListContent()
+		} else {
+			// Calculate available height for empty state (subtract help height)
+			helpHeight := lipgloss.Height(helpView)
+			emptyStateHeight := p.s.GetContentHeight() - helpHeight
+			p.emptyState.SetSize(p.s.GetContentWidth(), emptyStateHeight)
+			content = p.emptyState.View()
 		}
-		return p.renderEmptyState()
 
 	default:
-		return "No view"
+		content = "No view"
 	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, content, helpView)
 }
 
 func (p *characterPage) Key() string {
@@ -161,6 +174,8 @@ func (p *characterPage) Title() string {
 
 func (p *characterPage) ShortHelp() []key.Binding {
 	switch {
+	case p.isAddingOrEditingCharacter() && p.characterForm != nil:
+		return p.characterForm.HelpKeys()
 	case p.isViewingCharacter():
 		return []key.Binding{p.keys.Back}
 	case p.isViewingList():
@@ -178,6 +193,9 @@ func (p *characterPage) ShortHelp() []key.Binding {
 
 func (p *characterPage) FullHelp() [][]key.Binding {
 	switch {
+	case p.isAddingOrEditingCharacter() && p.characterForm != nil:
+		formKeys := p.characterForm.HelpKeys()
+		return [][]key.Binding{formKeys}
 	case p.isViewingCharacter():
 		return [][]key.Binding{{p.keys.Back}}
 	case p.isViewingList():
@@ -274,7 +292,7 @@ func (p *characterPage) submitCharacterForm(submission characterFormSubmittedMsg
 }
 
 // Render methods
-func (p *characterPage) renderCharacterList() string {
+func (p *characterPage) renderCharacterListContent() string {
 	// Calculate available height for list (subtract help height)
 	p.help.Width = p.s.GetContentWidth()
 	helpStyle := lipgloss.NewStyle().Padding(0, 1)
@@ -284,17 +302,10 @@ func (p *characterPage) renderCharacterList() string {
 	listHeight := p.s.GetContentHeight() - helpHeight
 	p.characterList.SetSize(p.s.GetContentWidth(), listHeight)
 
-	listView := p.characterList.View()
-	return lipgloss.JoinVertical(lipgloss.Left, listView, helpView)
+	return p.characterList.View()
 }
 
-func (p *characterPage) renderEmptyState() string {
-	// Let the empty state handle its own help display
-	p.emptyState.SetSize(p.s.GetContentWidth(), p.s.GetContentHeight())
-	return p.emptyState.View()
-}
-
-func (p *characterPage) renderCharacterDetail() string {
+func (p *characterPage) renderCharacterDetailContent() string {
 	var characterName string
 	if p.characters != nil {
 		if character, exists := p.characters[p.currentCharacter]; exists {
@@ -311,15 +322,13 @@ func (p *characterPage) renderCharacterDetail() string {
 
 	// Create main content area
 	content := fmt.Sprintf("Viewing character: %s", characterName)
-	contentArea := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Height(availHeight).
 		Width(p.s.GetContentWidth()).
 		AlignHorizontal(lipgloss.Left).
 		AlignVertical(lipgloss.Top).
 		Padding(1, 2, 0, 2).
 		Render(content)
-
-	return lipgloss.JoinVertical(lipgloss.Left, contentArea, helpView)
 }
 
 // Key mappings

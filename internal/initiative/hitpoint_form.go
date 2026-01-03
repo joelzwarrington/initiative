@@ -137,6 +137,11 @@ func (f *hitPointForm) getHelpKeys() []key.Binding {
 	return allKeys
 }
 
+// HelpKeys returns the key bindings for use by the parent page
+func (f *hitPointForm) HelpKeys() []key.Binding {
+	return f.getHelpKeys()
+}
+
 func (f *hitPointForm) Init() tea.Cmd {
 	return f.form.Init()
 }
@@ -184,13 +189,8 @@ func (f *hitPointForm) View() string {
 		return ""
 	}
 
-	formView := f.styles.container.Render(f.form.View())
-
-	f.help.Width = f.width - f.styles.help.GetHorizontalPadding()
-	helpKeys := f.getHelpKeys()
-	helpView := f.styles.help.Render(f.help.ShortHelpView(helpKeys))
-
-	return lipgloss.JoinVertical(lipgloss.Left, formView, helpView)
+	// Render form content only - no help component
+	return f.styles.container.Render(f.form.View())
 }
 
 func (f *hitPointForm) SetSize(width int, height int) {
