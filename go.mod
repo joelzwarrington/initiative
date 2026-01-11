@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
-	github.com/termkit/skeleton v0.2.2
+	github.com/termkit/skeleton v0.2.3-0.20260104080401-960d1563cd00
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -44,7 +44,5 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 )
-
-replace github.com/termkit/skeleton => github.com/joelzwarrington/skeleton v0.0.0-20251227093831-1bfc5a73b7cf
 
 replace github.com/charmbracelet/bubbles => github.com/joelzwarrington/bubbles v0.0.0-20251228201040-331530f35033

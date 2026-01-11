@@ -51,8 +51,6 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/joelzwarrington/bubbles v0.0.0-20251228201040-331530f35033 h1:e14jEWdl9Tef6V+SOJe9mTh/Q+C+9Algc39+Lnp+q/c=
 github.com/joelzwarrington/bubbles v0.0.0-20251228201040-331530f35033/go.mod h1:EL3o8MMvcfO7Fd1iKMeDHB++csJ8Xu9LTrh5Yy8ev70=
-github.com/joelzwarrington/skeleton v0.0.0-20251227093831-1bfc5a73b7cf h1:P1I6PAfh4nuujO1SNA1SWPEcNqTNLLX6VYMUsxWqLu0=
-github.com/joelzwarrington/skeleton v0.0.0-20251227093831-1bfc5a73b7cf/go.mod h1:M2KtcgCw/2Ymq9Hy1pHFdrMS7e6LNb19tW6MrNLgLIg=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lucasb-eyer/go-colorful v1.3.0 h1:2/yBRLdWBZKrf7gB40FoiKfAWYQ0lqNcbuQwVHXptag=
@@ -80,6 +78,8 @@ github.com/spf13/cobra v1.10.2 h1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=
 github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiTUUS4=
 github.com/spf13/pflag v1.0.9 h1:9exaQaMOCwffKiiiYk6/BndUBv+iRViNW+4lEMi0PvY=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
+github.com/termkit/skeleton v0.2.3-0.20260104080401-960d1563cd00 h1:HQ+kw4ROm5XBlvGOrpULxTOFBg5bLiWoqy0+N99dQas=
+github.com/termkit/skeleton v0.2.3-0.20260104080401-960d1563cd00/go.mod h1:M2KtcgCw/2Ymq9Hy1pHFdrMS7e6LNb19tW6MrNLgLIg=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
