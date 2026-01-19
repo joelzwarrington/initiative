@@ -20,6 +20,17 @@ type InitiativeGroup struct {
 	creatures  []*Creature
 }
 
+// InitiativeEntry represents a creature entry in the initiative list field
+// Used as form data before converting to InitiativeGroups
+type InitiativeEntry struct {
+	CreatureType string     // "character" or "monster"
+	CreatureID   string     // UUID for character, "source:name" for monster
+	Name         string     // Display name (custom for monsters)
+	Initiative   int        // Initiative value (0 = not set)
+	Quantity     int        // 1 for characters, configurable for monsters
+	StatBlock    *StatBlock // For monsters only (nil for characters)
+}
+
 // Initiative returns the initiative value for this group
 func (g *InitiativeGroup) Initiative() int {
 	return g.initiative

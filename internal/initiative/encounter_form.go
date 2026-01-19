@@ -3,7 +3,6 @@ package initiative
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,13 +12,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joelzwarrington/initiative/dnd"
-	"github.com/joelzwarrington/initiative/internal/form"
 )
-
-type creatureChoice struct {
-	id       string
-	creature dnd.Creature
-}
 
 type encounterFormStyles struct {
 	container lipgloss.Style
@@ -65,6 +58,21 @@ func (f *encounterForm) getHelpKeys() []key.Binding {
 
 // HelpKeys returns the key bindings for use by the parent page
 func (f *encounterForm) HelpKeys() []key.Binding {
+	// When showing cancel confirmation, use its help keys
+	if f.confirmCancelForm != nil {
+		return f.confirmCancelForm.KeyBinds()
+	}
+
+	// When showing monster add form, use its help keys
+	if f.monsterAddForm != nil {
+		return f.monsterAddForm.HelpKeys()
+	}
+
+	// When showing initiative list, use its key bindings
+	if f.initiativeListField != nil && len(*f.forms) > 1 {
+		return f.initiativeListField.KeyBinds()
+	}
+
 	return f.getHelpKeys()
 }
 
@@ -83,6 +91,15 @@ type encounterForm struct {
 	characters map[string]*dnd.Character
 	sources    map[string]*dnd.Source
 
+	// Initiative list components
+	initiativeListField *InitiativeListField
+	monsterAddForm      *monsterAddForm
+	editingMonsterIndex int // Index of monster being edited (-1 if adding new)
+
+	// Cancel confirmation
+	confirmCancelForm *huh.Form
+	confirmCancel     bool
+
 	width  int
 	height int
 	help   help.Model
@@ -96,6 +113,7 @@ func newEncounterForm(c map[string]*dnd.Character, s map[string]*dnd.Source, wid
 		key.WithHelp("esc", "cancel"),
 	)
 
+	// Step 1: Summary input
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Key("summary").Title("Summary").
@@ -106,25 +124,7 @@ func newEncounterForm(c map[string]*dnd.Character, s map[string]*dnd.Source, wid
 					return nil
 				}),
 		).Title("Add new encounter\n"),
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Key("characters").
-				Title("Characters").
-				Options(getCharacterOptions(c)...).
-				Validate(func(values []string) error {
-					return nil // Allow empty character selection
-				}),
-		).Title("Add characters to encounter"),
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Key("monsters").
-				Title("Monsters").
-				Options(getMonsterOptions(s)...).
-				Validate(func(values []string) error {
-					return nil // Allow empty monster selection
-				}),
-		).Title("Add monsters to encounter"),
-	).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(keyMap)
+	).WithTheme(currentTheme.form).WithShowErrors(true).WithShowHelp(false).WithKeyMap(keyMap)
 
 	form.CancelCmd = func() tea.Msg {
 		return encounterFormPreviousStepMsg{}
@@ -138,13 +138,14 @@ func newEncounterForm(c map[string]*dnd.Character, s map[string]*dnd.Source, wid
 		forms: &[]*huh.Form{form},
 		keys:  keyMap,
 		styles: encounterFormStyles{
-			container: lipgloss.NewStyle().Padding(1, 2, 0, 2), // 1 top, 2 horizontal, 0 bottom
+			container: lipgloss.NewStyle().Padding(1, 2, 0, 2),
 			help:      lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 2),
 		},
 
-		characters: c,
-		sources:    s,
-		help:       help.New(),
+		characters:          c,
+		sources:             s,
+		editingMonsterIndex: -1,
+		help:                help.New(),
 	}
 
 	// Apply sizing using the standard SetSize method
@@ -163,6 +164,71 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if currentForm == nil {
 		return f, nil
+	}
+
+	// Handle cancel confirmation form if active
+	if f.confirmCancelForm != nil {
+		form, cmd := f.confirmCancelForm.Update(msg)
+		f.confirmCancelForm = form.(*huh.Form)
+
+		if f.confirmCancelForm.State == huh.StateCompleted {
+			if f.confirmCancel {
+				// User confirmed cancellation
+				return f, tea.Cmd(func() tea.Msg {
+					return encounterFormCancelledMsg{}
+				})
+			}
+			// User chose not to cancel - dismiss the confirmation and continue
+			f.confirmCancelForm = nil
+			f.confirmCancel = false
+			return f, nil
+		}
+
+		return f, cmd
+	}
+
+	// Handle monster add/edit form if active
+	if f.monsterAddForm != nil {
+		switch msg := msg.(type) {
+		case monsterAddFormCancelledMsg:
+			f.monsterAddForm = nil
+			f.editingMonsterIndex = -1
+			return f, nil
+		case monsterAddFormSubmittedMsg:
+			f.monsterAddForm = nil
+			var cmd tea.Cmd
+			if f.initiativeListField != nil {
+				if f.editingMonsterIndex >= 0 {
+					// Update existing monster
+					f.initiativeListField.UpdateMonster(f.editingMonsterIndex, msg.entry)
+				} else {
+					// Add new monster
+					cmd = f.initiativeListField.AddMonster(msg.entry)
+				}
+			}
+			f.editingMonsterIndex = -1
+			return f, cmd
+		default:
+			form, cmd := f.monsterAddForm.Update(msg)
+			if form, ok := form.(*monsterAddForm); ok {
+				f.monsterAddForm = form
+			}
+			return f, cmd
+		}
+	}
+
+	// Handle request to add monster
+	if _, ok := msg.(requestAddMonsterMsg); ok {
+		f.editingMonsterIndex = -1
+		f.monsterAddForm = newMonsterAddForm(f.sources, f.width, f.height)
+		return f, f.monsterAddForm.Init()
+	}
+
+	// Handle request to edit monster
+	if editMsg, ok := msg.(requestEditMonsterMsg); ok {
+		f.editingMonsterIndex = editMsg.index
+		f.monsterAddForm = newMonsterEditForm(f.sources, editMsg.entry, f.width, f.height)
+		return f, f.monsterAddForm.Init()
 	}
 
 	switch msg.(type) {
@@ -186,11 +252,9 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			f.keys.Quit.SetEnabled(!isFiltering)
 		}
 
-		// Handle form quit (ESC pressed)
+		// Handle form quit (ESC pressed) - show confirmation
 		if form.State == huh.StateAborted {
-			return f, tea.Cmd(func() tea.Msg {
-				return encounterFormCancelledMsg{}
-			})
+			return f, f.showCancelConfirmation()
 		}
 	}
 
@@ -198,6 +262,16 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (f *encounterForm) View() string {
+	// Show cancel confirmation if active
+	if f.confirmCancelForm != nil {
+		return f.styles.container.Render(f.confirmCancelForm.View())
+	}
+
+	// Show monster add form if active
+	if f.monsterAddForm != nil {
+		return f.monsterAddForm.View()
+	}
+
 	form := f.getCurrentForm()
 	if form == nil {
 		return ""
@@ -224,116 +298,6 @@ func (f *encounterForm) getSummary() string {
 	return form.GetString("summary")
 }
 
-func (f *encounterForm) getCharacters() []creatureChoice {
-	if len(*f.forms) == 0 || f.characters == nil {
-		return []creatureChoice{}
-	}
-
-	form := (*f.forms)[0]
-	uuids, ok := form.Get("characters").([]string)
-	if !ok {
-		return []creatureChoice{}
-	}
-
-	var options []creatureChoice
-	for _, uuid := range uuids {
-		if character, exists := f.characters[uuid]; exists {
-			options = append(options, creatureChoice{
-				id:       uuid,
-				creature: character,
-			})
-		}
-	}
-
-	// Sort by name (case-insensitive)
-	sort.Slice(options, func(i, j int) bool {
-		return strings.ToLower(options[i].creature.Name()) < strings.ToLower(options[j].creature.Name())
-	})
-
-	return options
-}
-
-func (f *encounterForm) getMonsters() []creatureChoice {
-	if len(*f.forms) == 0 {
-		return []creatureChoice{}
-	}
-
-	form := (*f.forms)[0]
-	values, ok := form.Get("monsters").([]string)
-	if !ok {
-		return []creatureChoice{}
-	}
-
-	var options []creatureChoice
-	for _, value := range values {
-		// value format is "sourceKey:monsterName"
-		parts := strings.Split(value, ":")
-		if len(parts) != 2 {
-			continue
-		}
-
-		sourceKey := parts[0]
-		monsterName := parts[1]
-
-		if source, exists := f.sources[sourceKey]; exists {
-			for _, monster := range source.Monsters {
-				if monster.Name() == monsterName {
-					// Create a copy to avoid loop variable issues
-					m := monster
-					options = append(options, creatureChoice{
-						id:       value,
-						creature: &m,
-					})
-					break
-				}
-			}
-		}
-	}
-
-	// Sort by name (case-insensitive)
-	sort.Slice(options, func(i, j int) bool {
-		return strings.ToLower(options[i].creature.Name()) < strings.ToLower(options[j].creature.Name())
-	})
-
-	return options
-}
-
-// getCharacterOptions outputs a list of sorted form options from a map of characters
-func getCharacterOptions(characters map[string]*dnd.Character) []huh.Option[string] {
-	var options []huh.Option[string]
-	if characters != nil {
-		type entry struct {
-			uuid      string
-			character *dnd.Character
-		}
-
-		var entries []entry
-		for uuid, character := range characters {
-			entries = append(entries, entry{uuid: uuid, character: character})
-		}
-
-		sort.Slice(entries, func(i, j int) bool {
-			return strings.ToLower(entries[i].character.Name()) < strings.ToLower(entries[j].character.Name())
-		})
-
-		for _, entry := range entries {
-			options = append(options, huh.NewOption(entry.character.Name(), entry.uuid).Selected(true))
-		}
-	}
-	return options
-}
-
-func getMonsterOptions(sources map[string]*dnd.Source) []huh.Option[string] {
-	var options []huh.Option[string]
-	for sourceKey, source := range sources {
-		for _, monster := range source.Monsters {
-			value := sourceKey + ":" + monster.Name()
-			options = append(options, huh.NewOption(monster.Name(), value))
-		}
-	}
-	return options
-}
-
 func (f *encounterForm) SetSize(width int, height int) {
 	f.width = width
 	f.height = height
@@ -358,24 +322,54 @@ func (f *encounterForm) SetSize(width int, height int) {
 			form.WithHeight(formHeight).WithWidth(formWidth)
 		}
 	}
+
+	// Update initiative list field size if it exists
+	if f.initiativeListField != nil {
+		f.initiativeListField.WithWidth(formWidth).WithHeight(formHeight)
+	}
+
+	// Update monster add form size if it exists
+	if f.monsterAddForm != nil {
+		f.monsterAddForm.SetSize(width, height)
+	}
+
+	// Update cancel confirmation form size if it exists
+	if f.confirmCancelForm != nil {
+		f.confirmCancelForm.WithWidth(formWidth).WithHeight(formHeight)
+	}
 }
 
 func (f *encounterForm) prevStep() tea.Cmd {
 	// when more than 1 form, remove the last form
 	if len(*f.forms) > 1 {
 		*f.forms = (*f.forms)[:len(*f.forms)-1]
+		// Clear initiative list field when going back
+		if len(*f.forms) == 1 {
+			f.initiativeListField = nil
+		}
 		return nil
 	}
 
-	// when there's just 1 form, send a cancelled message
-	return func() tea.Msg {
-		return encounterFormCancelledMsg{}
-	}
+	// when there's just 1 form, show cancel confirmation
+	return f.showCancelConfirmation()
+}
+
+func (f *encounterForm) showCancelConfirmation() tea.Cmd {
+	f.confirmCancel = false
+	f.confirmCancelForm = huh.NewForm(
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Are you sure you want to cancel?").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&f.confirmCancel),
+		),
+	).WithTheme(currentTheme.form).WithWidth(f.width).WithHeight(f.height)
+
+	return f.confirmCancelForm.Init()
 }
 
 func (f *encounterForm) nextStep() tea.Cmd {
-	// Since we have a single form with multiple groups, we need to get data from the current form
-	// and create the initiative collection form
 	currentForm := f.getCurrentForm()
 	if currentForm == nil {
 		return func() tea.Msg {
@@ -383,128 +377,16 @@ func (f *encounterForm) nextStep() tea.Cmd {
 		}
 	}
 
-	// Get data from current form
-	characters := f.getCharacters()
-	monsters := f.getMonsters()
-
-	// If no characters or monsters selected, return an error or cancel
-	if len(characters) == 0 && len(monsters) == 0 {
-		// Could show an error here instead, but for now let's allow it
-		return f.submit()
-	}
-
 	switch len(*f.forms) {
 	case 1:
-		var groups []*huh.Group
+		// Create initiative list field with all characters pre-populated
+		f.initiativeListField = NewInitiativeListField(f.characters, f.sources)
 
-		// Add separate group for each character
-		for _, characterOption := range characters {
-			initiativeKey := fmt.Sprintf("initiative_%s", characterOption.id)
-			hpKey := fmt.Sprintf("hp_%s", characterOption.id)
-			maxHpKey := fmt.Sprintf("maxhp_%s", characterOption.id)
-			title := fmt.Sprintf("%s's stats\n", characterOption.creature.Name())
-
-			// Default values
-			currentHP := fmt.Sprintf("%d", characterOption.creature.HP())
-			maxHP := fmt.Sprintf("%d", characterOption.creature.MaxHP())
-			if characterOption.creature.MaxHP() == 0 {
-				currentHP = ""
-				maxHP = ""
-			}
-
-			groupFields := []huh.Field{
-				huh.NewInput().Key(initiativeKey).Title("Initiative").
-					Validate(func(str string) error {
-						if strings.TrimSpace(str) == "" {
-							return fmt.Errorf("Initiative is required")
-						}
-						value, err := strconv.Atoi(strings.TrimSpace(str))
-						if err != nil || value <= 0 {
-							return fmt.Errorf("Initiative must be a positive number")
-						}
-						return nil
-					}),
-				huh.NewInput().Key(maxHpKey).Title("Maximum Hit Points").
-					Description("Leave empty for 0 HP (no health bar)").
-					Value(&maxHP).
-					Validate(func(str string) error {
-						trimmed := strings.TrimSpace(str)
-						if trimmed == "" {
-							return nil // Allow empty for 0 HP
-						}
-						value, err := strconv.Atoi(trimmed)
-						if err != nil || value < 0 {
-							return fmt.Errorf("Maximum Hit Points must be a non-negative number")
-						}
-						return nil
-					}),
-				huh.NewInput().Key(hpKey).Title("Current Hit Points").
-					Description("Leave empty to use Maximum Hit Points").
-					Value(&currentHP).
-					Validate(func(str string) error {
-						trimmed := strings.TrimSpace(str)
-						if trimmed == "" {
-							return nil // Allow empty to use max HP
-						}
-						value, err := strconv.Atoi(trimmed)
-						if err != nil || value < 0 {
-							return fmt.Errorf("Current Hit Points must be a non-negative number")
-						}
-						return nil
-					}),
-			}
-
-			groups = append(groups, huh.NewGroup(groupFields...).Title(title))
-		}
-
-		for _, monsterOption := range monsters {
-			name := monsterOption.creature.Name()
-			title := fmt.Sprintf("%s's quantity and initiative\n", name)
-
-			groups = append(
-				groups,
-				huh.NewGroup(
-					huh.NewInput().
-						Key(fmt.Sprintf("name_%s", monsterOption.id)).
-						Title("Name").
-						Description("The name can be customized to represent the monster this statblock is attached to.").
-						Value(&name),
-					huh.NewInput().
-						Key(fmt.Sprintf("quantity_%s", monsterOption.id)).
-						Title("Quantity").
-						Validate(func(str string) error {
-							if strings.TrimSpace(str) == "" {
-								return fmt.Errorf("Quantity is required")
-							}
-							value, err := strconv.Atoi(strings.TrimSpace(str))
-							if err != nil || value <= 0 {
-								return fmt.Errorf("Quantity must be a positive number")
-							}
-							return nil
-						}),
-					huh.NewInput().
-						Key(fmt.Sprintf("initiative_%s", monsterOption.id)).
-						Title("Initiative").
-						Validate(func(str string) error {
-							if strings.TrimSpace(str) == "" {
-								return fmt.Errorf("Initiative is required")
-							}
-							value, err := strconv.Atoi(strings.TrimSpace(str))
-							if err != nil || value <= 0 {
-								return fmt.Errorf("Initiative must be a positive number")
-							}
-							return nil
-						}),
-				).Title(title),
-			)
-		}
-
-		// If no groups were created, skip to submit
-		if len(groups) == 0 {
-			return f.submit()
-		}
-
-		form := huh.NewForm(groups...).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(f.keys)
+		// Create form with the initiative list field (no title - list shows its own status)
+		// ShowErrors is false because the field shows its own status line
+		form := huh.NewForm(
+			huh.NewGroup(f.initiativeListField),
+		).WithTheme(currentTheme.form).WithShowErrors(false).WithShowHelp(false).WithKeyMap(f.keys)
 
 		form.CancelCmd = func() tea.Msg {
 			return encounterFormPreviousStepMsg{}
@@ -514,17 +396,16 @@ func (f *encounterForm) nextStep() tea.Cmd {
 			return encounterFormNextStepMsg{}
 		}
 
-		*f.forms = append(
-			*f.forms,
-			form,
-		)
+		*f.forms = append(*f.forms, form)
 
-		// Apply sizing using the standard SetSize method
+		// Apply sizing
 		f.SetSize(f.width, f.height)
 
 		return form.Init()
+
 	case 2:
 		return f.submit()
+
 	default:
 		return func() tea.Msg {
 			return encounterFormCancelledMsg{}
@@ -533,101 +414,51 @@ func (f *encounterForm) nextStep() tea.Cmd {
 }
 
 func (f *encounterForm) submit() tea.Cmd {
-	if len(*f.forms) < 2 {
+	if len(*f.forms) < 2 || f.initiativeListField == nil {
 		return func() tea.Msg {
 			return encounterFormCancelledMsg{}
 		}
 	}
 
+	// Validate all entries have initiative
+	if err := f.initiativeListField.Error(); err != nil {
+		// Don't submit if validation fails
+		return nil
+	}
+
 	firstForm := (*f.forms)[0]
-	secondForm := (*f.forms)[1]
-
-	// Get values from first form
 	summary := firstForm.GetString("summary")
-	characterUUIDs, _ := firstForm.Get("characters").([]string)
-	monsterValues, _ := firstForm.Get("monsters").([]string)
 
-	var initiativeGroups []*dnd.InitiativeGroup
-
-	// Process character initiatives
-	for _, uuid := range characterUUIDs {
-		initiativeKey := fmt.Sprintf("initiative_%s", uuid)
-		hpKey := fmt.Sprintf("hp_%s", uuid)
-		maxHpKey := fmt.Sprintf("maxhp_%s", uuid)
-
-		initiative := form.GetIntWithDefault(secondForm, initiativeKey, 0)
-
-		if character, exists := f.characters[uuid]; exists {
-			// Get health values
-			maxHPStr := strings.TrimSpace(secondForm.GetString(maxHpKey))
-			hpStr := strings.TrimSpace(secondForm.GetString(hpKey))
-
-			var maxHP int
-			if maxHPStr != "" {
-				var err error
-				maxHP, err = strconv.Atoi(maxHPStr)
-				if err != nil || maxHP < 0 {
-					maxHP = 0
-				}
-			}
-
-			var hp int
-			if hpStr != "" {
-				var err error
-				hp, err = strconv.Atoi(hpStr)
-				if err != nil || hp < 0 {
-					hp = maxHP // Use max HP if invalid
-				}
-			} else {
-				hp = maxHP // Use max HP if empty
-			}
-
-			// Create updated character with new health
-			updatedCharacter := character.WithHealth(hp, maxHP)
-
-			var creature dnd.Creature = updatedCharacter
-			group := dnd.NewInitiativeGroup(initiative, []*dnd.Creature{&creature})
-			initiativeGroups = append(initiativeGroups, group)
+	// Get entries from initiative list field
+	entries, ok := f.initiativeListField.GetValue().([]dnd.InitiativeEntry)
+	if !ok {
+		return func() tea.Msg {
+			return encounterFormCancelledMsg{}
 		}
 	}
 
-	// Process monster initiatives
-	for _, value := range monsterValues {
-		// value format is "sourceKey:monsterName"
-		parts := strings.Split(value, ":")
-		if len(parts) != 2 {
-			continue
-		}
+	var initiativeGroups []*dnd.InitiativeGroup
 
-		sourceKey := parts[0]
-		monsterName := parts[1]
-
-		// Get custom name, quantity, and initiative from second form
-		name := secondForm.GetString(fmt.Sprintf("name_%s", value))
-		quantity := form.GetIntWithDefault(secondForm, fmt.Sprintf("quantity_%s", value), 1)
-		initiative := form.GetIntWithDefault(secondForm, fmt.Sprintf("initiative_%s", value), 0)
-
-		// Find the monster in sources
-		if source, exists := f.sources[sourceKey]; exists {
-			for _, monster := range source.Monsters {
-				if monster.Name() == monsterName {
-					// Create multiple monsters for this group
-					var creatures []*dnd.Creature
-					for i := 0; i < quantity; i++ {
-						monsterName := name
-						if monsterName == "" {
-							monsterName = monster.Name()
-						}
-
-						newMonster := dnd.NewMonster(monsterName, monster.StatBlock())
-						var creature dnd.Creature = newMonster
-						creatures = append(creatures, &creature)
-					}
-
-					group := dnd.NewInitiativeGroup(initiative, creatures)
-					initiativeGroups = append(initiativeGroups, group)
-					break
+	// Convert entries to initiative groups
+	for _, entry := range entries {
+		if entry.CreatureType == "character" {
+			// Find the character
+			if character, exists := f.characters[entry.CreatureID]; exists {
+				var creature dnd.Creature = character
+				group := dnd.NewInitiativeGroup(entry.Initiative, []*dnd.Creature{&creature})
+				initiativeGroups = append(initiativeGroups, group)
+			}
+		} else {
+			// Monster entry
+			if entry.StatBlock != nil {
+				var creatures []*dnd.Creature
+				for i := 0; i < entry.Quantity; i++ {
+					monster := dnd.NewMonster(entry.Name, *entry.StatBlock)
+					var creature dnd.Creature = monster
+					creatures = append(creatures, &creature)
 				}
+				group := dnd.NewInitiativeGroup(entry.Initiative, creatures)
+				initiativeGroups = append(initiativeGroups, group)
 			}
 		}
 	}

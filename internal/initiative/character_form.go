@@ -76,7 +76,7 @@ func newCharacterForm(uuid string, existingCharacter *dnd.Character, width int, 
 					return nil
 				}),
 		).Title(title),
-	).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(customCharacterFormKeyMap())
+	).WithTheme(currentTheme.form).WithShowErrors(true).WithShowHelp(false).WithKeyMap(customCharacterFormKeyMap())
 
 	f := &characterForm{
 		form: form,

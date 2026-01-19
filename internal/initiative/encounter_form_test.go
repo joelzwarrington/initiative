@@ -7,112 +7,239 @@ import (
 	"github.com/joelzwarrington/initiative/dnd"
 )
 
-func TestGetCharacterOptions(t *testing.T) {
-	tests := []struct {
-		name       string
-		characters map[string]*dnd.Character
-		expected   []string // expected character names in sorted order
-	}{
-		{
-			name: "sorts characters by name case-insensitively",
-			characters: map[string]*dnd.Character{
-				"uuid-1": dnd.NewCharacter("Zara"),
-				"uuid-2": dnd.NewCharacter("alice"),
-				"uuid-3": dnd.NewCharacter("Bob"),
-				"uuid-4": dnd.NewCharacter("charlie"),
-			},
-			expected: []string{"alice", "Bob", "charlie", "Zara"},
-		},
-		{
-			name: "handles single character",
-			characters: map[string]*dnd.Character{
-				"solo": dnd.NewCharacter("Hero"),
-			},
-			expected: []string{"Hero"},
-		},
-		{
-			name:       "handles nil characters map",
-			characters: nil,
-			expected:   []string{},
-		},
-		{
-			name:       "handles empty characters map",
-			characters: map[string]*dnd.Character{},
-			expected:   []string{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			options := getCharacterOptions(tt.characters)
-
-			if len(options) != len(tt.expected) {
-				t.Fatalf("expected %d options, got %d", len(tt.expected), len(options))
-			}
-
-			for i, option := range options {
-				if option.Key != tt.expected[i] {
-					t.Errorf("option %d: expected name %q, got %q", i, tt.expected[i], option.Key)
-				}
-			}
-		})
-	}
-}
-
-func TestEncounterFormFilteringKeyBind(t *testing.T) {
+func TestEncounterFormInitialState(t *testing.T) {
 	characters := map[string]*dnd.Character{
 		"1": dnd.NewCharacter("Alice"),
 		"2": dnd.NewCharacter("Bob"),
 	}
 
-	tests := []struct {
-		name          string
-		setupKeys     []tea.KeyMsg
-		expectEscHelp bool
-	}{
-		{
-			name:          "initial state shows esc help",
-			setupKeys:     []tea.KeyMsg{},
-			expectEscHelp: true,
-		},
-		{
-			name: "navigate to characters field and start filtering",
-			setupKeys: []tea.KeyMsg{
-				{Type: tea.KeyRunes, Runes: []rune("/")}, // Start filtering on characters field
-			},
-			expectEscHelp: false,
-		},
+	form := newEncounterForm(characters, nil, 80, 40)
+
+	// Should start with one form (summary)
+	if len(*form.forms) != 1 {
+		t.Errorf("expected 1 form, got %d", len(*form.forms))
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			form := newEncounterForm(characters, nil, 40, 10)
+	// Should have esc help enabled
+	helpKeys := form.getHelpKeys()
+	hasEscHelp := false
+	for _, binding := range helpKeys {
+		if binding.Help().Key == "esc" && binding.Help().Desc == "cancel" {
+			hasEscHelp = true
+			break
+		}
+	}
 
-			// Navigate to the characters field using NextGroup()
-			currentForm := form.getCurrentForm()
-			if tt.name == "navigate to characters field and start filtering" {
-				currentForm.NextGroup()
-			}
+	if !hasEscHelp {
+		t.Error("expected esc help to be present")
+	}
+}
 
-			// Apply setup keys
-			for _, keyMsg := range tt.setupKeys {
-				updatedModel, _ := form.Update(keyMsg)
-				form = updatedModel.(*encounterForm)
-			}
+func TestEncounterFormNavigatesToInitiativeList(t *testing.T) {
+	characters := map[string]*dnd.Character{
+		"1": dnd.NewCharacter("Alice"),
+		"2": dnd.NewCharacter("Bob"),
+	}
 
-			// Check if esc help is shown
-			helpKeys := form.getHelpKeys()
-			hasEscHelp := false
-			for _, binding := range helpKeys {
-				if binding.Help().Key == "esc" && binding.Help().Desc == "cancel" {
-					hasEscHelp = true
-					break
-				}
-			}
+	form := newEncounterForm(characters, nil, 80, 40)
 
-			if hasEscHelp != tt.expectEscHelp {
-				t.Errorf("expected esc help: %v, got: %v", tt.expectEscHelp, hasEscHelp)
-			}
-		})
+	// Set summary value and submit
+	currentForm := form.getCurrentForm()
+	if field := currentForm.GetFocusedField(); field != nil {
+		// Type a summary
+		for _, char := range "Test Encounter" {
+			keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{char}}
+			form.Update(keyMsg)
+		}
+	}
+
+	// Simulate form submission by sending nextStep message
+	form.Update(encounterFormNextStepMsg{})
+
+	// Should now have 2 forms (summary + initiative list)
+	if len(*form.forms) != 2 {
+		t.Errorf("expected 2 forms after next step, got %d", len(*form.forms))
+	}
+
+	// Should have initiative list field
+	if form.initiativeListField == nil {
+		t.Error("expected initiative list field to be created")
+	}
+}
+
+func TestEncounterFormPreviousStepFromInitiativeList(t *testing.T) {
+	characters := map[string]*dnd.Character{
+		"1": dnd.NewCharacter("Alice"),
+	}
+
+	form := newEncounterForm(characters, nil, 80, 40)
+
+	// Go to initiative list
+	form.Update(encounterFormNextStepMsg{})
+
+	if len(*form.forms) != 2 {
+		t.Fatalf("expected 2 forms, got %d", len(*form.forms))
+	}
+
+	// Go back
+	form.Update(encounterFormPreviousStepMsg{})
+
+	// Should be back to 1 form
+	if len(*form.forms) != 1 {
+		t.Errorf("expected 1 form after going back, got %d", len(*form.forms))
+	}
+
+	// Initiative list field should be cleared
+	if form.initiativeListField != nil {
+		t.Error("expected initiative list field to be cleared")
+	}
+}
+
+func TestInitiativeListFieldPrePopulatesCharacters(t *testing.T) {
+	characters := map[string]*dnd.Character{
+		"uuid-1": dnd.NewCharacter("Alice"),
+		"uuid-2": dnd.NewCharacter("Bob"),
+		"uuid-3": dnd.NewCharacter("Charlie"),
+	}
+
+	field := NewInitiativeListField(characters, nil)
+
+	entries, ok := field.GetValue().([]dnd.InitiativeEntry)
+	if !ok {
+		t.Fatal("expected GetValue to return []dnd.InitiativeEntry")
+	}
+
+	if len(entries) != 3 {
+		t.Errorf("expected 3 entries, got %d", len(entries))
+	}
+
+	// All entries should be characters
+	for _, entry := range entries {
+		if entry.CreatureType != "character" {
+			t.Errorf("expected creature type 'character', got %q", entry.CreatureType)
+		}
+		if entry.Quantity != 1 {
+			t.Errorf("expected quantity 1 for character, got %d", entry.Quantity)
+		}
+	}
+}
+
+func TestInitiativeListFieldValidation(t *testing.T) {
+	characters := map[string]*dnd.Character{
+		"1": dnd.NewCharacter("Alice"),
+	}
+
+	field := NewInitiativeListField(characters, nil)
+
+	// Should have error initially (no initiative set)
+	if err := field.Error(); err == nil {
+		t.Error("expected validation error when no initiative set")
+	}
+}
+
+func TestInitiativeListFieldCharactersSortedAlphabetically(t *testing.T) {
+	characters := map[string]*dnd.Character{
+		"uuid-3": dnd.NewCharacter("Zara"),
+		"uuid-1": dnd.NewCharacter("Alice"),
+		"uuid-2": dnd.NewCharacter("Bob"),
+	}
+
+	field := NewInitiativeListField(characters, nil)
+
+	entries, ok := field.GetValue().([]dnd.InitiativeEntry)
+	if !ok {
+		t.Fatal("expected GetValue to return []dnd.InitiativeEntry")
+	}
+
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+
+	// Verify alphabetical order
+	expectedOrder := []string{"Alice", "Bob", "Zara"}
+	for i, entry := range entries {
+		if entry.Name != expectedOrder[i] {
+			t.Errorf("entry %d: expected name %q, got %q", i, expectedOrder[i], entry.Name)
+		}
+	}
+}
+
+func TestInitiativeListFieldAddMonster(t *testing.T) {
+	field := NewInitiativeListField(nil, nil)
+
+	// Initially empty
+	entries, _ := field.GetValue().([]dnd.InitiativeEntry)
+	if len(entries) != 0 {
+		t.Fatalf("expected 0 entries initially, got %d", len(entries))
+	}
+
+	// Add a monster
+	statBlock := dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: 15}}
+	field.AddMonster(dnd.InitiativeEntry{
+		CreatureType: "monster",
+		CreatureID:   "srd:Goblin",
+		Name:         "Goblin",
+		Initiative:   12,
+		Quantity:     3,
+		StatBlock:    &statBlock,
+	})
+
+	entries, _ = field.GetValue().([]dnd.InitiativeEntry)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry after adding monster, got %d", len(entries))
+	}
+
+	entry := entries[0]
+	if entry.CreatureType != "monster" {
+		t.Errorf("expected creature type 'monster', got %q", entry.CreatureType)
+	}
+	if entry.Name != "Goblin" {
+		t.Errorf("expected name 'Goblin', got %q", entry.Name)
+	}
+	if entry.Quantity != 3 {
+		t.Errorf("expected quantity 3, got %d", entry.Quantity)
+	}
+	if entry.Initiative != 12 {
+		t.Errorf("expected initiative 12, got %d", entry.Initiative)
+	}
+}
+
+func TestInitiativeListFieldUpdateMonster(t *testing.T) {
+	field := NewInitiativeListField(nil, nil)
+
+	// Add a monster
+	statBlock := dnd.StatBlock{HitPoints: dnd.HitPoints{Fixed: 15}}
+	field.AddMonster(dnd.InitiativeEntry{
+		CreatureType: "monster",
+		CreatureID:   "srd:Goblin",
+		Name:         "Goblin",
+		Quantity:     2,
+		StatBlock:    &statBlock,
+	})
+
+	// Update the monster
+	field.UpdateMonster(0, dnd.InitiativeEntry{
+		CreatureType: "monster",
+		CreatureID:   "srd:Goblin",
+		Name:         "Sneaky Goblin",
+		Initiative:   18,
+		Quantity:     4,
+		StatBlock:    &statBlock,
+	})
+
+	entries, _ := field.GetValue().([]dnd.InitiativeEntry)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+
+	entry := entries[0]
+	if entry.Name != "Sneaky Goblin" {
+		t.Errorf("expected name 'Sneaky Goblin', got %q", entry.Name)
+	}
+	if entry.Quantity != 4 {
+		t.Errorf("expected quantity 4, got %d", entry.Quantity)
+	}
+	if entry.Initiative != 18 {
+		t.Errorf("expected initiative 18, got %d", entry.Initiative)
 	}
 }

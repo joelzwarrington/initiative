@@ -27,7 +27,7 @@ func newCancellationForm(width, height int) *cancellationForm {
 				Negative("No.").
 				Value(&f.confirmed),
 		),
-	).WithWidth(width).WithHeight(height)
+	).WithTheme(currentTheme.form).WithWidth(width).WithHeight(height)
 
 	return f
 }
