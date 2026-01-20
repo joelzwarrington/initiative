@@ -51,14 +51,21 @@ type hitPointForm struct {
 	groupIndex    int
 	creatureIndex int
 	creatureName  string
+	isDamage      bool
 	width         int
 	height        int
 	help          help.Model
 }
 
-func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width int, height int, initialIsDamage bool) *hitPointForm {
+func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width int, height int, isDamage bool) *hitPointForm {
 	var adjustment string
-	var isDamage bool = initialIsDamage
+
+	var inputTitle string
+	if isDamage {
+		inputTitle = "Damage amount"
+	} else {
+		inputTitle = "Heal amount"
+	}
 
 	title := fmt.Sprintf("Adjust %s's hit points\n", creatureName)
 
@@ -66,29 +73,22 @@ func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width i
 		huh.NewGroup(
 			huh.NewInput().
 				Key("adjustment").
-				Title("HP adjustment").
+				Title(inputTitle).
 				Value(&adjustment).
 				Validate(func(str string) error {
 					str = strings.TrimSpace(str)
 					if str == "" {
-						return fmt.Errorf("Amount is required")
+						return fmt.Errorf("amount is required")
 					}
 					val, err := strconv.Atoi(str)
 					if err != nil {
-						return fmt.Errorf("Amount must be a valid number")
+						return fmt.Errorf("amount must be a valid number")
 					}
 					if val <= 0 {
-						return fmt.Errorf("Amount must be a positive number")
+						return fmt.Errorf("amount must be a positive number")
 					}
 					return nil
 				}),
-
-			huh.NewConfirm().
-				Key("isDamage").
-				Title("Type").
-				Affirmative("Damage").
-				Negative("Heal").
-				Value(&isDamage),
 		).Title(title),
 	).WithTheme(currentTheme.form).WithShowErrors(true).WithShowHelp(false).WithKeyMap(customHitPointFormKeyMap())
 
@@ -97,6 +97,7 @@ func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width i
 		groupIndex:    groupIndex,
 		creatureIndex: creatureIndex,
 		creatureName:  creatureName,
+		isDamage:      isDamage,
 		styles: hitPointFormStyles{
 			container: lipgloss.NewStyle().Padding(1, 2, 0, 2),
 			help:      lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 2),
@@ -160,12 +161,10 @@ func (f *hitPointForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if f.form.State == huh.StateCompleted {
 		adjustmentStr := f.form.GetString("adjustment")
-		isDamage := f.form.GetBool("isDamage")
-
 		adjustment, _ := strconv.Atoi(adjustmentStr)
 
 		var adjustmentType HitPointAdjustmentType
-		if isDamage {
+		if f.isDamage {
 			adjustmentType = HitPointDamage
 		} else {
 			adjustmentType = HitPointHeal
