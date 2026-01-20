@@ -39,6 +39,10 @@ func (f *encounterForm) isFilteringActive(form *huh.Form) bool {
 	return false
 }
 
+func (f *encounterForm) isInitiativeEditing() bool {
+	return f.initiativeListField != nil && f.initiativeListField.delegate.IsEditing()
+}
+
 func (f *encounterForm) getHelpKeys() []key.Binding {
 	form := f.getCurrentForm()
 	if form == nil {
@@ -178,9 +182,28 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return encounterFormCancelledMsg{}
 				})
 			}
-			// User chose not to cancel - dismiss the confirmation and continue
+			// User chose not to cancel - dismiss the confirmation
 			f.confirmCancelForm = nil
 			f.confirmCancel = false
+
+			// Recreate the current form to reset its aborted state while preserving field data
+			if len(*f.forms) == 2 && f.initiativeListField != nil {
+				form := huh.NewForm(
+					huh.NewGroup(f.initiativeListField),
+				).WithTheme(currentTheme.form).WithShowErrors(false).WithShowHelp(false).WithKeyMap(f.keys)
+
+				form.CancelCmd = func() tea.Msg {
+					return encounterFormPreviousStepMsg{}
+				}
+				form.SubmitCmd = func() tea.Msg {
+					return encounterFormNextStepMsg{}
+				}
+
+				(*f.forms)[1] = form
+				f.SetSize(f.width, f.height)
+				return f, form.Init()
+			}
+
 			return f, nil
 		}
 
@@ -238,18 +261,23 @@ func (f *encounterForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return f, tea.Sequence(append(cmds, f.nextStep())...)
 	}
 
-	// Check filtering state before form update
-	wasFiltering := f.isFilteringActive(currentForm)
+	// Check states that should disable Quit key before form update
+	wasQuitDisabled := f.isFilteringActive(currentForm) || f.isInitiativeEditing()
+
+	// Disable Quit key before form processes the message if needed
+	if wasQuitDisabled {
+		f.keys.Quit.SetEnabled(false)
+	}
 
 	form, cmd := currentForm.Update(msg)
 	cmds = append(cmds, cmd)
 	if form, ok := form.(*huh.Form); ok {
 		(*f.forms)[len(*f.forms)-1] = form
 
-		// Check filtering state after form update and update keymap if changed
-		isFiltering := f.isFilteringActive(form)
-		if wasFiltering != isFiltering {
-			f.keys.Quit.SetEnabled(!isFiltering)
+		// Update Quit key state after form update
+		isQuitDisabled := f.isFilteringActive(form) || f.isInitiativeEditing()
+		if wasQuitDisabled != isQuitDisabled {
+			f.keys.Quit.SetEnabled(!isQuitDisabled)
 		}
 
 		// Handle form quit (ESC pressed) - show confirmation

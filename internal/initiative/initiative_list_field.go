@@ -55,6 +55,7 @@ type initiativeListKeyMap struct {
 	Edit        key.Binding
 	EditEntry   key.Binding
 	Submit      key.Binding
+	Cancel      key.Binding
 	ConfirmEdit key.Binding
 	CancelEdit  key.Binding
 }
@@ -88,6 +89,10 @@ func defaultInitiativeListKeyMap() initiativeListKeyMap {
 		Submit: key.NewBinding(
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "start"),
+		),
+		Cancel: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "cancel"),
 		),
 		ConfirmEdit: key.NewBinding(
 			key.WithKeys("enter"),
@@ -256,6 +261,9 @@ func (f *InitiativeListField) updateKeyStates() {
 	// Submit only available when not editing and all creatures have initiative
 	allHaveInitiative := f.countNeedingInitiative() == 0
 	f.keys.Submit.SetEnabled(!isEditing && allHaveInitiative)
+
+	// Cancel only available when not editing
+	f.keys.Cancel.SetEnabled(!isEditing)
 
 	// Edit entry only available for monsters
 	canEditEntry := false
@@ -460,6 +468,9 @@ func (f *InitiativeListField) KeyBinds() []key.Binding {
 	}
 	if f.keys.Submit.Enabled() {
 		bindings = append(bindings, f.keys.Submit)
+	}
+	if f.keys.Cancel.Enabled() {
+		bindings = append(bindings, f.keys.Cancel)
 	}
 
 	return bindings
