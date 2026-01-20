@@ -2,6 +2,7 @@ package initiative
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joelzwarrington/initiative/dnd"
 )
 
 type hitPointFormStyles struct {
@@ -44,6 +46,44 @@ type hitPointFormSubmittedMsg struct {
 	adjustmentType HitPointAdjustmentType
 }
 
+var diceNotationPattern = regexp.MustCompile(`^\d*d\d+([+-]\d+)?$`)
+
+// isDiceNotation checks if the input matches dice notation format
+func isDiceNotation(s string) bool {
+	return diceNotationPattern.MatchString(s)
+}
+
+// parseAdjustment parses input as either a plain number or dice notation
+// Returns the value and any error
+func parseAdjustment(s string) (int, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("amount is required")
+	}
+
+	// Try plain number first
+	if val, err := strconv.Atoi(s); err == nil {
+		if val <= 0 {
+			return 0, fmt.Errorf("amount must be a positive number")
+		}
+		return val, nil
+	}
+
+	// Try dice notation
+	if isDiceNotation(s) {
+		roll, err := dnd.Roll(s)
+		if err != nil {
+			return 0, fmt.Errorf("invalid dice notation: %s", s)
+		}
+		if roll.Total <= 0 {
+			return 0, fmt.Errorf("roll result must be positive")
+		}
+		return roll.Total, nil
+	}
+
+	return 0, fmt.Errorf("enter a number (e.g. 5) or dice roll (e.g. 2d6+4)")
+}
+
 type hitPointForm struct {
 	form   *huh.Form
 	styles hitPointFormStyles
@@ -74,20 +114,11 @@ func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width i
 			huh.NewInput().
 				Key("adjustment").
 				Title(inputTitle).
+				Description("e.g. 5, 2d6, 1d8+2").
 				Value(&adjustment).
 				Validate(func(str string) error {
-					str = strings.TrimSpace(str)
-					if str == "" {
-						return fmt.Errorf("amount is required")
-					}
-					val, err := strconv.Atoi(str)
-					if err != nil {
-						return fmt.Errorf("amount must be a valid number")
-					}
-					if val <= 0 {
-						return fmt.Errorf("amount must be a positive number")
-					}
-					return nil
+					_, err := parseAdjustment(str)
+					return err
 				}),
 		).Title(title),
 	).WithTheme(currentTheme.form).WithShowErrors(true).WithShowHelp(false).WithKeyMap(customHitPointFormKeyMap())
@@ -161,7 +192,7 @@ func (f *hitPointForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if f.form.State == huh.StateCompleted {
 		adjustmentStr := f.form.GetString("adjustment")
-		adjustment, _ := strconv.Atoi(adjustmentStr)
+		adjustment, _ := parseAdjustment(adjustmentStr)
 
 		var adjustmentType HitPointAdjustmentType
 		if f.isDamage {
