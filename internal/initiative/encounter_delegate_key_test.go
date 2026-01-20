@@ -36,8 +36,10 @@ func TestAdjustHitPointsMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create test setup
-			monster := dnd.NewMonster("Test Monster", dnd.StatBlock{})
+			// Create test setup with HP so damage/heal keys are enabled
+			monster := dnd.NewMonster("Test Monster", dnd.StatBlock{
+				HitPoints: dnd.HitPoints{Fixed: 20},
+			})
 			var monsterPtr dnd.Creature = monster
 			encounter := dnd.NewEncounter("", time.Time{}, []*dnd.InitiativeGroup{
 				dnd.NewInitiativeGroup(15, []*dnd.Creature{&monsterPtr}),

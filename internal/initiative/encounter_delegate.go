@@ -217,11 +217,14 @@ func (d creatureItemDelegate) Spacing() int {
 func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	item, ok := m.SelectedItem().(creatureItem)
 
+	// Only allow damage/heal actions if creature has health
+	hasHealth := ok && item.creature.MaxHP() > 0
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, d.keys.dealDamage):
-			if ok {
+			if hasHealth {
 				return tea.Cmd(func() tea.Msg {
 					return adjustHitPointsMsg{
 						groupIndex:    item.groupIndex,
@@ -231,7 +234,7 @@ func (d *creatureItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 				})
 			}
 		case key.Matches(msg, d.keys.heal):
-			if ok {
+			if hasHealth {
 				return tea.Cmd(func() tea.Msg {
 					return adjustHitPointsMsg{
 						groupIndex:    item.groupIndex,
