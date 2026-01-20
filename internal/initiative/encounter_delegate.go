@@ -280,6 +280,11 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 		ac = seperator + icons.ArmorClass.Join(fmt.Sprintf("%d", item.creature.AC()), nil)
 	}
 
+	speed := ""
+	if speed = item.creature.Speed(); speed != "" {
+		speed = seperator + icons.Speed.Join(speed, nil)
+	}
+
 	health := ""
 	if item.creature.MaxHP() > 0 {
 		health = d.healthBar.View(item.creature.HP(), item.creature.MaxHP())
@@ -293,6 +298,7 @@ func (d creatureItemDelegate) Render(w io.Writer, m list.Model, index int, listI
 				prefix,
 				item.creature.Name(),
 				ac,
+				speed,
 			),
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,

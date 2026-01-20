@@ -84,6 +84,20 @@ func TestEncounterDelegateRender(t *testing.T) {
 			}(),
 			expected: "                                            \n                                            \n1 creature                                  \n > 14 • Orc • \U000f0499 13                          \n        ████████████████████ 15/15 (Healthy)\n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            ",
 		},
+		{
+			name: "monster with speed",
+			encounter: func() *dnd.Encounter {
+				goblin := dnd.NewMonster("Goblin", dnd.StatBlock{
+					Speed:     "30 ft.",
+					HitPoints: dnd.HitPoints{Fixed: 7},
+				})
+				var creature dnd.Creature = goblin
+				return dnd.NewEncounter("", time.Time{}, []*dnd.InitiativeGroup{
+					dnd.NewInitiativeGroup(14, []*dnd.Creature{&creature}),
+				})
+			}(),
+			expected: "                                          \n                                          \n1 creature                                \n > 14 • Goblin • \U000f046e 30 ft.                 \n        ████████████████████ 7/7 (Healthy)\n                                          \n                                          \n                                          \n                                          \n                                          \n                                          \n                                          ",
+		},
 	}
 
 	for _, tt := range tests {

@@ -14,6 +14,7 @@ type iconMap struct {
 	SourcesTab   icon
 
 	ArmorClass icon
+	Speed      icon
 }
 
 var icons = iconMap{
@@ -22,6 +23,7 @@ var icons = iconMap{
 	SourcesTab:   icon{icon: "󰧮", fallback: ""},
 
 	ArmorClass: icon{icon: "󰒙", fallback: ""},
+	Speed:      icon{icon: "󰑮", fallback: ""},
 }
 
 func (i icon) Render(fallback *string) string {
