@@ -73,6 +73,12 @@ Your party data saves automatically and persists across sessions. Manage multipl
 
 The [System Reference Document](https://www.dndbeyond.com/srd) comes built-in with all core monsters. Expand your creature library with custom sources using the `--source` flag.
 
+## Dice Rolling
+
+<img src="examples/roll.gif" width="640" alt="Rolling dice">
+
+Roll dice directly from the command line using standard dice notation like `8d6` or `1d20+4`.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
