@@ -54,6 +54,7 @@ type initiativeListKeyMap struct {
 	Delete      key.Binding
 	Edit        key.Binding
 	EditEntry   key.Binding
+	Roll        key.Binding
 	Submit      key.Binding
 	Cancel      key.Binding
 	ConfirmEdit key.Binding
@@ -85,6 +86,10 @@ func defaultInitiativeListKeyMap() initiativeListKeyMap {
 		EditEntry: key.NewBinding(
 			key.WithKeys("e"),
 			key.WithHelp("e", "edit"),
+		),
+		Roll: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "roll"),
 		),
 		Submit: key.NewBinding(
 			key.WithKeys("enter"),
@@ -235,6 +240,48 @@ func (f *InitiativeListField) removeSelected() tea.Cmd {
 	return nil
 }
 
+func (f *InitiativeListField) rollInitiative() tea.Cmd {
+	dexMod, hasDex := f.getSelectedDexModifier()
+	if !hasDex {
+		return nil
+	}
+
+	items := f.list.Items()
+	idx := f.list.Index()
+	if idx < 0 || idx >= len(items) {
+		return nil
+	}
+
+	item, ok := items[idx].(initiativeItem)
+	if !ok {
+		return nil
+	}
+
+	// Build dice notation: 1d20+modifier or 1d20-modifier
+	var notation string
+	if dexMod >= 0 {
+		notation = fmt.Sprintf("1d20+%d", dexMod)
+	} else {
+		notation = fmt.Sprintf("1d20%d", dexMod) // negative already includes minus
+	}
+
+	roll, err := dnd.Roll(notation)
+	if err != nil {
+		return nil
+	}
+
+	// Update item with rolled initiative
+	item.entry.Initiative = roll.Total
+	f.list.SetItem(idx, item)
+
+	// Move to next creature needing initiative
+	f.delegate.selectNextNeedingInitiative(&f.list)
+	f.updateKeyStates()
+
+	// Return status message
+	return f.list.NewStatusMessage(fmt.Sprintf("%s rolled %d (%s)", item.entry.Name, roll.Total, roll.Formula))
+}
+
 func (f *InitiativeListField) countNeedingInitiative() int {
 	count := 0
 	for _, item := range f.list.Items() {
@@ -245,6 +292,38 @@ func (f *InitiativeListField) countNeedingInitiative() int {
 		}
 	}
 	return count
+}
+
+// getSelectedDexModifier returns the DEX modifier for the selected creature
+// Returns (modifier, true) if DEX is available, (0, false) otherwise
+func (f *InitiativeListField) getSelectedDexModifier() (int, bool) {
+	selectedItem := f.list.SelectedItem()
+	if selectedItem == nil {
+		return 0, false
+	}
+
+	item, ok := selectedItem.(initiativeItem)
+	if !ok {
+		return 0, false
+	}
+
+	// For monsters, get DEX from stat block
+	if item.entry.StatBlock != nil {
+		if item.entry.StatBlock.DEX.Score > 0 {
+			return item.entry.StatBlock.DEX.Modifier, true
+		}
+	}
+
+	// For characters, look up in characters map
+	if item.entry.CreatureType == "character" {
+		if char, exists := f.characters[item.entry.CreatureID]; exists {
+			if char.DEX().Score > 0 {
+				return char.DEX().Modifier, true
+			}
+		}
+	}
+
+	return 0, false
 }
 
 func (f *InitiativeListField) updateKeyStates() {
@@ -267,14 +346,19 @@ func (f *InitiativeListField) updateKeyStates() {
 
 	// Edit entry only available for monsters
 	canEditEntry := false
+	canRoll := false
 	if hasItems && !isEditing {
 		if selectedItem := f.list.SelectedItem(); selectedItem != nil {
 			if item, ok := selectedItem.(initiativeItem); ok {
 				canEditEntry = item.entry.CreatureType == "monster"
+				// Can roll if creature has DEX
+				_, hasDex := f.getSelectedDexModifier()
+				canRoll = hasDex
 			}
 		}
 	}
 	f.keys.EditEntry.SetEnabled(canEditEntry)
+	f.keys.Roll.SetEnabled(canRoll)
 
 	// Confirm/cancel only available when editing
 	f.keys.ConfirmEdit.SetEnabled(isEditing)
@@ -337,6 +421,14 @@ func (f *InitiativeListField) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, f.keys.Delete):
 			// Remove selected item
 			cmd := f.removeSelected()
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+			return f, tea.Batch(cmds...)
+
+		case key.Matches(msg, f.keys.Roll):
+			// Roll initiative for selected creature
+			cmd := f.rollInitiative()
 			if cmd != nil {
 				cmds = append(cmds, cmd)
 			}
@@ -459,6 +551,9 @@ func (f *InitiativeListField) KeyBinds() []key.Binding {
 	}
 	if f.keys.EditEntry.Enabled() {
 		bindings = append(bindings, f.keys.EditEntry)
+	}
+	if f.keys.Roll.Enabled() {
+		bindings = append(bindings, f.keys.Roll)
 	}
 	if f.keys.Add.Enabled() {
 		bindings = append(bindings, f.keys.Add)
