@@ -158,15 +158,23 @@ var Theme = struct {
 
 ## Code Style Guidelines
 
-- Follow standard Go conventions and idioms (some of which are documented below)
+Follow standard Go conventions. This guide is based on [Google's Go Style Guide](https://google.github.io/styleguide/go/).
+
+### Core Principles (in priority order)
+
+1. **Clarity** - Code's purpose and rationale are evident to readers
+2. **Simplicity** - Goals accomplished in the most straightforward way
+3. **Concision** - High signal-to-noise ratio
+4. **Maintainability** - Easy for future programmers to modify correctly
+5. **Consistency** - Aligned with broader codebase patterns
 
 ### Formatting
 
-- Run `go fmt ./...` before task completion or after significant code changes, not after every small edit
+- All code must conform to `gofmt` output
+- Run `go fmt ./...` before task completion or after significant code changes
+- No fixed line length; prefer refactoring over arbitrary line splits
 
 ### Development Commands
-
-Common commands for development and building:
 
 - `go build ./...` - Build all packages
 - `go test ./...` - Run all tests
@@ -174,46 +182,65 @@ Common commands for development and building:
 - `go mod tidy` - Clean up module dependencies
 - `go fmt ./...` - Format all code
 
-**Note:** Avoid using `go run .` or running the binary in non-TTY environments as the application requires a terminal for the TUI interface.
+**Note:** Avoid `go run .` in non-TTY environments as the TUI requires a terminal.
 
 ### Naming Conventions
 
-- Use pascal case or camel case (`PascalCase` or `camelCase`), never underscores
-- Acronyms should be consistent case: `URL`, `HTTP`, `ID` (not `Url`, `Http`, `Id`)
-- Package names: lowercase, single-word, no underscores (e.g., `httputil` not `http_util`)
+- Use `MixedCaps` or `mixedCaps`, never underscores (except test functions, generated code)
+- Acronyms maintain consistent case: `URL`, `HTTP`, `ID`, `url`, `http`, `id` (not `Url`, `Http`, `Id`)
+- Package names: lowercase, single-word, no underscores; avoid generic names like `util` or `common`
 - Keep names short but descriptive; prefer `i` to `index` in short scopes
-- Getters don't use `Get` prefix: use `Name()` not `GetName()`
+- Avoid redundancy: `Parse()` in package `yamlconfig`, not `ParseYAMLConfig()`
+- Getters omit `Get` prefix: use `Name()` not `GetName()`
 - Error variables start with `Err`: `ErrNotFound` not `NotFoundError`
 - Interfaces with one method use `-er` suffix: `Reader`, `Writer`
+- Receiver names: short (1-2 letters), consistent across all methods of a type
 
 ### Error Handling
 
-- Always check errors; never ignore them with blank identifier (unless intentional)
-- Wrap errors with context using `fmt.Errorf("operation failed: %w", err)`
-- Use `errors.Is()` and `errors.As()` for error inspection (not direct comparison)
+- Always check errors; never ignore with blank identifier (unless intentional)
+- Handle errors early with early returns; keep normal code flow unindented
+- Wrap errors with context: `fmt.Errorf("operation failed: %w", err)` (place `%w` at end)
+- Use `errors.Is()` and `errors.As()` for inspection (not direct comparison)
+- Error strings: lowercase, no punctuation (they often appear in larger context)
 - Return errors to callers; only log at the top level
 - Don't panic except for truly unrecoverable situations
+- Avoid in-band errors (returning -1 or empty string); return additional validity value instead
 
 ### Functions & Methods
 
 - Keep functions focused on a single responsibility
 - Prefer early returns to reduce nesting
-- Context should be the first parameter when present: `func DoThing(ctx context.Context, ...)`
-- Receiver names should be short (1-2 letters) and consistent across methods
+- Context should be first parameter: `func DoThing(ctx context.Context, ...)`
+- For many parameters, use option structs or variadic functional options
+
+### Code Organization
+
+- Group imports: standard library, third-party, local packages
+- Rename imports only when necessary (collisions, uninformative names)
+- Define interfaces in consuming packages, not producing packages
+- Return concrete types from constructors
+- Group related code by concept, not "one type per file"
 
 ### Comments & Documentation
 
 - Every exported function/type needs a doc comment starting with its name
-- Comments should explain _why_, not _what_ (code shows _what_)
-- Package comments go in a `doc.go` file or at the top of the main file
+- Doc comments: complete sentences, capitalized, punctuated
+- Comments explain _why_, not _what_ (code shows _what_)
+- Package comments go in `doc.go` or at top of main file (no blank line before `package`)
+- Wrap comments at ~80 characters
 
 ## Testing
 
 - Tests live alongside source files (`*_test.go`)
-- Use the standard `testing` package
+- Use the standard `testing` package; avoid assertion libraries
 - Use table-driven tests where appropriate
 - Test both success and error paths
-- Prefer less high quality tests vs a lot of lower quality tests
-- Aim to be succinct in testing and accurately assert the expected outcome
-- Avoid writing tests for simple or irrelevant code, try to focus on testing the important functionality
-- Prefer updating an existing test when possible, as to avoid test bloat
+- Use "got before want" format: `YourFunc(%v) = %v, want %v`
+- Prefer `t.Error` over `t.Fatal` to allow multiple failures per run
+- Use `cmp.Diff` for complex comparisons
+- Never call `t.Fatal()` from goroutines; use `t.Error()` with return
+- Keep test logic in the `Test` function, not assertion helpers
+- Prefer fewer high-quality tests over many lower-quality tests
+- Focus on testing important functionality; avoid tests for trivial code
+- Prefer updating existing tests to avoid test bloat
