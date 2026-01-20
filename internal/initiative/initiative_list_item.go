@@ -152,9 +152,43 @@ func (d *initiativeItemDelegate) confirmEdit(m *list.Model) tea.Cmd {
 
 	item.entry.Initiative = initValue
 	cmd := m.SetItem(d.editingIndex, item)
+
+	// Auto-select next item needing initiative
+	d.selectNextNeedingInitiative(m)
+
 	d.editingIndex = -1
 	d.textInput.Blur()
 	return cmd
+}
+
+// selectNextNeedingInitiative finds and selects the next item that needs an initiative value
+func (d *initiativeItemDelegate) selectNextNeedingInitiative(m *list.Model) {
+	items := m.Items()
+	if len(items) == 0 {
+		return
+	}
+
+	currentIndex := m.Index()
+
+	// Search from current index + 1 to end
+	for i := currentIndex + 1; i < len(items); i++ {
+		if item, ok := items[i].(initiativeItem); ok {
+			if item.entry.Initiative <= 0 {
+				m.Select(i)
+				return
+			}
+		}
+	}
+
+	// Search from beginning to current index (wrap around)
+	for i := 0; i < currentIndex; i++ {
+		if item, ok := items[i].(initiativeItem); ok {
+			if item.entry.Initiative <= 0 {
+				m.Select(i)
+				return
+			}
+		}
+	}
 }
 
 func (d *initiativeItemDelegate) cancelEdit() tea.Cmd {
