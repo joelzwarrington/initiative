@@ -3,7 +3,6 @@ package initiative
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -61,6 +60,7 @@ func newMonsterAddForm(sources map[string]*dnd.Source, width int, height int) *m
 			huh.NewInput().
 				Key("quantity").
 				Title("Quantity").
+				Description("e.g. 3, 1d4, 2d6").
 				Placeholder("1").
 				Value(&quantity).
 				Validate(func(str string) error {
@@ -68,14 +68,8 @@ func newMonsterAddForm(sources map[string]*dnd.Source, width int, height int) *m
 					if str == "" {
 						return nil // Will default to 1
 					}
-					val, err := strconv.Atoi(str)
-					if err != nil {
-						return fmt.Errorf("Quantity must be a valid number")
-					}
-					if val <= 0 {
-						return fmt.Errorf("Quantity must be positive")
-					}
-					return nil
+					_, err := parseAdjustment(str)
+					return err
 				}),
 
 			huh.NewInput().
@@ -142,6 +136,7 @@ func newMonsterEditForm(sources map[string]*dnd.Source, entry dnd.InitiativeEntr
 			huh.NewInput().
 				Key("quantity").
 				Title("Quantity").
+				Description("e.g. 3, 1d4, 2d6").
 				Placeholder("1").
 				Value(&quantity).
 				Validate(func(str string) error {
@@ -149,14 +144,8 @@ func newMonsterEditForm(sources map[string]*dnd.Source, entry dnd.InitiativeEntr
 					if str == "" {
 						return nil // Will default to 1
 					}
-					val, err := strconv.Atoi(str)
-					if err != nil {
-						return fmt.Errorf("Quantity must be a valid number")
-					}
-					if val <= 0 {
-						return fmt.Errorf("Quantity must be positive")
-					}
-					return nil
+					_, err := parseAdjustment(str)
+					return err
 				}),
 
 			huh.NewInput().
@@ -289,9 +278,11 @@ func (f *monsterAddForm) submit() tea.Cmd {
 	customName := strings.TrimSpace(f.form.GetString("customName"))
 	quantityStr := strings.TrimSpace(f.form.GetString("quantity"))
 
-	quantity, _ := strconv.Atoi(quantityStr)
-	if quantity <= 0 {
-		quantity = 1
+	quantity := 1
+	if quantityStr != "" {
+		if val, err := parseAdjustment(quantityStr); err == nil {
+			quantity = val
+		}
 	}
 
 	// Parse monster selection (format: "sourceKey:monsterName")
