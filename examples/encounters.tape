@@ -7,8 +7,13 @@
 Output encounters.gif
 
 ## Settings
+Set LoopOffset 95%
+Set Shell fish
 Set WindowBar Colorful
+Set Padding 10
 Set Height 800
+Set Width 1200
+Set TypingSpeed 100ms
 
 Hide
 Type "go run ../. --game game.yaml"
@@ -16,110 +21,76 @@ Enter
 Wait+Screen /Encounter/
 Show
 
-Sleep 2
+Sleep 2s
 Type "n"
 
 # Add encounter
 
-Sleep 0.5
+Sleep 1s
 Type "Ambush at Emerald Grove"
-Sleep 0.5
+Sleep 2s
 Enter
 
-# Add characters
+# Set character initiatives
 
-Sleep 0.5
-Type "/Karlach"
-Sleep 0.5
+Type "19"
+Sleep 1s
+Down
+Sleep 1s
+
+Type "6"
 Enter
-Sleep 0.75
-Space
-Sleep 0.75
-Enter
+Sleep 1s
+Down
+Sleep 1s
+
+Type "11"
+Sleep 1s
+Down
+Sleep 1s
+
+Type "d"
+Sleep 1s
+
+Type "15"
+Sleep 1s
 
 # Add monsters
 
-Sleep 0.5
+## Add goblins
+Sleep 1s
+Type "a"
+Sleep 1.5s
 Type "/Goblin"
-Sleep 0.5
+Sleep 1s
 Enter
-Sleep 0.75
-Space
-Sleep 0.75
-Type "/"
-Backspace@0ms 6
-
-Sleep 0.5
-Type "Bugbear"
-Sleep 0.5
-Enter
-Sleep 0.75
-Space
-Sleep 0.75
-Type "/"
-Backspace@0ms 7 
-
-Sleep 0.5
-Type "Worg"
-Sleep 0.5
-Enter
-Sleep 0.75
-Space
-Sleep 0.75
-Enter
-
-# Setup initiative
-
-Sleep 1
-Type "12"
-Sleep 0.5
-Enter
-Sleep 0.5
-Type "16"
-Sleep 0.5
-Enter
-Sleep 0.5
-Type "7"
-Sleep 0.5
-Enter
-Sleep 0.5
-Type "20"
-Sleep 0.5
-Enter
-Sleep 0.5
-
-# Add initiative / quantity for monsters
-
-Sleep 1
-Enter
-Sleep 0.5
-Type "2"
-Sleep 0.5
-Enter
-Sleep 0.5
-Type "13"
-Sleep 0.5
-Enter
-Sleep 0.5
-
-Enter
-Sleep 0.5
 Type "6"
-Sleep 0.5
+Enter 2
+Sleep 1s
+Type "8"
 Enter
-Sleep 0.5
+
+## Add hobgoblins
+Sleep 1s
+Type "a"
+Sleep 1.5s
+Type "/Hobgoblin"
+Sleep 1s
+Enter
+Type "2"
+Enter 2
+Sleep 1s
+Type "13"
+
+## Add worg
+Sleep 1s
+Type "a"
+Sleep 1.5s
+Type "/Worg"
+Sleep 1s
+Enter 3
+Sleep 1s
 Type "4"
-Sleep 0.5
-Enter
+Enter 2
 
-Enter
-Sleep 0.5
-Type "1"
-Sleep 0.5
-Enter
-Sleep 0.5
-Type "17"
-Sleep 0.5
-Enter
-
-Sleep 3
+Sleep 4s
