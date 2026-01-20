@@ -286,12 +286,7 @@ func (p *encounterPage) ShortHelp() []key.Binding {
 
 	// Handle form states first - show essential form keys
 	if p.isAddingNewEncounter() && p.encounterForm != nil {
-		formKeys := p.encounterForm.HelpKeys()
-		// Return a subset of essential form keys, or first few
-		if len(formKeys) > 4 {
-			return formKeys[:4]
-		}
-		return formKeys
+		return p.encounterForm.HelpKeys()
 	}
 
 	if p.isAdjustingHitPoints() && p.hitPointForm != nil {

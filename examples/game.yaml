@@ -1,11 +1,21 @@
 characters:
   3d838b5a-3727-411a-91b3-cb4d9b7407c2:
     name: Karlach
+    hit_points: 0
+    maximum_hit_points: 0
   8ad43af1-6d9b-46dc-b5ba-da25ac73dc54:
     name: Shadowheart
+    hit_points: 0
+    maximum_hit_points: 0
   056019e9-0bec-47c1-8078-ac7678ecfbf9:
     name: Gale
+    hit_points: 0
+    maximum_hit_points: 0
   66970c3c-cb41-40da-9969-5c8c4ce4a54c:
     name: Astarion
+    hit_points: 0
+    maximum_hit_points: 0
   ea71c5d1-5cf2-4cd5-8644-895f08365704:
     name: Wyll
+    hit_points: 0
+    maximum_hit_points: 0

@@ -90,7 +90,7 @@ func newHitPointForm(groupIndex, creatureIndex int, creatureName string, width i
 				Negative("Heal").
 				Value(&isDamage),
 		).Title(title),
-	).WithShowErrors(true).WithShowHelp(false).WithAccessible(true).WithKeyMap(customHitPointFormKeyMap())
+	).WithTheme(currentTheme.form).WithShowErrors(true).WithShowHelp(false).WithKeyMap(customHitPointFormKeyMap())
 
 	f := &hitPointForm{
 		form:          form,
